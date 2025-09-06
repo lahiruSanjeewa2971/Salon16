@@ -1,6 +1,8 @@
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
 
+import CloudinaryTest from '../../components/CloudinaryTest';
+import FirebaseTest from '../../components/FirebaseTest';
 import { HelloWave } from '../../components/HelloWave';
 import ParallaxScrollView from '../../components/ParallaxScrollView';
 import { ThemedText } from '../../components/ThemedText';
@@ -42,14 +44,18 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
+        <ThemedText type="subtitle">Step 3: Firebase Integration</ThemedText>
         <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+          Firebase has been configured for Salon 16. Test the connection below.
         </ThemedText>
+        <FirebaseTest />
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 4: Cloudinary Integration</ThemedText>
+        <ThemedText>
+          Cloudinary is configured for image storage. Test image upload below.
+        </ThemedText>
+        <CloudinaryTest />
       </ThemedView>
     </ParallaxScrollView>
   );
