@@ -6,6 +6,7 @@ import {
   Platform,
   SafeAreaView,
   StatusBar,
+  StyleSheet,
   View
 } from 'react-native';
 import Animated, {
@@ -22,10 +23,14 @@ import { ThemedButton } from '../components/themed/ThemedButton';
 import { ThemedText } from '../components/ThemedText';
 import { useTheme } from '../contexts/ThemeContext';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
+
+// Responsive breakpoints
+const isSmallScreen = height < 700;
+const isMediumScreen = height >= 700 && height < 800;
 
 export default function WelcomeScreen() {
-  const { colors, spacing, typography, borderRadius } = useTheme();
+  const { colors, spacing, borderRadius } = useTheme();
   const router = useRouter();
 
   // Animation values
@@ -60,7 +65,7 @@ export default function WelcomeScreen() {
     };
 
     startAnimations();
-  }, []);
+  }, [buttonSlideAnim, fadeAnim, logoScaleAnim, rotateAnim, scaleAnim, slideUpAnim]);
 
   // Animated styles
   const logoAnimatedStyle = useAnimatedStyle(() => ({
@@ -94,254 +99,263 @@ export default function WelcomeScreen() {
     router.push('/(tabs)');
   };
 
+  // Create responsive styles using theme values
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    gradient: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      height: height,
+    },
+    decorativeCircle1: {
+      position: 'absolute',
+      top: isSmallScreen ? -30 : -50,
+      right: isSmallScreen ? -30 : -50,
+      width: isSmallScreen ? 150 : 200,
+      height: isSmallScreen ? 150 : 200,
+      borderRadius: isSmallScreen ? 75 : 100,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    decorativeCircle2: {
+      position: 'absolute',
+      bottom: isSmallScreen ? -60 : -100,
+      left: isSmallScreen ? -60 : -100,
+      width: isSmallScreen ? 200 : 300,
+      height: isSmallScreen ? 200 : 300,
+      borderRadius: isSmallScreen ? 100 : 150,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    mainContent: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: isSmallScreen ? spacing.lg : spacing.xl,
+      paddingTop: isSmallScreen ? spacing.lg : 0,
+      paddingBottom: isSmallScreen ? spacing.lg : 0,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: isSmallScreen ? spacing.lg : spacing.xxl,
+    },
+    logoCircle: {
+      width: isSmallScreen ? 80 : isMediumScreen ? 100 : 120,
+      height: isSmallScreen ? 80 : isMediumScreen ? 100 : 120,
+      borderRadius: isSmallScreen ? 40 : isMediumScreen ? 50 : 60,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: isSmallScreen ? spacing.md : spacing.lg,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.3,
+          shadowRadius: 16,
+        },
+        android: {
+          elevation: 8,
+        },
+        web: {
+          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
+        },
+      }),
+    },
+    title: {
+      fontSize: isSmallScreen ? 28 : isMediumScreen ? 30 : 32,
+      fontWeight: 'bold',
+      color: 'white',
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+      lineHeight: isSmallScreen ? 32 : isMediumScreen ? 35 : 38,
+      paddingVertical: 4,
+    },
+    subtitle: {
+      fontSize: isSmallScreen ? 16 : 18,
+      color: 'rgba(255, 255, 255, 0.9)',
+      textAlign: 'center',
+      fontWeight: '300',
+    },
+    contentContainer: {
+      width: '100%',
+      alignItems: 'center',
+    },
+    cardsContainer: {
+      width: '100%',
+      marginBottom: isSmallScreen ? spacing.lg : spacing.xxl,
+    },
+    featureCard: {
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      borderRadius: borderRadius.card.large,
+      padding: isSmallScreen ? spacing.md : spacing.lg,
+      marginBottom: isSmallScreen ? spacing.sm : spacing.md,
+      backdropFilter: 'blur(10px)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    cardTitle: {
+      fontSize: isSmallScreen ? 16 : 18,
+      fontWeight: '600',
+      color: 'white',
+      marginLeft: spacing.sm,
+    },
+    cardDescription: {
+      fontSize: isSmallScreen ? 13 : 14,
+      color: 'rgba(255, 255, 255, 0.8)',
+      lineHeight: isSmallScreen ? 18 : 20,
+    },
+    buttonsContainer: {
+      width: '100%',
+    },
+    primaryButton: {
+      backgroundColor: 'white',
+      marginBottom: spacing.md,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 8,
+        },
+        web: {
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+        },
+      }),
+    },
+    primaryButtonText: {
+      color: colors.primary,
+      fontWeight: 'bold',
+      fontSize: isSmallScreen ? 16 : 18,
+    },
+    secondaryButton: {
+      borderColor: 'white',
+      borderWidth: 2,
+    },
+    secondaryButtonText: {
+      color: 'white',
+      fontWeight: '600',
+      fontSize: isSmallScreen ? 14 : 16,
+    },
+    bottomIndicator: {
+      position: 'absolute',
+      bottom: isSmallScreen ? 10 : 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    indicatorDot: {
+      width: isSmallScreen ? 6 : 8,
+      height: isSmallScreen ? 6 : 8,
+      borderRadius: isSmallScreen ? 3 : 4,
+      marginHorizontal: 4,
+    },
+    indicatorDotActive: {
+      backgroundColor: 'white',
+    },
+    indicatorDotInactive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    },
+  });
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Background Gradient */}
       <LinearGradient
         colors={[colors.primary, colors.primaryDark, colors.accent]}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 0,
-          height: height,
-        }}
+        style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
 
       {/* Decorative Background Elements */}
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            top: -50,
-            right: -50,
-            width: 200,
-            height: 200,
-            borderRadius: 100,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          },
-          decorativeAnimatedStyle,
-        ]}
-      />
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            bottom: -100,
-            left: -100,
-            width: 300,
-            height: 300,
-            borderRadius: 150,
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          },
-          decorativeAnimatedStyle,
-        ]}
-      />
+      <Animated.View style={[styles.decorativeCircle1, decorativeAnimatedStyle]} />
+      <Animated.View style={[styles.decorativeCircle2, decorativeAnimatedStyle]} />
 
       {/* Floating Elements */}
       <FloatingElements />
 
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.xl }}>
+      <View style={styles.mainContent}>
         {/* Logo Section */}
-        <Animated.View style={[{ alignItems: 'center', marginBottom: spacing.xxl }, logoAnimatedStyle]}>
-          <View
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: spacing.lg,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 16,
-              },
-              android: {
-                elevation: 8,
-              },
-              web: {
-                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
-              },
-            }),
-            }}
-          >
+        <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
+          <View style={styles.logoCircle}>
             <Ionicons name="cut" size={60} color="white" />
           </View>
           
-          <ThemedText
-            style={{
-              fontSize: 36,
-              fontWeight: 'bold',
-              color: 'white',
-              textAlign: 'center',
-              marginBottom: spacing.sm,
-              textShadowColor: 'rgba(0, 0, 0, 0.3)',
-              textShadowOffset: { width: 0, height: 2 },
-              textShadowRadius: 4,
-            }}
-          >
+          <ThemedText style={styles.title}>
             Salon 16
           </ThemedText>
           
-          <ThemedText
-            style={{
-              fontSize: 18,
-              color: 'rgba(255, 255, 255, 0.9)',
-              textAlign: 'center',
-              fontWeight: '300',
-            }}
-          >
+          <ThemedText style={styles.subtitle}>
             Your Beauty, Our Passion
           </ThemedText>
         </Animated.View>
 
         {/* Main Content */}
-        <Animated.View style={[{ width: '100%', alignItems: 'center' }, contentAnimatedStyle]}>
+        <Animated.View style={[styles.contentContainer, contentAnimatedStyle]}>
           {/* Feature Cards */}
-          <Animated.View style={[{ width: '100%', marginBottom: spacing.xxl }, cardAnimatedStyle]}>
-            <View
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: borderRadius.card.large,
-                padding: spacing.lg,
-                marginBottom: spacing.md,
-                backdropFilter: 'blur(10px)',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+          <Animated.View style={[styles.cardsContainer, cardAnimatedStyle]}>
+            <View style={styles.featureCard}>
+              <View style={styles.cardHeader}>
                 <Ionicons name="calendar" size={24} color="white" />
-                <ThemedText
-                  style={{
-                    fontSize: 18,
-                    fontWeight: '600',
-                    color: 'white',
-                    marginLeft: spacing.sm,
-                  }}
-                >
+                <ThemedText style={styles.cardTitle}>
                   Easy Booking
                 </ThemedText>
               </View>
-              <ThemedText
-                style={{
-                  fontSize: 14,
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  lineHeight: 20,
-                }}
-              >
+              <ThemedText style={styles.cardDescription}>
                 Book your appointments with just a few taps
               </ThemedText>
             </View>
 
-            <View
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: borderRadius.card.large,
-                padding: spacing.lg,
-                marginBottom: spacing.md,
-                backdropFilter: 'blur(10px)',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+            <View style={styles.featureCard}>
+              <View style={styles.cardHeader}>
                 <Ionicons name="star" size={24} color="white" />
-                <ThemedText
-                  style={{
-                    fontSize: 18,
-                    fontWeight: '600',
-                    color: 'white',
-                    marginLeft: spacing.sm,
-                  }}
-                >
+                <ThemedText style={styles.cardTitle}>
                   Premium Services
                 </ThemedText>
               </View>
-              <ThemedText
-                style={{
-                  fontSize: 14,
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  lineHeight: 20,
-                }}
-              >
+              <ThemedText style={styles.cardDescription}>
                 Professional beauty treatments and styling
               </ThemedText>
             </View>
 
-            <View
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: borderRadius.card.large,
-                padding: spacing.lg,
-                backdropFilter: 'blur(10px)',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+            <View style={styles.featureCard}>
+              <View style={styles.cardHeader}>
                 <Ionicons name="time" size={24} color="white" />
-                <ThemedText
-                  style={{
-                    fontSize: 18,
-                    fontWeight: '600',
-                    color: 'white',
-                    marginLeft: spacing.sm,
-                  }}
-                >
+                <ThemedText style={styles.cardTitle}>
                   Real-time Updates
                 </ThemedText>
               </View>
-              <ThemedText
-                style={{
-                  fontSize: 14,
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  lineHeight: 20,
-                }}
-              >
+              <ThemedText style={styles.cardDescription}>
                 Get instant notifications about your bookings
               </ThemedText>
             </View>
           </Animated.View>
 
           {/* Action Buttons */}
-          <Animated.View style={[{ width: '100%' }, buttonAnimatedStyle]}>
+          <Animated.View style={[styles.buttonsContainer, buttonAnimatedStyle]}>
             <ThemedButton
               title="Get Started"
               onPress={handleLogin}
               variant="secondary"
               size="large"
-              style={{
-                backgroundColor: 'white',
-                marginBottom: spacing.md,
-              ...Platform.select({
-                ios: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                },
-                android: {
-                  elevation: 8,
-                },
-                web: {
-                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
-                },
-              }),
-              }}
-              textStyle={{
-                color: colors.primary,
-                fontWeight: 'bold',
-                fontSize: 18,
-              }}
+              style={styles.primaryButton}
+              textStyle={styles.primaryButtonText}
             />
 
             <ThemedButton
@@ -349,58 +363,17 @@ export default function WelcomeScreen() {
               onPress={handleGuestMode}
               variant="outline"
               size="large"
-              style={{
-                borderColor: 'white',
-                borderWidth: 2,
-              }}
-              textStyle={{
-                color: 'white',
-                fontWeight: '600',
-                fontSize: 16,
-              }}
+              style={styles.secondaryButton}
+              textStyle={styles.secondaryButtonText}
             />
           </Animated.View>
         </Animated.View>
 
         {/* Bottom Decorative Element */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              bottom: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-            },
-            contentAnimatedStyle,
-          ]}
-        >
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
-              marginHorizontal: 4,
-            }}
-          />
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: 'white',
-              marginHorizontal: 4,
-            }}
-          />
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
-              marginHorizontal: 4,
-            }}
-          />
+        <Animated.View style={[styles.bottomIndicator, contentAnimatedStyle]}>
+          <View style={[styles.indicatorDot, styles.indicatorDotInactive]} />
+          <View style={[styles.indicatorDot, styles.indicatorDotActive]} />
+          <View style={[styles.indicatorDot, styles.indicatorDotInactive]} />
         </Animated.View>
       </View>
     </SafeAreaView>

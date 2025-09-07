@@ -253,6 +253,15 @@
 - **Pricing Updates**: Price changes apply to new bookings only
 - **Customer Management**: Can block problematic customers
 
+### Authentication Strategy
+- **Single Login System**: One authentication flow for both admin and customers
+- **Role-Based Access Control**: User role determines available features and screens
+- **Admin Credentials**: Hardcoded admin account (admin@salon16.com) for salon owner
+- **Customer Registration**: Standard signup flow for customers
+- **Role Detection**: After login, check user.role to show appropriate dashboard
+- **Access Levels**: Admin gets full access, customers get limited access
+- **Future Scalability**: Easy to add more admins by updating user role in database
+
 ---
 
 ## 📱 Screen Structure & Navigation
@@ -304,12 +313,18 @@ users: {
     email: string,
     phone: string,
     profileImage: string,
-    role: 'customer' | 'admin',
+    role: 'customer' | 'admin', // Single role field determines access level
     createdAt: timestamp,
     lastLogin: timestamp,
     preferences: {
       notifications: boolean,
       preferredServices: array
+    },
+    // Admin-specific fields (only for admin users)
+    adminSettings: {
+      canManageServices: boolean,
+      canManageCustomers: boolean,
+      canViewAnalytics: boolean
     }
   }
 }
@@ -461,6 +476,15 @@ settings: {
 - [x] **Responsive Design**: Adapts to different screen sizes
 - [x] **Theme Integration**: Uses complete theme system
 
+#### **Authentication Screens Implementation**
+- [x] **Login Screen**: Beautiful login with email/password and validation
+- [x] **Register Screen**: Complete registration form with validation
+- [x] **Form Validation**: Real-time validation with error messages
+- [x] **Cross-Platform Compatibility**: Fixed Android runtime errors
+- [x] **Navigation Integration**: Seamless flow between login/register
+- [x] **Responsive Design**: Adapts to different screen sizes
+- [x] **Theme Integration**: Uses complete theme system
+
 ### 🚧 **In Progress**
 - [ ] **Screen Implementation**: Converting placeholder screens to themed components
 - [ ] **Service Integration**: Connecting UI components to backend services
@@ -468,7 +492,6 @@ settings: {
 ### 📋 **Next Steps**
 - [ ] **Home Screen**: Implement service catalog with themed components
 - [ ] **Booking Flow**: Create booking form and calendar integration
-- [ ] **User Authentication**: Implement login/signup screens
 - [ ] **Admin Dashboard**: Build admin interface for salon management
 
 ---
@@ -503,12 +526,14 @@ settings: {
 
 ### Phase 3: Firebase Integration (Week 4)
 - [ ] Set up Firebase project and configuration
-- [ ] Implement Firebase Authentication
+- [ ] Implement Firebase Authentication with role-based access
 - [ ] Set up Firestore database with collections
 - [ ] Configure Firebase Storage for images
 - [ ] Implement real-time data listeners
 - [ ] Set up Firebase Cloud Functions
 - [ ] Configure Firebase Cloud Messaging
+- [ ] Create admin user account with hardcoded credentials
+- [ ] Implement role detection and dashboard routing
 
 ### Phase 4: Core Booking Logic (Week 5-6)
 - [ ] Implement service browsing and selection

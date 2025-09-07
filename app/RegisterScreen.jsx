@@ -1,23 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withSpring,
-    withTiming
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 import { useRouter } from 'expo-router';
@@ -33,15 +33,15 @@ const { height } = Dimensions.get('window');
 // Responsive breakpoints
 const isSmallScreen = height < 700;
 
-export default function LoginScreen() {
-  const { colors, spacing, borderRadius } = useTheme();
+export default function RegisterScreen() {
+  const { colors, spacing } = useTheme();
   const router = useRouter();
 
   // Auth hooks
   const { isAuthenticated, debugAuthState } = useAuth();
-  const { login } = useAuthActions();
+  const { register } = useAuthActions();
   const { error: authError, clearError } = useAuthError();
-  const { isLoggingIn } = useAuthLoading();
+  const { isRegistering } = useAuthLoading();
 
   // Alert and toast hooks
   const { showSuccess, showError, showInfo } = useAlertHelpers();
@@ -49,10 +49,15 @@ export default function LoginScreen() {
 
   // Form state
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     email: '',
+    phone: '',
     password: '',
+    confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
   // Animation values
@@ -97,9 +102,11 @@ export default function LoginScreen() {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+    // Clear auth error when user starts typing
     if (authError) {
       clearError();
     }
@@ -107,22 +114,44 @@ export default function LoginScreen() {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
+    // First name validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+
+    // Last name validation
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Please enter a valid email';
     }
-    
+
+    // Phone validation
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    }
+
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
     setErrors(newErrors);
     
     // Show toast for validation errors
@@ -140,69 +169,60 @@ export default function LoginScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     if (!validateForm()) {
       return;
     }
 
     try {
-      console.log('Login attempt:', formData);
-      
       // Debug: Check current auth state
       debugAuthState();
       
-      // Call auth service to login user
-      const result = await login(formData);
+      // Call auth service to register user
+      const result = await register(formData);
       
       if (result.success) {
-        console.log('Login successful:', result.message);
-        
-        // Show success message
-        showSuccessToast(
-          'Login Successful!',
-          `Welcome back, ${result.user.firstName}!`,
-          { duration: 3000 }
+        // Show success alert with email verification info
+        showSuccess(
+          'Registration Successful!',
+          'Your account has been created. Please check your email for verification instructions.',
+          {
+            confirmText: 'Go to Login',
+            onConfirm: () => router.replace('/LoginScreen'),
+            duration: 5000, // 5 seconds instead of default 3 seconds
+          }
         );
-        
-        // Navigate based on user role
-        if (result.user.role === 'admin') {
-          router.replace('/(admin-tabs)');
-        } else {
-          router.replace('/(customer-tabs)');
-        }
       } else {
+        console.error('Registration failed:', result.error);
+        
         // Show error toast with better messaging
-        const errorMessage = result.error || 'Please check your credentials and try again.';
-        const isEmailVerificationError = errorMessage.includes('verify your email');
+        const errorMessage = result.error || 'Please try again with valid information.';
+        const isEmailExistsError = errorMessage.includes('already exists') || errorMessage.includes('already in use');
         
         showErrorToast(
-          isEmailVerificationError ? 'Email Verification Required' : 'Login Failed',
-          isEmailVerificationError 
-            ? 'Please check your email and click the verification link before logging in.'
+          isEmailExistsError ? 'Email Already Registered' : 'Registration Failed',
+          isEmailExistsError 
+            ? 'This email is already registered. Please try logging in instead.'
             : errorMessage,
           { duration: 6000 }
         );
       }
     } catch (error) {
+      console.error('Registration error:', error);
       showErrorToast(
-        'Login Error',
+        'Registration Error',
         'Something went wrong. Please try again.',
         { duration: 5000 }
       );
     }
   };
 
-  const handleRegister = () => {
-    router.push('/RegisterScreen');
-  };
-
   const handleBack = () => {
     router.back();
   };
 
-  const handleForgotPassword = () => {
-    // TODO: Implement forgot password
-    console.log('Forgot password');
+  const handleLogin = () => {
+    router.push('/LoginScreen');
   };
 
   // Create responsive styles using theme values
@@ -249,7 +269,7 @@ export default function LoginScreen() {
     },
     header: {
       alignItems: 'center',
-      marginBottom: isSmallScreen ? spacing.xl : spacing.xxl,
+      marginBottom: isSmallScreen ? spacing.lg : spacing.xl,
     },
     logoContainer: {
       alignItems: 'center',
@@ -318,8 +338,13 @@ export default function LoginScreen() {
         },
       }),
     },
+    inputRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
     inputContainer: {
       marginBottom: spacing.lg,
+      flex: 1,
     },
     inputLabel: {
       fontSize: 14,
@@ -338,7 +363,7 @@ export default function LoginScreen() {
       fontSize: 16,
       color: colors.text,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.3)',
+      borderColor: errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)',
     },
     passwordInput: {
       paddingRight: 50,
@@ -353,20 +378,16 @@ export default function LoginScreen() {
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
     },
-    forgotPassword: {
-      alignSelf: 'flex-end',
-      marginTop: spacing.sm,
-    },
-    forgotPasswordText: {
-      fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.8)',
-      textDecorationLine: 'underline',
+    errorText: {
+      fontSize: 12,
+      color: 'rgba(255, 0, 0, 0.8)',
+      marginTop: spacing.xs,
     },
     buttonContainer: {
       width: '100%',
       marginTop: spacing.lg,
     },
-    loginButton: {
+    registerButton: {
       backgroundColor: 'white',
       marginBottom: spacing.md,
       ...Platform.select({
@@ -384,30 +405,31 @@ export default function LoginScreen() {
         },
       }),
     },
-    loginButtonText: {
+    registerButtonText: {
       color: colors.primary,
       fontWeight: 'bold',
       fontSize: isSmallScreen ? 16 : 18,
     },
-    registerContainer: {
+    loginContainer: {
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
       marginTop: spacing.lg,
     },
-    registerText: {
+    loginText: {
       fontSize: 14,
       color: 'rgba(255, 255, 255, 0.8)',
     },
-    registerLink: {
+    loginLink: {
       marginLeft: spacing.xs,
     },
-    registerLinkText: {
+    loginLinkText: {
       fontSize: 14,
       color: 'white',
       fontWeight: '600',
       textDecorationLine: 'underline',
     },
+    // Error styles removed - using toast notifications instead
     backButton: {
       position: 'absolute',
       top: isSmallScreen ? 40 : 50,
@@ -424,15 +446,6 @@ export default function LoginScreen() {
       fontSize: 16,
       marginLeft: spacing.xs,
     },
-    inputError: {
-      borderColor: 'rgba(255, 0, 0, 0.5)',
-    },
-    errorText: {
-      fontSize: 12,
-      color: 'rgba(255, 0, 0, 0.8)',
-      marginTop: spacing.xs,
-    },
-    // Error styles removed - using toast notifications instead
   });
 
   return (
@@ -469,27 +482,66 @@ export default function LoginScreen() {
           <Animated.View style={[styles.header, contentAnimatedStyle]}>
             <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
               <View style={styles.logoCircle}>
-                <Ionicons name="cut" size={isSmallScreen ? 35 : 45} color="white" />
+                <Ionicons name="person-add" size={isSmallScreen ? 35 : 45} color="white" />
               </View>
               
               <ThemedText style={styles.title}>
-                Welcome Back
+                Create Account
               </ThemedText>
               
               <ThemedText style={styles.subtitle}>
-                Sign in to continue to Salon 16
+                Join Salon 16 and start booking
               </ThemedText>
             </Animated.View>
           </Animated.View>
 
-          {/* Login Form */}
+          {/* Registration Form */}
           <Animated.View style={[styles.formContainer, formAnimatedStyle]}>
+            {/* Name Row */}
+            <View style={styles.inputRow}>
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.inputLabel}>First Name</ThemedText>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="First name"
+                    placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                    value={formData.firstName}
+                    onChangeText={(value) => handleInputChange('firstName', value)}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+                {errors.firstName && (
+                  <ThemedText style={styles.errorText}>{errors.firstName}</ThemedText>
+                )}
+              </View>
+
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.inputLabel}>Last Name</ThemedText>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Last name"
+                    placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                    value={formData.lastName}
+                    onChangeText={(value) => handleInputChange('lastName', value)}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+                {errors.lastName && (
+                  <ThemedText style={styles.errorText}>{errors.lastName}</ThemedText>
+                )}
+              </View>
+            </View>
+
             {/* Email Input */}
             <View style={styles.inputContainer}>
               <ThemedText style={styles.inputLabel}>Email Address</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
-                  style={[styles.textInput, errors.email && styles.inputError]}
+                  style={styles.textInput}
                   placeholder="Enter your email"
                   placeholderTextColor="rgba(0, 0, 0, 0.5)"
                   value={formData.email}
@@ -504,13 +556,32 @@ export default function LoginScreen() {
               )}
             </View>
 
+            {/* Phone Input */}
+            <View style={styles.inputContainer}>
+              <ThemedText style={styles.inputLabel}>Phone Number</ThemedText>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter your phone"
+                  placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                  value={formData.phone}
+                  onChangeText={(value) => handleInputChange('phone', value)}
+                  keyboardType="phone-pad"
+                  autoCorrect={false}
+                />
+              </View>
+              {errors.phone && (
+                <ThemedText style={styles.errorText}>{errors.phone}</ThemedText>
+              )}
+            </View>
+
             {/* Password Input */}
             <View style={styles.inputContainer}>
               <ThemedText style={styles.inputLabel}>Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
-                  style={[styles.textInput, styles.passwordInput, errors.password && styles.inputError]}
-                  placeholder="Enter your password"
+                  style={[styles.textInput, styles.passwordInput]}
+                  placeholder="Create a password"
                   placeholderTextColor="rgba(0, 0, 0, 0.5)"
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
@@ -534,37 +605,60 @@ export default function LoginScreen() {
               )}
             </View>
 
-            {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-              <ThemedText style={styles.forgotPasswordText}>
-                Forgot Password?
-              </ThemedText>
-            </TouchableOpacity>
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <ThemedText style={styles.inputLabel}>Confirm Password</ThemedText>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={[styles.textInput, styles.passwordInput]}
+                  placeholder="Confirm your password"
+                  placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                  value={formData.confirmPassword}
+                  onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color="rgba(0, 0, 0, 0.5)"
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.confirmPassword && (
+                <ThemedText style={styles.errorText}>{errors.confirmPassword}</ThemedText>
+              )}
+            </View>
 
-            {/* Login Button */}
+            {/* Register Button */}
             <View style={styles.buttonContainer}>
               <ThemedButton
-                title={isLoggingIn ? "Signing In..." : "Sign In"}
-                onPress={handleLogin}
+                title={isRegistering ? "Creating Account..." : "Create Account"}
+                onPress={handleRegister}
                 variant="secondary"
                 size="large"
-                style={styles.loginButton}
-                textStyle={styles.loginButtonText}
-                disabled={isLoggingIn}
-                loading={isLoggingIn}
+                style={styles.registerButton}
+                textStyle={styles.registerButtonText}
+                disabled={isRegistering}
+                loading={isRegistering}
               />
             </View>
 
             {/* Auth Error Display - Removed, using toast notifications instead */}
 
-            {/* Register Link */}
-            <View style={styles.registerContainer}>
-              <ThemedText style={styles.registerText}>
-                Don&apos;t have an account?
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <ThemedText style={styles.loginText}>
+                Already have an account?
               </ThemedText>
-              <TouchableOpacity style={styles.registerLink} onPress={handleRegister}>
-                <ThemedText style={styles.registerLinkText}>
-                  Sign Up
+              <TouchableOpacity style={styles.loginLink} onPress={handleLogin}>
+                <ThemedText style={styles.loginLinkText}>
+                  Sign In
                 </ThemedText>
               </TouchableOpacity>
             </View>
