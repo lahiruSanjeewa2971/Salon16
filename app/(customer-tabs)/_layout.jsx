@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -11,17 +12,28 @@ export default function CustomerTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: 'white',
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.7)',
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
+          backgroundColor: 'transparent',
+          borderTopColor: 'transparent',
+          borderTopWidth: 0,
           paddingBottom: Platform.OS === 'ios' ? 20 : 10,
           paddingTop: 10,
           height: Platform.OS === 'ios' ? 90 : 70,
+          position: 'absolute',
+          elevation: 0,
+          shadowOpacity: 0,
         },
+        tabBarBackground: () => (
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark, colors.accent]}
+            style={{ flex: 1 }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        ),
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
