@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -24,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../../components/ThemedText";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
+import SkeletonLoader from "../../components/ui/SkeletonLoader";
 
 const { width, height } = Dimensions.get("window");
 const CARD_WIDTH = width - 32;
@@ -41,9 +43,18 @@ export default function CustomerHomeScreen() {
   const user = auth?.user || null;
 
   const [selectedService, setSelectedService] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Create styles with theme values
-  const styles = createStyles(colors, spacing, borderRadius, shadows);
+  // Create styles with theme values - safe approach
+  const styles = React.useMemo(() => {
+    // Ensure all required theme values exist with fallbacks
+    const safeColors = colors || {};
+    const safeSpacing = spacing || {};
+    const safeBorderRadius = borderRadius || {};
+    const safeShadows = shadows || {};
+    
+    return createStyles(safeColors, safeSpacing, safeBorderRadius, safeShadows);
+  }, [colors, spacing, borderRadius, shadows]);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -89,6 +100,13 @@ export default function CustomerHomeScreen() {
     };
 
     startAnimations();
+
+    // Hide skeleton loader after animations complete
+    const hideSkeleton = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000); // Hide after 2 seconds
+
+    return () => clearTimeout(hideSkeleton);
   }, [buttonSlideAnim, fadeAnim, logoScaleAnim, rotateAnim, scaleAnim, slideUpAnim, servicesAnim, promotionsAnim, headerAnim]);
 
   // Dummy data for services
@@ -293,6 +311,31 @@ export default function CustomerHomeScreen() {
     // TODO: Navigate to services screen
   };
 
+  const handleGetDirections = () => {
+    try {
+      const mapsUrl = "https://maps.app.goo.gl/yewacqHrknxyr7dg6";
+      Linking.openURL(mapsUrl).catch((err) => {
+        console.error("Failed to open maps:", err);
+        // Fallback to generic maps search
+        const fallbackUrl = "https://maps.google.com/maps?q=salon+near+me";
+        Linking.openURL(fallbackUrl);
+      });
+    } catch (error) {
+      console.error("Error opening directions:", error);
+    }
+  };
+
+  const handleCallSalon = () => {
+    try {
+      const phoneNumber = "tel:0789109693";
+      Linking.openURL(phoneNumber).catch((err) => {
+        console.error("Failed to open phone dialer:", err);
+      });
+    } catch (error) {
+      console.error("Error opening phone dialer:", error);
+    }
+  };
+
   // Render functions for FlatList - no hooks inside render functions
   const renderServiceCard = ({ item, index }) => {
     const serviceName = item?.name || "Service";
@@ -422,11 +465,26 @@ export default function CustomerHomeScreen() {
     );
   };
 
+  // Show skeleton loader while loading
+  if (isLoading) {
+    return <SkeletonLoader isLoading={isLoading} />;
+  }
+
+  // Error boundary - if theme is not available, show fallback
+  if (!colors || !spacing || !borderRadius) {
+    console.warn("Theme not fully loaded, using fallback values");
+    return <SkeletonLoader isLoading={true} />;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Full Screen Background Gradient */}
       <LinearGradient
-        colors={[colors.primary, colors.primaryDark, colors.accent]}
+        colors={[
+          colors.primary || "#6B46C1",
+          colors.primaryDark || "#553C9A", 
+          colors.accent || "#EC4899"
+        ]}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -680,25 +738,95 @@ export default function CustomerHomeScreen() {
           </View>
         </Animated.View>
 
-        {/* Promotions Horizontal Scroll */}
+        {/* Location Section */}
         <Animated.View style={[styles.section, promotionsAnimatedStyle]}>
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitleWhite}>Special Offers</ThemedText>
-            <Ionicons name="gift-outline" size={20} color="white" />
+            <ThemedText style={styles.sectionTitleWhite}>Our Location</ThemedText>
+            <Ionicons name="location-outline" size={20} color="white" />
           </View>
-          <FlatList
-            data={promotions || []}
-            renderItem={renderPromotionCard}
-            keyExtractor={(item, index) =>
-              item?.id?.toString() || index.toString()
-            }
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScrollContent}
-            decelerationRate="fast"
-            snapToInterval={CARD_WIDTH + 16}
-            snapToAlignment="start"
-          />
+          <View style={styles.locationCard}>
+            <View style={styles.locationMapContainer}>
+              <View style={styles.locationMapPlaceholder}>
+                <Ionicons
+                  name="map-outline"
+                  size={40}
+                  color="rgba(255, 255, 255, 0.8)"
+                />
+                <ThemedText style={styles.locationMapText}>
+                  Interactive Map
+                </ThemedText>
+              </View>
+            </View>
+            <View style={styles.locationContent}>
+              <View style={styles.locationInfo}>
+                <View style={styles.locationAddress}>
+                  <Ionicons
+                    name="location"
+                    size={16}
+                    color="white"
+                  />
+                  <ThemedText style={styles.locationAddressText}>
+                    123 Main Street, City, State
+                  </ThemedText>
+                </View>
+                <View style={styles.locationHours}>
+                  <Ionicons
+                    name="time-outline"
+                    size={16}
+                    color="white"
+                  />
+                  <View style={styles.hoursContainer}>
+                    <ThemedText style={styles.hoursText}>
+                      Mon, Wed-Sun: 8:30 AM - 8:00 PM
+                    </ThemedText>
+                    <ThemedText style={styles.hoursText}>
+                      Tuesday: Closed
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.locationContact}>
+                  <Ionicons
+                    name="call-outline"
+                    size={16}
+                    color="white"
+                  />
+                  <ThemedText style={styles.contactText}>
+                    0789109693
+                  </ThemedText>
+                </View>
+              </View>
+              <View style={styles.locationActions}>
+                <TouchableOpacity
+                  style={styles.locationButton}
+                  onPress={handleGetDirections}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="navigate-outline"
+                    size={16}
+                    color="white"
+                  />
+                  <ThemedText style={styles.locationButtonText}>
+                    Get Directions
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.locationButton}
+                  onPress={handleCallSalon}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="call"
+                    size={16}
+                    color="white"
+                  />
+                  <ThemedText style={styles.locationButtonText}>
+                    Call Now
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -1093,6 +1221,96 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     borderColor: "rgba(255, 255, 255, 0.2)",
     backdropFilter: "blur(10px)",
     ...shadows.medium,
+  },
+  locationCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: borderRadius.large,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: "blur(10px)",
+    ...shadows.medium,
+  },
+  locationMapContainer: {
+    height: 200,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  locationMapPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  locationMapText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: spacing.sm || 8,
+    fontWeight: "500",
+  },
+  locationContent: {
+    padding: spacing.lg || 20,
+  },
+  locationInfo: {
+    marginBottom: spacing.lg || 20,
+  },
+  locationAddress: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.md || 12,
+  },
+  locationAddressText: {
+    fontSize: 16,
+    color: "white",
+    marginLeft: spacing.sm || 8,
+    fontWeight: "600",
+  },
+  locationHours: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: spacing.md || 12,
+  },
+  hoursContainer: {
+    marginLeft: spacing.sm || 8,
+    flex: 1,
+  },
+  hoursText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginBottom: spacing.xs || 4,
+    lineHeight: 20,
+  },
+  locationContact: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  contactText: {
+    fontSize: 16,
+    color: "white",
+    marginLeft: spacing.sm || 8,
+    fontWeight: "600",
+  },
+  locationActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  locationButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: spacing.md || 12,
+    paddingHorizontal: spacing.lg || 16,
+    borderRadius: borderRadius.medium || 12,
+    marginHorizontal: spacing.xs || 4,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  locationButtonText: {
+    fontSize: 14,
+    color: "white",
+    marginLeft: spacing.xs || 4,
+    fontWeight: "600",
   },
   promotionCardTouchable: {
     flex: 1,
