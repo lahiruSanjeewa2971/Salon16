@@ -196,6 +196,11 @@ export default function LoginScreen() {
     router.push('/RegisterScreen');
   };
 
+  const handleGuestMode = () => {
+    // Navigate back to customer home screen as guest
+    router.push('/(customer-tabs)');
+  };
+
   const handleBack = () => {
     router.back();
   };
@@ -408,6 +413,23 @@ export default function LoginScreen() {
       fontWeight: '600',
       textDecorationLine: 'underline',
     },
+    guestContainer: {
+      alignItems: 'center',
+      marginTop: spacing.md,
+    },
+    guestButton: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      borderRadius: borderRadius.medium,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    guestButtonText: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.9)',
+      fontWeight: '500',
+    },
     backButton: {
       position: 'absolute',
       top: isSmallScreen ? 40 : 50,
@@ -565,6 +587,15 @@ export default function LoginScreen() {
               <TouchableOpacity style={styles.registerLink} onPress={handleRegister}>
                 <ThemedText style={styles.registerLinkText}>
                   Sign Up
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Continue as Guest */}
+            <View style={styles.guestContainer}>
+              <TouchableOpacity style={styles.guestButton} onPress={handleGuestMode}>
+                <ThemedText style={styles.guestButtonText}>
+                  Continue as Guest
                 </ThemedText>
               </TouchableOpacity>
             </View>

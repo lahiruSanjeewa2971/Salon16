@@ -95,8 +95,8 @@ export default function WelcomeScreen() {
   };
 
   const handleGuestMode = () => {
-    // Navigate to home screen as guest
-    router.push('/(tabs)');
+    // Navigate to customer home screen as guest
+    router.push('/(customer-tabs)');
   };
 
   // Create responsive styles using theme values

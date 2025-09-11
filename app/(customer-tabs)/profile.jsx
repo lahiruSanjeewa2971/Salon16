@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -6,14 +6,71 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedButton } from '../../components/themed/ThemedButton';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useAuthActions } from '../../hooks/useAuth';
+import { useAuth, useAuthActions } from '../../hooks/useAuth';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 
 export default function CustomerProfileScreen() {
   const { colors, spacing } = useTheme();
   const router = useRouter();
+  const { user } = useAuth();
   const { signOut } = useAuthActions();
-  const { showSuccess: showSuccessToast, showError: showErrorToast } = useToastHelpers();
+  const { showSuccess: showSuccessToast, showError: showErrorToast, showInfo } = useToastHelpers();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: spacing.md,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: spacing.xl,
+    },
+    buttonContainer: {
+      width: '100%',
+      maxWidth: 200,
+    },
+  });
+
+  useEffect(() => {
+    // Check if user is logged in
+    if (!user) {
+      showInfo('To access this, please login.');
+      // Redirect to home screen after showing toast
+      setTimeout(() => {
+        router.replace('/(customer-tabs)');
+      }, 2000);
+    }
+  }, [user, router, showInfo]);
+
+  // Show loading/redirect message for guests
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <ThemedText style={styles.title}>Access Restricted</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Please login to access your profile
+          </ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleLogout = async () => {
     try {
@@ -51,36 +108,6 @@ export default function CustomerProfileScreen() {
       );
     }
   };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    content: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: spacing.lg,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: colors.text,
-      marginBottom: spacing.md,
-      textAlign: 'center',
-    },
-    subtitle: {
-      fontSize: 16,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      lineHeight: 24,
-    },
-    buttonContainer: {
-      marginTop: spacing.xl,
-      width: '100%',
-    },
-  });
 
   return (
     <SafeAreaView style={styles.container}>

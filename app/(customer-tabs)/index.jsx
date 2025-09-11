@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import Animated, {
   Extrapolate,
   interpolate,
@@ -21,19 +22,29 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import { ThemedText } from "../../components/ThemedText";
+import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
-import SkeletonLoader from "../../components/ui/SkeletonLoader";
 
 const { width, height } = Dimensions.get("window");
 const CARD_WIDTH = width - 32;
 const SERVICE_CARD_WIDTH = (width - 48) / 2;
 
+// Salon coordinates - Update these with your actual salon location
+const SALON_COORDINATES = { //7.44552427675218, 80.34418654232829
+  latitude: 7.44552427675218, // Replace with your salon's latitude
+  longitude: 80.34418654232829, // Replace with your salon's longitude
+  latitudeDelta: 0.01, // Zoom level
+  longitudeDelta: 0.01, // Zoom level
+};
+
 export default function CustomerHomeScreen() {
   const theme = useTheme();
   const auth = useAuth();
+  const router = useRouter();
 
   // Safe destructuring with fallbacks
   const colors = theme?.colors || {};
@@ -44,6 +55,7 @@ export default function CustomerHomeScreen() {
 
   const [selectedService, setSelectedService] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mapRegion, setMapRegion] = useState(SALON_COORDINATES);
 
   // Create styles with theme values - safe approach
   const styles = React.useMemo(() => {
@@ -336,6 +348,27 @@ export default function CustomerHomeScreen() {
     }
   };
 
+  const handleResetMapLocation = () => {
+    setMapRegion(SALON_COORDINATES);
+  };
+
+  const handleTimeSlotPress = (slot) => {
+    // Check if user is logged in
+    if (!user) {
+      // Redirect to login screen
+      router.push('/LoginScreen');
+      return;
+    }
+    
+    // If user is logged in, proceed with booking
+    // TODO: Implement booking logic for logged-in users
+    console.log('Time slot selected:', slot);
+  };
+
+  const handleLoginPress = () => {
+    router.push('/LoginScreen');
+  };
+
   // Render functions for FlatList - no hooks inside render functions
   const renderServiceCard = ({ item, index }) => {
     const serviceName = item?.name || "Service";
@@ -502,6 +535,18 @@ export default function CustomerHomeScreen() {
       >
         {/* Hero Header */}
         <Animated.View style={[styles.heroHeader, headerAnimatedStyle]}>
+          {/* Floating Login Button - Only show for guests */}
+          {!user && (
+            <TouchableOpacity
+              style={styles.floatingLoginButton}
+              onPress={handleLoginPress}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="log-in-outline" size={20} color="white" />
+              <ThemedText style={styles.floatingLoginText}>Login</ThemedText>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.heroContent}>
             <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
               <View style={styles.logoCircle}>
@@ -511,11 +556,13 @@ export default function CustomerHomeScreen() {
 
             <Animated.View style={[styles.welcomeSection, contentAnimatedStyle]}>
               <ThemedText style={styles.welcomeText}>
-                {`Welcome back, ${user?.firstName || "Guest"}! 👋`}
+                {user ? `Welcome back, ${user?.firstName || "Guest"}! 👋` : "Welcome to Salon 16! 👋"}
               </ThemedText>
               <ThemedText style={styles.welcomeSubtext}>
-                Ready to look and feel amazing? Book your next appointment
-                today.
+                {user 
+                  ? "Ready to look and feel amazing? Book your next appointment today."
+                  : "Explore our services and discover the perfect treatment for you."
+                }
               </ThemedText>
             </Animated.View>
 
@@ -543,7 +590,7 @@ export default function CustomerHomeScreen() {
                 style={styles.sectionIcon}
               />
               <ThemedText style={styles.sectionTitleWhite}>
-                Today's Availability
+                Today&apos;s Availability
               </ThemedText>
             </View>
             <ThemedText style={styles.sectionSubtitleWhite}>Tap to book</ThemedText>
@@ -566,6 +613,7 @@ export default function CustomerHomeScreen() {
                     ]}
                     disabled={!isAvailable}
                     activeOpacity={0.8}
+                    onPress={() => handleTimeSlotPress(slot)}
                   >
                     <ThemedText
                       style={[
@@ -746,16 +794,46 @@ export default function CustomerHomeScreen() {
           </View>
           <View style={styles.locationCard}>
             <View style={styles.locationMapContainer}>
-              <View style={styles.locationMapPlaceholder}>
-                <Ionicons
-                  name="map-outline"
-                  size={40}
-                  color="rgba(255, 255, 255, 0.8)"
+              <MapView
+                style={styles.map}
+                region={mapRegion}
+                onRegionChangeComplete={setMapRegion}
+                showsUserLocation={false}
+                showsMyLocationButton={false}
+                showsCompass={true}
+                showsScale={true}
+                scrollEnabled={true}
+                zoomEnabled={true}
+                pitchEnabled={true}
+                rotateEnabled={true}
+                mapType="standard"
+              >
+                <Marker
+                  coordinate={{
+                    latitude: SALON_COORDINATES.latitude,
+                    longitude: SALON_COORDINATES.longitude,
+                  }}
+                  title="Salon 16"
+                  description="Visit us for the best salon services"
+                  pinColor={colors.primary || "#6C2A52"}
                 />
-                <ThemedText style={styles.locationMapText}>
-                  Interactive Map
+              </MapView>
+              
+              {/* Reset Location Button */}
+              <TouchableOpacity
+                style={styles.resetLocationButton}
+                onPress={handleResetMapLocation}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="locate-outline"
+                  size={20}
+                  color="white"
+                />
+                <ThemedText style={styles.resetLocationText}>
+                  Reset to Salon
                 </ThemedText>
-              </View>
+              </TouchableOpacity>
             </View>
             <View style={styles.locationContent}>
               <View style={styles.locationInfo}>
@@ -766,7 +844,7 @@ export default function CustomerHomeScreen() {
                     color="white"
                   />
                   <ThemedText style={styles.locationAddressText}>
-                    123 Main Street, City, State
+                    Salon 16, Malpitiya, Boyagane
                   </ThemedText>
                 </View>
                 <View style={styles.locationHours}>
@@ -885,6 +963,32 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     marginBottom: spacing.xl,
     justifyContent: "center",
     alignItems: "center",
+  },
+  floatingLoginButton: {
+    position: "absolute",
+    top: spacing.xl || 20,
+    right: spacing.lg || 20,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    paddingHorizontal: spacing.md || 16,
+    paddingVertical: spacing.sm || 8,
+    borderRadius: borderRadius.medium || 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    backdropFilter: "blur(10px)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 10,
+  },
+  floatingLoginText: {
+    fontSize: 14,
+    color: "white",
+    fontWeight: "600",
+    marginLeft: spacing.xs || 4,
   },
   logoContainer: {
     alignItems: "center",
@@ -1234,18 +1338,37 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   locationMapContainer: {
     height: 200,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: borderRadius.medium || 12,
+    overflow: "hidden",
   },
-  locationMapPlaceholder: {
-    justifyContent: "center",
-    alignItems: "center",
+  map: {
+    width: "100%",
+    height: "100%",
   },
-  locationMapText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    marginTop: spacing.sm || 8,
-    fontWeight: "500",
+  resetLocationButton: {
+    position: "absolute",
+    top: spacing.md || 12,
+    right: spacing.md || 12,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.sm || 12,
+    paddingVertical: spacing.xs || 8,
+    borderRadius: borderRadius.medium || 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    backdropFilter: "blur(10px)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  resetLocationText: {
+    fontSize: 12,
+    color: "white",
+    fontWeight: "600",
+    marginLeft: spacing.xs || 4,
   },
   locationContent: {
     padding: spacing.lg || 20,
