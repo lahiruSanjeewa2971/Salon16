@@ -492,6 +492,8 @@ settings: {
 - [x] **Location Marker**: Custom marker pin for salon location
 - [x] **Reset Functionality**: "Reset to Salon" button to recenter map
 - [x] **Service Catalog**: Featured services with horizontal scroll
+- [x] **Week View with Availability Heatmap**: Modern week display with color-coded availability
+- [x] **Time Slots Integration**: Clickable time slots for booking
 - [x] **Today's Availability**: Time slots display with availability status
 - [x] **Location Information**: Address, hours, contact details
 - [x] **Action Buttons**: Get directions and call salon functionality

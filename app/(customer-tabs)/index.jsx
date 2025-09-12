@@ -25,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { ThemedText } from "../../components/ThemedText";
+import WeekView from "../../components/WeekView";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
@@ -784,6 +785,17 @@ export default function CustomerHomeScreen() {
               );
             })}
           </View>
+        </Animated.View>
+
+        {/* Week View with Availability Heatmap */}
+        <Animated.View style={[styles.section, servicesAnimatedStyle]}>
+          <WeekView 
+            onTimeSlotPress={handleTimeSlotPress}
+            onDateSelect={(date) => {
+              console.log('Date selected:', date);
+              // Update today's availability based on selected date
+            }}
+          />
         </Animated.View>
 
         {/* Location Section */}
