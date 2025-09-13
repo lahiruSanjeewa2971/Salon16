@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
@@ -5,7 +6,13 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
-import { useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
@@ -21,7 +28,7 @@ import AllServicesGrid from "../../components/sections/AllServicesGrid";
 import WeekViewSection from "../../components/sections/WeekViewSection";
 import LocationSection from "../../components/sections/LocationSection";
 
-const { height } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 // Salon coordinates - Update these with your actual salon location
 const SALON_COORDINATES = {
