@@ -1,107 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 
 import { ThemedText } from './ThemedText';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
-const TIME_SLOT_WIDTH = 80; // Width of each time slot column
+const TIME_SLOT_WIDTH = 80;
+const DAY_HEIGHT = 60;
 
-export default function WeekView({ onTimeSlotPress, onDateSelect }) {
+export default function WeekView({ onTimeSlotPress }) {
   const { colors, spacing, borderRadius, shadows } = useTheme();
-  const [selectedDate, setSelectedDate] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+
+  // Refs for synchronized scrolling
+  const headerScrollRef = useRef(null);
+  const gridScrollRef = useRef(null);
+  
+  // Track which scroll view is being actively scrolled by user
+  const activeScrollView = useRef(null);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
   const slideAnim = useSharedValue(50);
 
-  // Time slots for the week view (columns)
+  // Time slots (columns)
   const timeSlots = [
     '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
     '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30'
   ];
 
-  // Mock availability data - replace with real data later
-  const availabilityData = {
-    '2024-01-15': { 
-      available: true, 
-      slots: ['09:00', '10:30', '14:00', '15:30'], 
-      percentage: 80,
-      timeSlotAvailability: {
-        '09:00': true, '09:30': false, '10:00': false, '10:30': true,
-        '11:00': false, '11:30': false, '12:00': false, '12:30': false,
-        '13:00': false, '13:30': false, '14:00': true, '14:30': false,
-        '15:00': false, '15:30': true, '16:00': false, '16:30': false,
-        '17:00': false, '17:30': false, '18:00': false, '18:30': false,
-        '19:00': false, '19:30': false
-      }
-    },
-    '2024-01-16': { 
-      available: false, 
-      slots: [], 
-      percentage: 0, // Closed
-      timeSlotAvailability: {}
-    },
-    '2024-01-17': { 
-      available: true, 
-      slots: ['09:00', '11:00', '15:00'], 
-      percentage: 60,
-      timeSlotAvailability: {
-        '09:00': true, '09:30': false, '10:00': false, '10:30': false,
-        '11:00': true, '11:30': false, '12:00': false, '12:30': false,
-        '13:00': false, '13:30': false, '14:00': false, '14:30': false,
-        '15:00': true, '15:30': false, '16:00': false, '16:30': false,
-        '17:00': false, '17:30': false, '18:00': false, '18:30': false,
-        '19:00': false, '19:30': false
-      }
-    },
-    '2024-01-18': { 
-      available: true, 
-      slots: ['10:00', '14:30'], 
-      percentage: 40,
-      timeSlotAvailability: {
-        '09:00': false, '09:30': false, '10:00': true, '10:30': false,
-        '11:00': false, '11:30': false, '12:00': false, '12:30': false,
-        '13:00': false, '13:30': false, '14:00': false, '14:30': true,
-        '15:00': false, '15:30': false, '16:00': false, '16:30': false,
-        '17:00': false, '17:30': false, '18:00': false, '18:30': false,
-        '19:00': false, '19:30': false
-      }
-    },
-    '2024-01-19': { 
-      available: true, 
-      slots: ['09:00', '10:30', '14:00', '15:30'], 
-      percentage: 80,
-      timeSlotAvailability: {
-        '09:00': true, '09:30': false, '10:00': false, '10:30': true,
-        '11:00': false, '11:30': false, '12:00': false, '12:30': false,
-        '13:00': false, '13:30': false, '14:00': true, '14:30': false,
-        '15:00': false, '15:30': true, '16:00': false, '16:30': false,
-        '17:00': false, '17:30': false, '18:00': false, '18:30': false,
-        '19:00': false, '19:30': false
-      }
-    },
-  };
-
   useEffect(() => {
-    // Start animations
     fadeAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
     slideAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
   }, []);
@@ -119,32 +60,69 @@ export default function WeekView({ onTimeSlotPress, onDateSelect }) {
     return weekDates;
   };
 
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  const getAvailabilityColor = (percentage) => {
-    if (percentage === 0) return '#9E9E9E'; // Closed
-    if (percentage >= 80) return '#4CAF50'; // High availability
-    if (percentage >= 40) return '#FF9800'; // Medium availability
-    return '#F44336'; // Low availability
-  };
-
-  const getAvailabilityGradient = (percentage) => {
-    if (percentage === 0) return ['#9E9E9E', '#757575']; // Closed
-    if (percentage >= 80) return ['#4CAF50', '#8BC34A']; // High availability
-    if (percentage >= 40) return ['#FF9800', '#FFC107']; // Medium availability
-    return ['#F44336', '#FF5722']; // Low availability
+  const getAvailabilityForTimeSlot = (timeSlot, date) => {
+    const dayOfWeek = date.getDay();
+    
+    // Tuesday is closed
+    if (dayOfWeek === 2) {
+      return false;
+    }
+    
+    // Define availability for each day and time slot
+    const availability = {
+      0: ['09:00', '10:30', '14:00', '15:30', '16:00'], // Sunday
+      1: ['08:00', '09:30', '11:00', '13:00', '14:30', '16:30'], // Monday
+      3: ['09:00', '10:00', '11:30', '13:30', '15:00', '17:00'], // Wednesday
+      4: ['08:30', '10:30', '12:00', '14:00', '15:30', '17:30'], // Thursday
+      5: ['09:00', '10:30', '12:30', '14:30', '16:00', '18:00'], // Friday
+      6: ['08:00', '09:30', '11:00', '13:00', '14:30', '16:30', '18:30'] // Saturday
+    };
+    
+    const availableTimes = availability[dayOfWeek] || [];
+    return availableTimes.includes(timeSlot);
   };
 
   const handleTimeSlotPress = (timeSlot, date) => {
     onTimeSlotPress?.(timeSlot, date);
   };
 
+  // Synchronized scrolling functions
+  const handleHeaderScroll = (event) => {
+    if (activeScrollView.current === 'grid') return; // Don't sync if grid is being scrolled
+    
+    const offsetX = event.nativeEvent.contentOffset.x;
+    activeScrollView.current = 'header';
+    
+    if (gridScrollRef.current) {
+      gridScrollRef.current.scrollTo({ x: offsetX, animated: false });
+    }
+  };
+
+  const handleGridScroll = (event) => {
+    if (activeScrollView.current === 'header') return; // Don't sync if header is being scrolled
+    
+    const offsetX = event.nativeEvent.contentOffset.x;
+    activeScrollView.current = 'grid';
+    
+    if (headerScrollRef.current) {
+      headerScrollRef.current.scrollTo({ x: offsetX, animated: false });
+    }
+  };
+
+  // Reset active scroll view when scrolling stops
+  const handleScrollEnd = () => {
+    activeScrollView.current = null;
+  };
+
   const weekDates = getWeekDates(currentWeek);
+
+  // Debug logging
+  console.log('WeekView Debug - Week Dates:', weekDates.map(d => d.toISOString().split('T')[0]));
+  console.log('WeekView Debug - Time Slots:', timeSlots.slice(0, 5));
+  console.log('WeekView Debug - First day availability:', timeSlots.slice(0, 3).map(ts => ({
+    timeSlot: ts,
+    available: getAvailabilityForTimeSlot(ts, weekDates[0])
+  })));
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
@@ -161,89 +139,94 @@ export default function WeekView({ onTimeSlotPress, onDateSelect }) {
         </ThemedText>
       </View>
 
-      {/* Google Calendar Style Week View */}
+      {/* Calendar Container */}
       <View style={styles.calendarContainer}>
-        {/* Fixed Days Column + Scrollable Time Slots */}
         <View style={styles.calendarGrid}>
-          {/* Fixed Days Column (Left Side) */}
+          {/* Fixed Days Column */}
           <View style={styles.daysColumn}>
-            {/* Empty space for time header alignment */}
+            {/* Time header spacer */}
             <View style={styles.timeHeaderSpacer} />
+            
             {weekDates.map((date, index) => {
-              const dateString = date.toISOString().split('T')[0];
-              const dayData = availabilityData[dateString] || { available: false, slots: [], percentage: 0 };
+              const dayOfWeek = date.getDay();
               const isToday = date.toDateString() === new Date().toDateString();
+              const isClosed = dayOfWeek === 2;
               
               return (
                 <View key={index} style={styles.dayRow}>
-                  <LinearGradient
-                    colors={dayData.available 
-                      ? ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']
-                      : ['rgba(158, 158, 158, 0.2)', 'rgba(117, 117, 117, 0.1)']
-                    }
-                    style={styles.dayCell}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
+                  <View style={[
+                    styles.dayCell,
+                    isClosed && styles.closedDayCell
+                  ]}>
                     <ThemedText style={[
                       styles.dayName,
                       isToday && styles.todayDayName,
-                      !dayData.available && styles.closedDayName
+                      isClosed && styles.closedDayName
                     ]}>
                       {date.toLocaleDateString('en-US', { weekday: 'short' })}
                     </ThemedText>
                     <ThemedText style={[
                       styles.dayNumber,
                       isToday && styles.todayDayNumber,
-                      !dayData.available && styles.closedDayNumber
+                      isClosed && styles.closedDayNumber
                     ]}>
                       {date.getDate()}
                     </ThemedText>
-                    {dayData.available && (
-                      <View style={styles.availabilityIndicator}>
-                        <View style={[
-                          styles.availabilityDot,
-                          { backgroundColor: getAvailabilityColor(dayData.percentage) }
-                        ]} />
-                      </View>
-                    )}
-                  </LinearGradient>
+                  </View>
                 </View>
               );
             })}
           </View>
 
-          {/* Scrollable Time Slots Section - Synchronized */}
+          {/* Scrollable Time Slots Section */}
           <View style={styles.timeSlotsSection}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.synchronizedTimeContainer}
-              decelerationRate="fast"
-              snapToInterval={TIME_SLOT_WIDTH}
-              snapToAlignment="start"
-            >
-              {/* Time Header Row */}
-              <View style={styles.timeHeaderRow}>
+            {/* Time Header Row - Scrollable */}
+            <View style={styles.timeHeaderRow}>
+              <ScrollView 
+                ref={headerScrollRef}
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.timeHeaderScrollContent}
+                decelerationRate="fast"
+                snapToInterval={TIME_SLOT_WIDTH}
+                snapToAlignment="start"
+                onScroll={handleHeaderScroll}
+                onScrollEndDrag={handleScrollEnd}
+                onMomentumScrollEnd={handleScrollEnd}
+                scrollEventThrottle={1}
+              >
                 {timeSlots.map((timeSlot, index) => (
                   <View key={index} style={styles.timeHeaderCell}>
                     <ThemedText style={styles.timeHeaderText}>{timeSlot}</ThemedText>
                   </View>
                 ))}
-              </View>
+              </ScrollView>
+            </View>
 
-              {/* Time Slots Grid */}
-              {timeSlots.map((timeSlot, timeIndex) => (
-                <View key={timeIndex} style={styles.timeColumn}>
-                  {weekDates.map((date, dayIndex) => {
-                    const dateString = date.toISOString().split('T')[0];
-                    const dayData = availabilityData[dateString] || { available: false, timeSlotAvailability: {} };
-                    const isAvailable = dayData.timeSlotAvailability[timeSlot] || false;
+            {/* Time Slots Grid - Scrollable */}
+            <ScrollView 
+              ref={gridScrollRef}
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.timeSlotsScrollContent}
+              decelerationRate="fast"
+              snapToInterval={TIME_SLOT_WIDTH}
+              snapToAlignment="start"
+              onScroll={handleGridScroll}
+              onScrollEndDrag={handleScrollEnd}
+              onMomentumScrollEnd={handleScrollEnd}
+              scrollEventThrottle={1}
+            >
+              {/* Time Slots Grid - Each day is a row */}
+              {weekDates.map((date, dayIndex) => (
+                <View key={dayIndex} style={styles.timeRow}>
+                  {timeSlots.map((timeSlot, timeIndex) => {
+                    const isAvailable = getAvailabilityForTimeSlot(timeSlot, date);
                     const isToday = date.toDateString() === new Date().toDateString();
                     
                     return (
                       <TouchableOpacity
-                        key={dayIndex}
+                        key={timeIndex}
                         style={[
                           styles.timeSlotCell,
                           isAvailable && styles.availableTimeSlot,
@@ -314,42 +297,16 @@ const styles = StyleSheet.create({
   calendarGrid: {
     flexDirection: 'row',
   },
-  timeSlotsSection: {
-    flex: 1,
-  },
-  synchronizedTimeContainer: {
-    paddingRight: 20,
-  },
-  timeHeaderRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  timeHeaderSpacer: {
-    height: 40, // Height of time header
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  timeHeaderCell: {
-    width: TIME_SLOT_WIDTH,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.1)',
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  timeHeaderText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
   daysColumn: {
     width: 100,
   },
+  timeHeaderSpacer: {
+    height: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
   dayRow: {
-    height: 60,
+    height: DAY_HEIGHT,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -358,6 +315,10 @@ const styles = StyleSheet.create({
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  closedDayCell: {
+    backgroundColor: 'rgba(158, 158, 158, 0.1)',
   },
   dayName: {
     fontSize: 12,
@@ -385,25 +346,47 @@ const styles = StyleSheet.create({
   closedDayNumber: {
     color: 'rgba(158, 158, 158, 0.6)',
   },
-  availabilityIndicator: {
-    marginTop: 4,
+  timeSlotsSection: {
+    flex: 1,
+    height: 460, // 40px header + 7 rows × 60px = 460px
   },
-  availabilityDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  timeHeaderRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    height: 40,
   },
-  timeColumn: {
+  timeHeaderScrollContent: {
+    paddingRight: 20,
+  },
+  timeSlotsScrollContent: {
+    paddingRight: 20,
+  },
+  timeHeaderCell: {
     width: TIME_SLOT_WIDTH,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  timeHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  timeRow: {
+    flexDirection: 'row',
   },
   timeSlotCell: {
-    height: 60,
+    width: TIME_SLOT_WIDTH,
+    height: DAY_HEIGHT,
     borderBottomWidth: 1,
     borderRightWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     borderRightColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   availableTimeSlot: {
     backgroundColor: 'rgba(108, 42, 82, 0.1)',

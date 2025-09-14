@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
@@ -8,6 +8,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../ThemedText';
+
+const { width } = Dimensions.get('window');
+const SERVICE_CARD_WIDTH = (width - 48) / 2;
 
 const AllServicesGrid = ({ 
   services, 
@@ -152,7 +155,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     paddingHorizontal: spacing.lg,
   },
   serviceCard: {
-    width: 184, // SERVICE_CARD_WIDTH
+    width: SERVICE_CARD_WIDTH,
     marginBottom: spacing.md,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderRadius: borderRadius.large,

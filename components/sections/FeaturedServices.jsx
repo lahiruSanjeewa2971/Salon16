@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, FlatList, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
@@ -8,6 +8,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../ThemedText';
+
+const { width } = Dimensions.get('window');
+const SERVICE_CARD_WIDTH = (width - 48) / 2;
 
 const FeaturedServices = ({ 
   featuredServices, 
@@ -126,7 +129,7 @@ const FeaturedServices = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.horizontalScrollContent}
         decelerationRate="fast"
-        snapToInterval={200} // SERVICE_CARD_WIDTH + 16
+        snapToInterval={SERVICE_CARD_WIDTH + 16}
         snapToAlignment="start"
       />
     </Animated.View>
@@ -174,7 +177,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     paddingHorizontal: spacing.lg,
   },
   serviceCardHorizontal: {
-    width: 184, // SERVICE_CARD_WIDTH
+    width: SERVICE_CARD_WIDTH,
     marginRight: spacing.md || 12,
     marginBottom: spacing.md,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
