@@ -36,7 +36,7 @@ export default function CustomerHomeScreen() {
   const theme = useTheme();
   const auth = useAuth();
   const router = useRouter();
-  const { showInfo, showWarning } = useToastHelpers();
+  const { showInfo, showWarning, showSuccess } = useToastHelpers();
 
   // Safe destructuring with fallbacks
   const colors = theme?.colors || {};
@@ -285,7 +285,7 @@ export default function CustomerHomeScreen() {
     } else if (slot.isAvailable) {
       showWarning('Time Slot Reserved', 'This time slot is already reserved, please check for other available times');
     } else {
-      showInfo('Time Slot Unavailable', 'This time slot is not available, please select another time');
+      showSuccess('Time Slot Available', 'This time slot is available for booking! Click to proceed.');
     }
 
     // Re-enable clicks after toast duration (3 seconds)
