@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
+import { useToastHelpers } from "../../components/ui/ToastSystem";
 
 // Section Components
 import HeroSection from "../../components/sections/HeroSection";
@@ -35,6 +36,7 @@ export default function CustomerHomeScreen() {
   const theme = useTheme();
   const auth = useAuth();
   const router = useRouter();
+  const { showInfo, showWarning } = useToastHelpers();
 
   // Safe destructuring with fallbacks
   const colors = theme?.colors || {};
@@ -46,6 +48,7 @@ export default function CustomerHomeScreen() {
   const [selectedService, setSelectedService] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapRegion, setMapRegion] = useState(SALON_COORDINATES);
+  const [isToastShowing, setIsToastShowing] = useState(false);
 
   // Create styles with theme values - safe approach
   const styles = React.useMemo(() => {
@@ -265,15 +268,30 @@ export default function CustomerHomeScreen() {
   };
 
   const handleTimeSlotPress = (slot) => {
-    // Check if user is logged in
-    if (!user) {
-      // Redirect to login screen
-      router.push('/LoginScreen');
+    // Prevent multiple clicks while toast is showing
+    if (isToastShowing) {
       return;
     }
+
+    // Set toast showing state
+    setIsToastShowing(true);
     
-    // If user is logged in, proceed with booking
+    // Log the time slot selection
     console.log('Time slot selected:', slot);
+    
+    // Check if user is logged in
+    if (!user) {
+      showInfo('Login Required', 'Please login first to reserve a time slot');
+    } else if (slot.isAvailable) {
+      showWarning('Time Slot Reserved', 'This time slot is already reserved, please check for other available times');
+    } else {
+      showInfo('Time Slot Unavailable', 'This time slot is not available, please select another time');
+    }
+
+    // Re-enable clicks after toast duration (3 seconds)
+    setTimeout(() => {
+      setIsToastShowing(false);
+    }, 3000);
   };
 
   const handleLoginPress = () => {
@@ -309,6 +327,7 @@ export default function CustomerHomeScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
       >
         {/* Hero Section */}
         <HeroSection
@@ -373,6 +392,7 @@ export default function CustomerHomeScreen() {
             // Update today's availability based on selected date
           }}
           servicesAnim={servicesAnim}
+          isToastShowing={isToastShowing}
         />
 
         {/* Location Section */}

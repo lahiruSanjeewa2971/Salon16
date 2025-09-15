@@ -16,6 +16,7 @@ const WeekViewSection = ({
   onDateSelect,
   // Animation values
   servicesAnim,
+  isToastShowing,
 }) => {
   // Animated styles
   const servicesAnimatedStyle = useAnimatedStyle(() => ({
@@ -32,6 +33,7 @@ const WeekViewSection = ({
       <WeekView 
         onTimeSlotPress={onTimeSlotPress}
         onDateSelect={onDateSelect}
+        isToastShowing={isToastShowing}
       />
     </Animated.View>
   );
