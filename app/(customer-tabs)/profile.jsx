@@ -194,35 +194,33 @@ export default function CustomerProfileScreen() {
   const fadeAnim = useSharedValue(0);
   const slideUpAnim = useSharedValue(50);
 
-  // Reset loading state every time component mounts
-  useEffect(() => {
-    setIsLoading(true);
-  }, []);
-
   // Reset loading state when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
+      console.log('Profile: Screen focused, starting loading...');
       setIsLoading(true);
-    }, [])
+      
+      // Simulate loading time
+      const loadingTimer = setTimeout(() => {
+        console.log('Profile: Loading completed, showing content...');
+        setIsLoading(false);
+      }, 2000); // 2 seconds loading time
+
+      // Start animations
+      fadeAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
+      slideUpAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
+
+      // Check if user is logged in and show toast
+      if (!user) {
+        showInfo('To access this, please login.');
+      }
+
+      return () => {
+        console.log('Profile: Cleaning up loading timer...');
+        clearTimeout(loadingTimer);
+      };
+    }, [user, showInfo, fadeAnim, slideUpAnim])
   );
-
-  useEffect(() => {
-    // Simulate loading time
-    const loadingTimer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000); // 2 seconds loading time
-
-    // Start animations
-    fadeAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
-    slideUpAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
-
-    // Check if user is logged in and show toast
-    if (!user) {
-      showInfo('To access this, please login.');
-    }
-
-    return () => clearTimeout(loadingTimer);
-  }, [user, showInfo, fadeAnim, slideUpAnim]);
 
   const styles = StyleSheet.create({
     container: {

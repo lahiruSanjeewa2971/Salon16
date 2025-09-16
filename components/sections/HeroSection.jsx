@@ -60,10 +60,6 @@ const HeroSection = ({
     transform: [{ translateY: slideUpAnim.value }, { scale: scaleAnim.value }],
   }));
 
-  const decorativeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotateAnim.value}deg` }],
-  }));
-
   const buttonAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: buttonSlideAnim.value }],
   }));
@@ -80,11 +76,6 @@ const HeroSection = ({
 
   return (
     <>
-      {/* Decorative Background Elements */}
-      <Animated.View style={[styles.decorativeCircle1, decorativeAnimatedStyle]} />
-      <Animated.View style={[styles.decorativeCircle2, decorativeAnimatedStyle]} />
-      <Animated.View style={[styles.decorativeCircle3, decorativeAnimatedStyle]} />
-
       {/* Hero Header */}
       <Animated.View style={[styles.heroHeader, headerAnimatedStyle]}>
         {/* Floating Login Button - Only show for guests */}
@@ -146,33 +137,6 @@ const HeroSection = ({
 };
 
 const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.create({
-  decorativeCircle1: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    bottom: -100,
-    left: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  decorativeCircle3: {
-    position: 'absolute',
-    top: 300, // Adjusted for section context
-    right: -80,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
   heroHeader: {
     height: 400,
     position: "relative",

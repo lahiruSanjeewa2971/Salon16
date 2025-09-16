@@ -5,7 +5,7 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
-import { useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
@@ -112,6 +112,11 @@ export default function CustomerHomeScreen() {
 
     return () => clearTimeout(hideSkeleton);
   }, [buttonSlideAnim, fadeAnim, logoScaleAnim, rotateAnim, scaleAnim, slideUpAnim, servicesAnim, promotionsAnim, headerAnim]);
+
+  // Animated styles
+  const decorativeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotateAnim.value}deg` }],
+  }));
 
   // Dummy data for services
   const services = [
@@ -323,6 +328,11 @@ export default function CustomerHomeScreen() {
         end={{ x: 1, y: 1 }}
       />
 
+      {/* Fixed Decorative Background Elements */}
+      <Animated.View style={[styles.decorativeCircle1, decorativeAnimatedStyle]} />
+      <Animated.View style={[styles.decorativeCircle2, decorativeAnimatedStyle]} />
+      <Animated.View style={[styles.decorativeCircle3, decorativeAnimatedStyle]} />
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -426,8 +436,40 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     top: 0,
     height: height,
   },
+  // Fixed Decorative Background Elements
+  decorativeCircle1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    zIndex: 1,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    bottom: -100,
+    left: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    zIndex: 1,
+  },
+  decorativeCircle3: {
+    position: 'absolute',
+    top: 300,
+    right: -80,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    zIndex: 1,
+  },
   scrollView: {
     flex: 1,
+    zIndex: 2, // Ensure content scrolls above decorative elements
   },
   content: {
     paddingBottom: 100, // Space for bottom tabs

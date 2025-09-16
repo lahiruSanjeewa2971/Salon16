@@ -6,6 +6,8 @@ import Animated, {
   withRepeat,
   withTiming,
   withSequence,
+  withDelay,
+  withSpring,
   interpolate,
   Extrapolate,
 } from "react-native-reanimated";
@@ -210,7 +212,60 @@ const ProfileSkeletonLoader = ({ isLoading = true }) => {
     xxl: 24,
   };
 
+  // Animation values for staggered sliding effect
+  const fadeAnim = useSharedValue(0);
+  const slideUpAnim = useSharedValue(50);
+  const headerAnim = useSharedValue(-30);
+  const card1Anim = useSharedValue(30);
+  const card2Anim = useSharedValue(30);
+  const logoutAnim = useSharedValue(30);
+
+  useEffect(() => {
+    // Start staggered animations sequence
+    const startAnimations = () => {
+      // Header animation (slides down)
+      headerAnim.value = withDelay(200, withSpring(0, { damping: 15, stiffness: 150 }));
+      
+      // Main content fade in
+      fadeAnim.value = withDelay(400, withTiming(1, { duration: 600 }));
+      slideUpAnim.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
+      
+      // Card 1 slides up
+      card1Anim.value = withDelay(600, withSpring(0, { damping: 15, stiffness: 150 }));
+      
+      // Card 2 slides up
+      card2Anim.value = withDelay(800, withSpring(0, { damping: 15, stiffness: 150 }));
+      
+      // Logout section slides up
+      logoutAnim.value = withDelay(1000, withSpring(0, { damping: 15, stiffness: 150 }));
+    };
+
+    startAnimations();
+  }, [fadeAnim, slideUpAnim, headerAnim, card1Anim, card2Anim, logoutAnim]);
+
   if (!isLoading) return null;
+
+  // Animated styles
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: headerAnim.value }],
+  }));
+
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: fadeAnim.value,
+    transform: [{ translateY: slideUpAnim.value }],
+  }));
+
+  const card1AnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: card1Anim.value }],
+  }));
+
+  const card2AnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: card2Anim.value }],
+  }));
+
+  const logoutAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: logoutAnim.value }],
+  }));
 
   const styles = StyleSheet.create({
     container: {
@@ -410,17 +465,17 @@ const ProfileSkeletonLoader = ({ isLoading = true }) => {
         contentContainerStyle={styles.content}
       >
         {/* Header Section Skeleton */}
-        <View style={styles.headerSection}>
+        <Animated.View style={[styles.headerSection, headerAnimatedStyle]}>
           <View style={styles.profileImageContainer}>
             <SkeletonCircle size={70} />
             <View style={styles.editImageButton} />
           </View>
           <SkeletonText width="60%" height={32} style={styles.userName} />
           <SkeletonText width="80%" height={20} style={styles.userEmail} />
-        </View>
+        </Animated.View>
 
         {/* Personal Information Card Skeleton */}
-        <View style={styles.cardContainer}>
+        <Animated.View style={[styles.cardContainer, card1AnimatedStyle]}>
           <SkeletonText width="70%" height={22} style={styles.sectionTitle} />
           
           {/* Full Name */}
@@ -449,10 +504,10 @@ const ProfileSkeletonLoader = ({ isLoading = true }) => {
               <SkeletonText width="80%" height={16} style={styles.infoValue} />
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Booking History Card Skeleton */}
-        <View style={styles.cardContainer}>
+        <Animated.View style={[styles.cardContainer, card2AnimatedStyle]}>
           <SkeletonText width="70%" height={22} style={styles.sectionTitle} />
           
           {/* Booking Cards */}
@@ -480,12 +535,12 @@ const ProfileSkeletonLoader = ({ isLoading = true }) => {
           ))}
           
           <View style={styles.viewAllButton} />
-        </View>
+        </Animated.View>
 
         {/* Logout Section Skeleton */}
-        <View style={styles.logoutSection}>
+        <Animated.View style={[styles.logoutSection, logoutAnimatedStyle]}>
           <View style={styles.logoutButton} />
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
