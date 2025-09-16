@@ -22,6 +22,7 @@ import { FloatingElements } from '../components/animations/FloatingElements';
 import { ThemedButton } from '../components/themed/ThemedButton';
 import { ThemedText } from '../components/ThemedText';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const { height } = Dimensions.get('window');
 
@@ -31,6 +32,7 @@ const isMediumScreen = height >= 700 && height < 800;
 
 export default function WelcomeScreen() {
   const { colors, spacing, borderRadius } = useTheme();
+  const { continueAsGuest } = useAuth();
   const router = useRouter();
 
   // Animation values
@@ -94,9 +96,17 @@ export default function WelcomeScreen() {
     router.push('/LoginScreen');
   };
 
-  const handleGuestMode = () => {
-    // Navigate to customer home screen as guest
-    router.push('/(customer-tabs)');
+  const handleGuestMode = async () => {
+    try {
+      // Clear all stored sessions and continue as guest
+      await continueAsGuest();
+      // Navigate to customer home screen as guest
+      router.push('/(customer-tabs)');
+    } catch (error) {
+      console.error('WelcomeScreen: Failed to continue as guest', error);
+      // Still navigate even if clearing fails
+      router.push('/(customer-tabs)');
+    }
   };
 
   // Create responsive styles using theme values

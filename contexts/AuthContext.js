@@ -49,13 +49,13 @@ export const AuthProvider = ({ children }) => {
   }, [state.isAuthenticated, state.tokens.refreshToken, dispatch]);
 
   /**
-   * Initialize authentication state
+   * Initialize authentication state with session validation
    */
   const initializeAuth = useCallback(async () => {
     try {
       dispatch(authActions.setLoading(true));
       
-      // Check if user is authenticated
+      // Check if user is authenticated with session validation
       const isAuth = await tokenService.isAuthenticated();
       
       if (isAuth) {
@@ -63,12 +63,21 @@ export const AuthProvider = ({ children }) => {
         const cachedUser = await storageService.loadUserData();
         
         if (cachedUser) {
-          // Load tokens
+          // Load tokens and validate session
           const tokens = await tokenService.loadTokens();
           
           if (tokens) {
-            dispatch(authActions.registerSuccess(cachedUser, tokens));
-            console.log('AuthContext: User authenticated from cache');
+            // Validate session expiry
+            const sessionValid = await validateSession(tokens, cachedUser);
+            
+            if (sessionValid) {
+              dispatch(authActions.registerSuccess(cachedUser, tokens));
+              console.log('AuthContext: User authenticated from cache with valid session');
+            } else {
+              console.log('AuthContext: Session expired, clearing user data');
+              await clearAllAuthData();
+              dispatch(authActions.clearUser());
+            }
           } else {
             dispatch(authActions.clearUser());
           }
@@ -79,8 +88,17 @@ export const AuthProvider = ({ children }) => {
           if (currentUser) {
             const tokens = await tokenService.loadTokens();
             if (tokens) {
-              dispatch(authActions.registerSuccess(currentUser, tokens));
-              console.log('AuthContext: User authenticated from Firebase');
+              // Validate session expiry
+              const sessionValid = await validateSession(tokens, currentUser);
+              
+              if (sessionValid) {
+                dispatch(authActions.registerSuccess(currentUser, tokens));
+                console.log('AuthContext: User authenticated from Firebase with valid session');
+              } else {
+                console.log('AuthContext: Session expired, clearing user data');
+                await clearAllAuthData();
+                dispatch(authActions.clearUser());
+              }
             } else {
               dispatch(authActions.clearUser());
             }
@@ -93,10 +111,79 @@ export const AuthProvider = ({ children }) => {
         console.log('AuthContext: No authenticated user found');
       }
     } catch (error) {
+      console.error('AuthContext: Authentication initialization failed', error);
       dispatch(authActions.setError(error.message));
       dispatch(authActions.clearUser());
     } finally {
       dispatch(authActions.clearLoading());
+    }
+  }, []);
+
+  /**
+   * Validate session with expiry timestamp
+   * @param {Object} tokens - Token data
+   * @param {Object} user - User data
+   * @returns {Promise<boolean>} - Session validity
+   */
+  const validateSession = useCallback(async (tokens, user) => {
+    try {
+      // Check if tokens exist
+      if (!tokens || !tokens.accessToken || !tokens.expiresAt) {
+        console.log('AuthContext: Invalid token data');
+        return false;
+      }
+
+      // Check if session has expired
+      const now = Date.now();
+      const sessionExpiry = tokens.expiresAt;
+      
+      if (now >= sessionExpiry) {
+        console.log('AuthContext: Session expired at', new Date(sessionExpiry).toISOString());
+        return false;
+      }
+
+      // Check if user data is valid
+      if (!user || !user.uid) {
+        console.log('AuthContext: Invalid user data');
+        return false;
+      }
+
+      // Additional validation: Check if user has been inactive for too long
+      const maxInactivityTime = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+      const lastLogin = user.lastLogin;
+      
+      if (lastLogin) {
+        const lastLoginTime = lastLogin.seconds ? lastLogin.seconds * 1000 : new Date(lastLogin).getTime();
+        const timeSinceLogin = now - lastLoginTime;
+        
+        if (timeSinceLogin > maxInactivityTime) {
+          console.log('AuthContext: User inactive for too long, session expired');
+          return false;
+        }
+      }
+
+      console.log('AuthContext: Session is valid');
+      return true;
+    } catch (error) {
+      console.error('AuthContext: Session validation failed', error);
+      return false;
+    }
+  }, []);
+
+  /**
+   * Clear all authentication data
+   * @returns {Promise<void>}
+   */
+  const clearAllAuthData = useCallback(async () => {
+    try {
+      await Promise.all([
+        storageService.clearAuthData(),
+        tokenService.clearTokens(),
+        authService.signOutUser()
+      ]);
+      console.log('AuthContext: All authentication data cleared');
+    } catch (error) {
+      console.error('AuthContext: Failed to clear auth data', error);
     }
   }, []);
 
@@ -220,6 +307,42 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
   }, []);
+
+  /**
+   * Clear all sessions and continue as guest
+   * @returns {Promise<boolean>} - Success status
+   */
+  const continueAsGuest = useCallback(async () => {
+    try {
+      console.log('AuthContext: User chose to continue as guest, clearing all sessions');
+      await clearAllAuthData();
+      dispatch(authActions.clearUser());
+      console.log('AuthContext: All sessions cleared, user is now a guest');
+      return true;
+    } catch (error) {
+      console.error('AuthContext: Failed to clear sessions for guest mode', error);
+      dispatch(authActions.setError(error.message));
+      return false;
+    }
+  }, [clearAllAuthData]);
+
+  /**
+   * Force clear all sessions (for testing/debugging)
+   * @returns {Promise<boolean>} - Success status
+   */
+  const forceClearSessions = useCallback(async () => {
+    try {
+      console.log('AuthContext: Force clearing all sessions');
+      await clearAllAuthData();
+      dispatch(authActions.clearUser());
+      console.log('AuthContext: All sessions force cleared');
+      return true;
+    } catch (error) {
+      console.error('AuthContext: Failed to force clear sessions', error);
+      dispatch(authActions.setError(error.message));
+      return false;
+    }
+  }, [clearAllAuthData]);
 
   /**
    * Refresh access token
@@ -365,6 +488,8 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     signOut,
+    continueAsGuest,
+    forceClearSessions,
     updateUser,
     clearError,
     clearLoading,
