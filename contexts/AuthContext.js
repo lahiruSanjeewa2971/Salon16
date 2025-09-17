@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize authentication state on app start
   useEffect(() => {
+    console.log('AuthContext: Starting authentication initialization...');
     initializeAuth();
   }, [initializeAuth]);
 
@@ -116,6 +117,7 @@ export const AuthProvider = ({ children }) => {
       dispatch(authActions.clearUser());
     } finally {
       dispatch(authActions.clearLoading());
+      console.log('AuthContext: Authentication initialization completed, loading cleared');
     }
   }, []);
 

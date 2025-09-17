@@ -1,6 +1,7 @@
-import { Redirect } from 'expo-router';
+import React from 'react';
+import AppInitializer from '../components/AppInitializer';
 
 export default function Index() {
-  // Redirect to the beautiful welcome screen
-  return <Redirect href="/WelcomeScreen" />;
+  // Use AppInitializer to handle authentication flow
+  return <AppInitializer />;
 }

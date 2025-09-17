@@ -1,189 +1,136 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-} from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ThemedText } from '../../components/ThemedText';
-import { ThemedButton } from '../../components/themed/ThemedButton';
-import { useToastHelpers } from '../../components/ui/ToastSystem';
-import ProfileSkeletonLoader from '../../components/ui/ProfileSkeletonLoader';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useAuth, useAuthActions } from '../../hooks/useAuth';
+import { ThemedText } from "../../components/ThemedText";
+import { ThemedButton } from "../../components/themed/ThemedButton";
+import ProfileSkeletonLoader from "../../components/ui/ProfileSkeletonLoader";
+import { useToastHelpers } from "../../components/ui/ToastSystem";
+import { useTheme } from "../../contexts/ThemeContext";
+import { useAuth, useAuthActions } from "../../hooks/useAuth";
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get("window");
 
 export default function CustomerProfileScreen() {
   const { colors, spacing } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
   const { signOut } = useAuthActions();
-  const { showSuccess: showSuccessToast, showError: showErrorToast, showInfo } = useToastHelpers();
+  const {
+    showSuccess: showSuccessToast,
+    showError: showErrorToast,
+    showInfo,
+  } = useToastHelpers();
 
   // Helper functions to format user data
   const formatDisplayName = () => {
     if (user?.displayName) return user.displayName;
-    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
+    if (user?.firstName && user?.lastName)
+      return `${user.firstName} ${user.lastName}`;
     if (user?.name) return user.name;
-    return 'User Name';
+    return "User Name";
   };
 
   const formatPhoneNumber = () => {
     if (user?.phone) {
       // Format phone number if it's just digits
-      const phone = user.phone.replace(/\D/g, '');
+      const phone = user.phone.replace(/\D/g, "");
       if (phone.length === 10) {
         return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
       }
       return user.phone;
     }
-    return '+1 (555) 123-4567';
-  };
-
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    
-    let date;
-    if (timestamp.toDate) {
-      // Firestore timestamp object
-      date = timestamp.toDate();
-    } else if (timestamp.seconds) {
-      // Firestore timestamp with seconds property
-      date = new Date(timestamp.seconds * 1000);
-    } else {
-      // Regular date or timestamp
-      date = new Date(timestamp);
-    }
-    
-    // Manually format UTC date to avoid timezone issues
-    const utcYear = date.getUTCFullYear();
-    const utcMonth = date.getUTCMonth();
-    const utcDay = date.getUTCDate();
-    
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
-    
-    return `${monthNames[utcMonth]} ${utcDay}, ${utcYear}`;
-  };
-
-  const formatLastLogin = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    
-    let date;
-    if (timestamp.toDate) {
-      // Firestore timestamp object
-      date = timestamp.toDate();
-    } else if (timestamp.seconds) {
-      // Firestore timestamp with seconds property
-      date = new Date(timestamp.seconds * 1000);
-    } else {
-      // Regular date or timestamp
-      date = new Date(timestamp);
-    }
-    
-    const now = new Date();
-    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    if (diffInHours < 48) return 'Yesterday';
-    
-    // Manually format UTC date to avoid timezone issues
-    const utcMonth = date.getUTCMonth();
-    const utcDay = date.getUTCDate();
-    const utcHour = date.getUTCHours();
-    const utcMinute = date.getUTCMinutes();
-    
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    const hour12 = utcHour % 12 || 12;
-    const ampm = utcHour >= 12 ? 'PM' : 'AM';
-    const minuteStr = utcMinute.toString().padStart(2, '0');
-    
-    return `${monthNames[utcMonth]} ${utcDay}, ${hour12}:${minuteStr} ${ampm}`;
+    return "+1 (555) 123-4567";
   };
 
   // Mock booking data
   const mockBookings = [
     {
-      id: '1',
-      serviceName: 'Hair Cut & Style',
-      date: '2025-09-15',
-      timeSlot: '10:00 AM',
-      status: 'completed',
-      price: '$45',
-      stylistName: 'Sarah Johnson',
+      id: "1",
+      serviceName: "Hair Cut & Style",
+      date: "2025-09-15",
+      timeSlot: "10:00 AM",
+      status: "completed",
+      price: "$45",
+      stylistName: "Sarah Johnson",
     },
     {
-      id: '2',
-      serviceName: 'Hair Coloring',
-      date: '2025-09-20',
-      timeSlot: '2:30 PM',
-      status: 'upcoming',
-      price: '$120',
-      stylistName: 'Mike Chen',
+      id: "2",
+      serviceName: "Hair Coloring",
+      date: "2025-09-20",
+      timeSlot: "2:30 PM",
+      status: "upcoming",
+      price: "$120",
+      stylistName: "Mike Chen",
     },
     {
-      id: '3',
-      serviceName: 'Facial Treatment',
-      date: '2025-09-10',
-      timeSlot: '11:00 AM',
-      status: 'completed',
-      price: '$80',
-      stylistName: 'Emma Davis',
+      id: "3",
+      serviceName: "Facial Treatment",
+      date: "2025-09-10",
+      timeSlot: "11:00 AM",
+      status: "completed",
+      price: "$80",
+      stylistName: "Emma Davis",
     },
     {
-      id: '4',
-      serviceName: 'Manicure & Pedicure',
-      date: '2025-09-25',
-      timeSlot: '3:00 PM',
-      status: 'upcoming',
-      price: '$65',
-      stylistName: 'Lisa Wilson',
+      id: "4",
+      serviceName: "Manicure & Pedicure",
+      date: "2025-09-25",
+      timeSlot: "3:00 PM",
+      status: "upcoming",
+      price: "$65",
+      stylistName: "Lisa Wilson",
     },
     {
-      id: '5',
-      serviceName: 'Hair Treatment',
-      date: '2025-09-05',
-      timeSlot: '1:00 PM',
-      status: 'cancelled',
-      price: '$90',
-      stylistName: 'Alex Brown',
+      id: "5",
+      serviceName: "Hair Treatment",
+      date: "2025-09-05",
+      timeSlot: "1:00 PM",
+      status: "cancelled",
+      price: "$90",
+      stylistName: "Alex Brown",
     },
   ];
 
   // Helper function to get status color
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
-        return 'rgba(34, 197, 94, 0.8)'; // Green
-      case 'upcoming':
-        return 'rgba(59, 130, 246, 0.8)'; // Blue
-      case 'cancelled':
-        return 'rgba(239, 68, 68, 0.8)'; // Red
+      case "completed":
+        return "rgba(34, 197, 94, 0.8)"; // Green
+      case "upcoming":
+        return "rgba(59, 130, 246, 0.8)"; // Blue
+      case "cancelled":
+        return "rgba(239, 68, 68, 0.8)"; // Red
       default:
-        return 'rgba(255, 255, 255, 0.6)';
+        return "rgba(255, 255, 255, 0.6)";
     }
   };
 
   // Helper function to get status icon
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'completed':
-        return 'checkmark-circle';
-      case 'upcoming':
-        return 'time';
-      case 'cancelled':
-        return 'close-circle';
+      case "completed":
+        return "checkmark-circle";
+      case "upcoming":
+        return "time";
+      case "cancelled":
+        return "close-circle";
       default:
-        return 'help-circle';
+        return "help-circle";
     }
   };
 
@@ -197,12 +144,12 @@ export default function CustomerProfileScreen() {
   // Reset loading state when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      console.log('Profile: Screen focused, starting loading...');
+      console.log("Profile: Screen focused, starting loading...");
       setIsLoading(true);
-      
+
       // Simulate loading time
       const loadingTimer = setTimeout(() => {
-        console.log('Profile: Loading completed, showing content...');
+        console.log("Profile: Loading completed, showing content...");
         setIsLoading(false);
       }, 2000); // 2 seconds loading time
 
@@ -212,11 +159,11 @@ export default function CustomerProfileScreen() {
 
       // Check if user is logged in and show toast
       if (!user) {
-        showInfo('To access this, please login.');
+        showInfo("To access this, please login.");
       }
 
       return () => {
-        console.log('Profile: Cleaning up loading timer...');
+        console.log("Profile: Cleaning up loading timer...");
         clearTimeout(loadingTimer);
       };
     }, [user, showInfo, fadeAnim, slideUpAnim])
@@ -225,10 +172,10 @@ export default function CustomerProfileScreen() {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.primary || '#6C2A52',
+      backgroundColor: colors.primary || "#6C2A52",
     },
     gradient: {
-      position: 'absolute',
+      position: "absolute",
       left: 0,
       right: 0,
       top: 0,
@@ -243,7 +190,7 @@ export default function CustomerProfileScreen() {
     },
     // Header Section
     headerSection: {
-      alignItems: 'center',
+      alignItems: "center",
       paddingVertical: spacing.xl,
       marginBottom: spacing.lg,
     },
@@ -251,17 +198,17 @@ export default function CustomerProfileScreen() {
       width: 140,
       height: 140,
       borderRadius: 70,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: "rgba(255, 255, 255, 0.2)",
+      justifyContent: "center",
+      alignItems: "center",
       marginBottom: spacing.lg,
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 12 },
       shadowOpacity: 0.4,
       shadowRadius: 20,
       elevation: 12,
       borderWidth: 4,
-      borderColor: 'rgba(255, 255, 255, 0.4)',
+      borderColor: "rgba(255, 255, 255, 0.4)",
     },
     profileImage: {
       width: 114,
@@ -269,18 +216,18 @@ export default function CustomerProfileScreen() {
       borderRadius: 57,
     },
     editImageButton: {
-      position: 'absolute',
+      position: "absolute",
       bottom: 5,
       right: 5,
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.accent || '#EC4899',
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: colors.accent || "#EC4899",
+      justifyContent: "center",
+      alignItems: "center",
       borderWidth: 3,
-      borderColor: 'white',
-      shadowColor: '#000',
+      borderColor: "white",
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
@@ -288,40 +235,40 @@ export default function CustomerProfileScreen() {
     },
     userName: {
       fontSize: 32,
-      fontWeight: 'bold',
-      color: 'white',
-      textAlign: 'center',
+      fontWeight: "bold",
+      color: "white",
+      textAlign: "center",
       marginBottom: spacing.sm,
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowColor: "rgba(0, 0, 0, 0.3)",
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 4,
     },
     userEmail: {
       fontSize: 16,
-      color: 'rgba(255, 255, 255, 0.9)',
-      textAlign: 'center',
+      color: "rgba(255, 255, 255, 0.9)",
+      textAlign: "center",
       marginBottom: spacing.lg,
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       borderRadius: 20,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: "rgba(255, 255, 255, 0.2)",
     },
     // Card Container
     cardContainer: {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: "rgba(255, 255, 255, 0.15)",
       borderRadius: 20,
       padding: spacing.xl,
       marginBottom: spacing.lg,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.3)',
-      shadowColor: '#000',
+      borderColor: "rgba(255, 255, 255, 0.3)",
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.4,
       shadowRadius: 12,
       elevation: 12,
-      backdropFilter: 'blur(10px)',
+      backdropFilter: "blur(10px)",
     },
     // Personal Info Section
     personalInfoCard: {
@@ -329,32 +276,32 @@ export default function CustomerProfileScreen() {
     },
     sectionTitle: {
       fontSize: 22,
-      fontWeight: 'bold',
-      color: 'white',
+      fontWeight: "bold",
+      color: "white",
       marginBottom: spacing.lg,
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowColor: "rgba(0, 0, 0, 0.3)",
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
-      textAlign: 'center',
+      textAlign: "center",
     },
     infoRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.sm,
       marginVertical: spacing.xs,
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderColor: "rgba(255, 255, 255, 0.1)",
     },
     infoIcon: {
       width: 32,
       height: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       marginRight: spacing.md,
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
       borderRadius: 16,
     },
     infoContent: {
@@ -362,59 +309,59 @@ export default function CustomerProfileScreen() {
     },
     infoLabel: {
       fontSize: 12,
-      color: 'rgba(255, 255, 255, 0.6)',
+      color: "rgba(255, 255, 255, 0.6)",
       marginBottom: 4,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     infoValue: {
       fontSize: 16,
-      color: 'white',
-      fontWeight: '600',
+      color: "white",
+      fontWeight: "600",
     },
     // Mock Data Section
     mockDataCard: {
       marginBottom: spacing.lg,
     },
     mockDataRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.sm,
       marginVertical: spacing.xs,
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderColor: "rgba(255, 255, 255, 0.1)",
     },
     mockDataLabel: {
       fontSize: 12,
-      color: 'rgba(255, 255, 255, 0.6)',
+      color: "rgba(255, 255, 255, 0.6)",
       marginBottom: 4,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     mockDataValue: {
       fontSize: 16,
-      color: 'rgba(255, 255, 255, 0.9)',
-      fontWeight: '600',
+      color: "rgba(255, 255, 255, 0.9)",
+      fontWeight: "600",
     },
     // Booking History Section
     bookingHistoryCard: {
       marginBottom: spacing.lg,
     },
     bookingCard: {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
       borderRadius: 12,
       padding: spacing.md,
       marginVertical: spacing.xs,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderColor: "rgba(255, 255, 255, 0.1)",
     },
     bookingHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
       marginBottom: spacing.sm,
     },
     bookingServiceInfo: {
@@ -423,76 +370,76 @@ export default function CustomerProfileScreen() {
     },
     bookingServiceName: {
       fontSize: 16,
-      fontWeight: '600',
-      color: 'white',
+      fontWeight: "600",
+      color: "white",
       marginBottom: 2,
     },
     bookingDate: {
       fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.7)',
+      color: "rgba(255, 255, 255, 0.7)",
     },
     bookingStatus: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
       borderRadius: 8,
     },
     bookingStatusText: {
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: "500",
       marginLeft: 4,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     bookingDetails: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      justifyContent: "space-between",
     },
     bookingDetailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       flex: 1,
     },
     bookingDetailText: {
       fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.8)',
+      color: "rgba(255, 255, 255, 0.8)",
       marginLeft: spacing.xs,
     },
     viewAllButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.lg,
       borderRadius: 12,
       marginTop: spacing.md,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: "rgba(255, 255, 255, 0.2)",
     },
     viewAllButtonText: {
       fontSize: 16,
-      fontWeight: '600',
-      color: 'white',
+      fontWeight: "600",
+      color: "white",
       marginRight: spacing.sm,
     },
     emptyState: {
-      alignItems: 'center',
+      alignItems: "center",
       paddingVertical: spacing.xl,
     },
     emptyStateText: {
       fontSize: 18,
-      fontWeight: '600',
-      color: 'rgba(255, 255, 255, 0.8)',
+      fontWeight: "600",
+      color: "rgba(255, 255, 255, 0.8)",
       marginTop: spacing.md,
       marginBottom: spacing.sm,
     },
     emptyStateSubtext: {
       fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.6)',
-      textAlign: 'center',
+      color: "rgba(255, 255, 255, 0.6)",
+      textAlign: "center",
     },
     // Logout Section
     logoutSection: {
@@ -500,30 +447,30 @@ export default function CustomerProfileScreen() {
       paddingTop: spacing.lg,
       paddingBottom: spacing.xxl,
       borderTopWidth: 1,
-      borderTopColor: 'rgba(255, 255, 255, 0.2)',
+      borderTopColor: "rgba(255, 255, 255, 0.2)",
     },
     logoutButton: {
-      width: '100%',
+      width: "100%",
     },
     // Missing styles for restricted access
     iconContainer: {
-      alignItems: 'center',
+      alignItems: "center",
       marginBottom: spacing.xl,
     },
     title: {
       fontSize: 24,
-      fontWeight: 'bold',
-      color: 'white',
-      textAlign: 'center',
+      fontWeight: "bold",
+      color: "white",
+      textAlign: "center",
       marginBottom: spacing.sm,
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowColor: "rgba(0, 0, 0, 0.3)",
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
     },
     subtitle: {
       fontSize: 16,
-      color: 'rgba(255, 255, 255, 0.8)',
-      textAlign: 'center',
+      color: "rgba(255, 255, 255, 0.8)",
+      textAlign: "center",
       marginTop: spacing.xl,
       marginBottom: spacing.xl,
       paddingHorizontal: spacing.lg,
@@ -548,20 +495,20 @@ export default function CustomerProfileScreen() {
         {/* Background Gradient */}
         <LinearGradient
           colors={[
-            colors.primary || '#6B46C1',
-            colors.primaryDark || '#553C9A', 
-            colors.accent || '#EC4899'
+            colors.primary || "#6B46C1",
+            colors.primaryDark || "#553C9A",
+            colors.accent || "#EC4899",
           ]}
           style={styles.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         />
-        
+
         <View style={styles.content}>
           <Animated.View style={[styles.iconContainer, contentAnimatedStyle]}>
             <Ionicons name="person-outline" size={60} color="white" />
           </Animated.View>
-          
+
           <Animated.View style={contentAnimatedStyle}>
             <ThemedText style={styles.title}>Access Restricted</ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -575,36 +522,34 @@ export default function CustomerProfileScreen() {
 
   const handleLogout = async () => {
     try {
-      console.log('Logout attempt...');
+      console.log("Logout attempt...");
       
       const success = await signOut();
       
       if (success) {
-        console.log('Logout successful');
+        console.log("Logout successful");
         
         showSuccessToast(
-          'Logout Successful!',
-          'You have been logged out successfully.',
+          "Logout Successful!",
+          "You have been logged out successfully.",
           { duration: 3000 }
         );
         
         // Redirect to welcome screen
-        router.replace('/WelcomeScreen');
+        router.replace("/WelcomeScreen");
       } else {
-        console.error('Logout failed');
-        
-        showErrorToast(
-          'Logout Failed',
-          'Failed to logout. Please try again.',
-          { duration: 5000 }
-        );
+        console.error("Logout failed");
+
+        showErrorToast("Logout Failed", "Failed to logout. Please try again.", {
+          duration: 5000,
+        });
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       
       showErrorToast(
-        'Logout Error',
-        'Something went wrong. Please try again.',
+        "Logout Error",
+        "Something went wrong. Please try again.",
         { duration: 5000 }
       );
     }
@@ -615,16 +560,16 @@ export default function CustomerProfileScreen() {
       {/* Background Gradient */}
       <LinearGradient
         colors={[
-          colors.primary || '#6C2A52',
-          colors.primaryDark || '#553C9A', 
-          colors.accent || '#EC4899'
+          colors.primary || "#6C2A52",
+          colors.primaryDark || "#553C9A",
+          colors.accent || "#EC4899",
         ]}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-      
-      <ScrollView 
+
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
@@ -639,24 +584,30 @@ export default function CustomerProfileScreen() {
                 <Ionicons name="camera" size={18} color="white" />
               </TouchableOpacity>
             </View>
-            
+
             {/* User Name and Email */}
             <ThemedText style={styles.userName}>
               {formatDisplayName()}
             </ThemedText>
             <ThemedText style={styles.userEmail}>
-              {user?.email || 'user@example.com'}
+              {user?.email || "user@example.com"}
             </ThemedText>
           </View>
 
           {/* Personal Information Card */}
           <View style={[styles.cardContainer, styles.personalInfoCard]}>
-            <ThemedText style={styles.sectionTitle}>👤 Personal Information</ThemedText>
-            
+            <ThemedText style={styles.sectionTitle}>
+              👤 Personal Information
+            </ThemedText>
+
             {/* Full Name */}
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
-                <Ionicons name="person-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.8)"
+                />
               </View>
               <View style={styles.infoContent}>
                 <ThemedText style={styles.infoLabel}>Full Name</ThemedText>
@@ -669,12 +620,16 @@ export default function CustomerProfileScreen() {
             {/* Email Address */}
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
-                <Ionicons name="mail-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.8)"
+                />
               </View>
               <View style={styles.infoContent}>
                 <ThemedText style={styles.infoLabel}>Email Address</ThemedText>
                 <ThemedText style={styles.infoValue}>
-                  {user?.email || 'user@example.com'}
+                  {user?.email || "user@example.com"}
                 </ThemedText>
               </View>
             </View>
@@ -682,21 +637,27 @@ export default function CustomerProfileScreen() {
             {/* Phone Number */}
             <View style={styles.infoRow}>
               <View style={styles.infoIcon}>
-                <Ionicons name="call-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+                <Ionicons
+                  name="call-outline"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.8)"
+                />
               </View>
               <View style={styles.infoContent}>
                 <ThemedText style={styles.infoLabel}>Phone Number</ThemedText>
                 <ThemedText style={styles.infoValue}>
                   {formatPhoneNumber()}
-                </ThemedText>
+        </ThemedText>
               </View>
             </View>
           </View>
 
           {/* Booking History Section */}
           <View style={[styles.cardContainer, styles.bookingHistoryCard]}>
-            <ThemedText style={styles.sectionTitle}>📅 Recent Bookings</ThemedText>
-            
+            <ThemedText style={styles.sectionTitle}>
+              📅 Recent Bookings
+        </ThemedText>
+        
             {mockBookings.length > 0 ? (
               <>
                 {mockBookings.slice(0, 5).map((booking) => (
@@ -707,58 +668,81 @@ export default function CustomerProfileScreen() {
                           {booking.serviceName}
                         </ThemedText>
                         <ThemedText style={styles.bookingDate}>
-                          {new Date(booking.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })} at {booking.timeSlot}
+                          {new Date(booking.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}{" "}
+                          at {booking.timeSlot}
                         </ThemedText>
                       </View>
                       <View style={styles.bookingStatus}>
-                        <Ionicons 
-                          name={getStatusIcon(booking.status)} 
-                          size={16} 
-                          color={getStatusColor(booking.status)} 
+                        <Ionicons
+                          name={getStatusIcon(booking.status)}
+                          size={16}
+                          color={getStatusColor(booking.status)}
                         />
-                        <ThemedText style={[styles.bookingStatusText, { color: getStatusColor(booking.status) }]}>
-                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                        <ThemedText
+                          style={[
+                            styles.bookingStatusText,
+                            { color: getStatusColor(booking.status) },
+                          ]}
+                        >
+                          {booking.status.charAt(0).toUpperCase() +
+                            booking.status.slice(1)}
                         </ThemedText>
                       </View>
                     </View>
-                    
+
                     <View style={styles.bookingDetails}>
                       <View style={styles.bookingDetailRow}>
-                        <Ionicons name="person-outline" size={14} color="rgba(255, 255, 255, 0.6)" />
+                        <Ionicons
+                          name="person-outline"
+                          size={14}
+                          color="rgba(255, 255, 255, 0.6)"
+                        />
                         <ThemedText style={styles.bookingDetailText}>
                           {booking.stylistName}
                         </ThemedText>
                       </View>
                       <View style={styles.bookingDetailRow}>
-                        <Ionicons name="cash-outline" size={14} color="rgba(255, 255, 255, 0.6)" />
+                        <Ionicons
+                          name="cash-outline"
+                          size={14}
+                          color="rgba(255, 255, 255, 0.6)"
+                        />
                         <ThemedText style={styles.bookingDetailText}>
                           {booking.price}
-        </ThemedText>
+                        </ThemedText>
                       </View>
                     </View>
                   </View>
                 ))}
-                
+
                 <TouchableOpacity style={styles.viewAllButton}>
-                  <ThemedText style={styles.viewAllButtonText}>View All Bookings</ThemedText>
+                  <ThemedText style={styles.viewAllButtonText}>
+                    View All Bookings
+                  </ThemedText>
                   <Ionicons name="arrow-forward" size={16} color="white" />
                 </TouchableOpacity>
               </>
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons name="calendar-outline" size={48} color="rgba(255, 255, 255, 0.4)" />
-                <ThemedText style={styles.emptyStateText}>No bookings yet</ThemedText>
+                <Ionicons
+                  name="calendar-outline"
+                  size={48}
+                  color="rgba(255, 255, 255, 0.4)"
+                />
+                <ThemedText style={styles.emptyStateText}>
+                  No bookings yet
+                </ThemedText>
                 <ThemedText style={styles.emptyStateSubtext}>
                   Book your first appointment to see it here
-        </ThemedText>
+                </ThemedText>
               </View>
             )}
           </View>
-        
+
           {/* Logout Section */}
           <View style={styles.logoutSection}>
           <ThemedButton
