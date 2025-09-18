@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState, useMemo } from 'react';
+import { StyleSheet, View, ScrollView, RefreshControl } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withDelay,
+  withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,26 +17,201 @@ import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 
+// Section Components
+import BookingsHeader from '../../components/sections/BookingsHeader';
+import BookingCard from '../../components/sections/BookingCard';
+import EmptyBookingsState from '../../components/sections/EmptyBookingsState';
+
+// Mock data for bookings
+const mockBookings = [
+  {
+    id: '1',
+    bookingId: 'BK001234',
+    serviceName: 'Hair Cut & Style',
+    date: 'Dec 20, 2024',
+    time: '2:00 PM',
+    status: 'accepted',
+    stylist: 'Sarah Johnson',
+    price: '85',
+    duration: '60 min',
+    isReschedulePending: false,
+    rescheduleCount: 0,
+  },
+  {
+    id: '2',
+    bookingId: 'BK001235',
+    serviceName: 'Facial Treatment',
+    date: 'Dec 18, 2024',
+    time: '10:30 AM',
+    status: 'completed',
+    stylist: 'Emma Wilson',
+    price: '120',
+    duration: '90 min',
+    isReschedulePending: false,
+    rescheduleCount: 0,
+  },
+  {
+    id: '3',
+    bookingId: 'BK001236',
+    serviceName: 'Manicure & Pedicure',
+    date: 'Dec 22, 2024',
+    time: '3:30 PM',
+    status: 'pending',
+    stylist: 'Lisa Brown',
+    price: '65',
+    duration: '75 min',
+    isReschedulePending: false,
+    rescheduleCount: 0,
+  },
+  {
+    id: '4',
+    bookingId: 'BK001237',
+    serviceName: 'Hair Coloring',
+    date: 'Dec 15, 2024',
+    time: '1:00 PM',
+    status: 'cancelled',
+    stylist: 'Sarah Johnson',
+    price: '150',
+    duration: '120 min',
+    isReschedulePending: false,
+    rescheduleCount: 1,
+  },
+  {
+    id: '5',
+    bookingId: 'BK001238',
+    serviceName: 'Eyebrow Shaping',
+    date: 'Dec 25, 2024',
+    time: '11:00 AM',
+    status: 'accepted',
+    stylist: 'Maria Garcia',
+    price: '45',
+    duration: '30 min',
+    isReschedulePending: false,
+    rescheduleCount: 0,
+  },
+  {
+    id: '6',
+    bookingId: 'BK001239',
+    serviceName: 'Deep Conditioning Treatment',
+    date: 'Dec 12, 2024',
+    time: '4:00 PM',
+    status: 'completed',
+    stylist: 'Emma Wilson',
+    price: '95',
+    duration: '60 min',
+    isReschedulePending: false,
+    rescheduleCount: 0,
+  },
+];
+
 export default function CustomerBookingsScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, borderRadius, shadows } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
-  const { showInfo } = useToastHelpers();
+  const { showInfo, showSuccess, showWarning } = useToastHelpers();
+
+  // State management
+  const [bookings, setBookings] = useState(mockBookings);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('upcoming');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Animation values
   const fadeAnim = useSharedValue(0);
   const slideUpAnim = useSharedValue(50);
+  const headerAnim = useSharedValue(-30);
 
   useEffect(() => {
     // Start animations
-    fadeAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
-    slideUpAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
+    headerAnim.value = withDelay(200, withSpring(0, { damping: 15, stiffness: 150 }));
+    fadeAnim.value = withDelay(400, withSpring(1, { damping: 15, stiffness: 150 }));
+    slideUpAnim.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
 
     // Check if user is logged in and show toast
     if (!user) {
       showInfo('To access this, please login.');
     }
-  }, [user, showInfo, fadeAnim, slideUpAnim]);
+  }, [user, showInfo, fadeAnim, slideUpAnim, headerAnim]);
+
+  // Filter bookings based on active filter and search query
+  const filteredBookings = useMemo(() => {
+    let filtered = bookings;
+    
+    // Filter by status
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter(booking => {
+        if (activeFilter === 'upcoming') {
+          return ['pending', 'accepted'].includes(booking.status) && 
+                 new Date(booking.date) >= new Date();
+        }
+        if (activeFilter === 'past') {
+          return ['completed', 'cancelled', 'rejected'].includes(booking.status) || 
+                 new Date(booking.date) < new Date();
+        }
+        return true;
+      });
+    }
+    
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(booking =>
+        booking.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        booking.bookingId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        booking.date.includes(searchQuery) ||
+        booking.stylist.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [bookings, activeFilter, searchQuery]);
+
+  // Calculate counts for filter tabs
+  const upcomingCount = bookings.filter(booking => 
+    ['pending', 'accepted'].includes(booking.status) && 
+    new Date(booking.date) >= new Date()
+  ).length;
+  
+  const pastCount = bookings.filter(booking => 
+    ['completed', 'cancelled', 'rejected'].includes(booking.status) || 
+    new Date(booking.date) < new Date()
+  ).length;
+  
+  const totalCount = bookings.length;
+
+  // Event handlers
+  const handleFilterChange = (filterId) => {
+    setActiveFilter(filterId);
+  };
+
+  const handleSearchChange = (query) => {
+    setSearchQuery(query);
+  };
+
+  const handleReschedule = (booking) => {
+    showWarning('Reschedule functionality coming soon!');
+  };
+
+  const handleCancel = (booking) => {
+    showWarning('Cancel functionality coming soon!');
+  };
+
+  const handleViewDetails = (booking) => {
+    showInfo(`Viewing details for booking ${booking.bookingId}`);
+  };
+
+  const handleBookNow = () => {
+    showInfo('Navigate to booking screen');
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    setTimeout(() => {
+      setRefreshing(false);
+      showSuccess('Bookings refreshed!');
+    }, 1000);
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -50,46 +227,22 @@ export default function CustomerBookingsScreen() {
     },
     content: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: spacing.lg,
     },
-    title: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      color: 'white',
-      marginTop: spacing.xl,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.lg,
-      textAlign: 'center',
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 2,
+    scrollView: {
+      flex: 1,
     },
-    subtitle: {
-      fontSize: 18,
-      color: 'rgba(255, 255, 255, 0.9)',
-      textAlign: 'center',
-      lineHeight: 26,
-      fontWeight: '300',
-    },
-    iconContainer: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: spacing.xl,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 16,
-      elevation: 8,
+    scrollContent: {
+      paddingBottom: spacing.xxxl,
+      paddingTop: spacing.sm,
+      minHeight: '100%',
     },
   });
 
   // Animated styles
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: headerAnim.value }],
+  }));
+
   const contentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
     transform: [{ translateY: slideUpAnim.value }],
@@ -111,14 +264,16 @@ export default function CustomerBookingsScreen() {
           end={{ x: 1, y: 1 }}
         />
         
-        <View style={styles.content}>
+        <View style={[styles.content, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg }]}>
           <Animated.View style={[styles.iconContainer, contentAnimatedStyle]}>
             <Ionicons name="calendar-outline" size={60} color="white" />
           </Animated.View>
           
           <Animated.View style={contentAnimatedStyle}>
-            <ThemedText style={styles.title}>Access Restricted</ThemedText>
-            <ThemedText style={styles.subtitle}>
+            <ThemedText style={[styles.title, { fontSize: 32, fontWeight: 'bold', color: 'white', textAlign: 'center', marginBottom: spacing.md }]}>
+              Access Restricted
+            </ThemedText>
+            <ThemedText style={[styles.subtitle, { fontSize: 18, color: 'rgba(255, 255, 255, 0.9)', textAlign: 'center' }]}>
               Please login to access your bookings
             </ThemedText>
           </Animated.View>
@@ -129,13 +284,79 @@ export default function CustomerBookingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={[
+          colors.primary || '#6B46C1',
+          colors.primaryDark || '#553C9A', 
+          colors.accent || '#EC4899'
+        ]}
+        style={styles.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+
+      {/* Header */}
+      <Animated.View style={headerAnimatedStyle}>
+        <BookingsHeader
+          colors={colors}
+          spacing={spacing}
+          borderRadius={borderRadius}
+          shadows={shadows}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilterChange}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          upcomingCount={upcomingCount}
+          pastCount={pastCount}
+          totalCount={totalCount}
+          fadeAnim={fadeAnim}
+          slideUpAnim={slideUpAnim}
+        />
+      </Animated.View>
+
+      {/* Content */}
       <View style={styles.content}>
-        <ThemedText style={styles.title}>
-          My Bookings
-        </ThemedText>
-        <ThemedText style={styles.subtitle}>
-          View your upcoming appointments, booking history, and manage your reservations.
-        </ThemedText>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          {filteredBookings.length === 0 ? (
+            <EmptyBookingsState
+              filter={activeFilter}
+              colors={colors}
+              spacing={spacing}
+              borderRadius={borderRadius}
+              fadeAnim={fadeAnim}
+              slideUpAnim={slideUpAnim}
+            />
+          ) : (
+            filteredBookings.map((booking, index) => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                colors={colors}
+                spacing={spacing}
+                borderRadius={borderRadius}
+                shadows={shadows}
+                onReschedule={handleReschedule}
+                onCancel={handleCancel}
+                onViewDetails={handleViewDetails}
+                fadeAnim={fadeAnim}
+                slideUpAnim={slideUpAnim}
+              />
+            ))
+          )}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
