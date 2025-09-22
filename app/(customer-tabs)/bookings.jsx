@@ -1,14 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, ScrollView, RefreshControl } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useMemo, useState, useCallback } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withDelay,
-  withTiming,
+  withSpring
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,27 +15,28 @@ import { ThemedText } from '../../components/ThemedText';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
+import BookingsSkeletonLoader from '../../components/ui/BookingsSkeletonLoader';
 
 // Section Components
-import BookingsHeader from '../../components/sections/BookingsHeader';
 import BookingCard from '../../components/sections/BookingCard';
+import BookingsHeader from '../../components/sections/BookingsHeader';
 import EmptyBookingsState from '../../components/sections/EmptyBookingsState';
 
 // Mock data for bookings
 const mockBookings = [
-  {
-    id: '1',
-    bookingId: 'BK001234',
-    serviceName: 'Hair Cut & Style',
-    date: 'Dec 20, 2024',
-    time: '2:00 PM',
-    status: 'accepted',
-    stylist: 'Sarah Johnson',
-    price: '85',
-    duration: '60 min',
-    isReschedulePending: false,
-    rescheduleCount: 0,
-  },
+  // {
+  //   id: '1',
+  //   bookingId: 'BK001234',
+  //   serviceName: 'Hair Cut & Style',
+  //   date: 'Dec 20, 2024',
+  //   time: '2:00 PM',
+  //   status: 'accepted',
+  //   stylist: 'Sarah Johnson',
+  //   price: '85',
+  //   duration: '60 min',
+  //   isReschedulePending: false,
+  //   rescheduleCount: 0,
+  // },
   {
     id: '2',
     bookingId: 'BK001235',
@@ -50,19 +50,19 @@ const mockBookings = [
     isReschedulePending: false,
     rescheduleCount: 0,
   },
-  {
-    id: '3',
-    bookingId: 'BK001236',
-    serviceName: 'Manicure & Pedicure',
-    date: 'Dec 22, 2024',
-    time: '3:30 PM',
-    status: 'pending',
-    stylist: 'Lisa Brown',
-    price: '65',
-    duration: '75 min',
-    isReschedulePending: false,
-    rescheduleCount: 0,
-  },
+  // {
+  //   id: '3',
+  //   bookingId: 'BK001236',
+  //   serviceName: 'Manicure & Pedicure',
+  //   date: 'Dec 22, 2024',
+  //   time: '3:30 PM',
+  //   status: 'pending',
+  //   stylist: 'Lisa Brown',
+  //   price: '65',
+  //   duration: '75 min',
+  //   isReschedulePending: false,
+  //   rescheduleCount: 0,
+  // },
   {
     id: '4',
     bookingId: 'BK001237',
@@ -76,19 +76,19 @@ const mockBookings = [
     isReschedulePending: false,
     rescheduleCount: 1,
   },
-  {
-    id: '5',
-    bookingId: 'BK001238',
-    serviceName: 'Eyebrow Shaping',
-    date: 'Dec 25, 2024',
-    time: '11:00 AM',
-    status: 'accepted',
-    stylist: 'Maria Garcia',
-    price: '45',
-    duration: '30 min',
-    isReschedulePending: false,
-    rescheduleCount: 0,
-  },
+  // {
+  //   id: '5',
+  //   bookingId: 'BK001238',
+  //   serviceName: 'Eyebrow Shaping',
+  //   date: 'Dec 25, 2024',
+  //   time: '11:00 AM',
+  //   status: 'accepted',
+  //   stylist: 'Maria Garcia',
+  //   price: '45',
+  //   duration: '30 min',
+  //   isReschedulePending: false,
+  //   rescheduleCount: 0,
+  // },
   {
     id: '6',
     bookingId: 'BK001239',
@@ -112,7 +112,7 @@ export default function CustomerBookingsScreen() {
 
   // State management
   const [bookings, setBookings] = useState(mockBookings);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,17 +122,29 @@ export default function CustomerBookingsScreen() {
   const slideUpAnim = useSharedValue(50);
   const headerAnim = useSharedValue(-30);
 
-  useEffect(() => {
-    // Start animations
-    headerAnim.value = withDelay(200, withSpring(0, { damping: 15, stiffness: 150 }));
-    fadeAnim.value = withDelay(400, withSpring(1, { damping: 15, stiffness: 150 }));
-    slideUpAnim.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
+  // Reset loading state every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      
+      // Start animations
+      headerAnim.value = withDelay(200, withSpring(0, { damping: 15, stiffness: 150 }));
+      fadeAnim.value = withDelay(400, withSpring(1, { damping: 15, stiffness: 150 }));
+      slideUpAnim.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
 
-    // Check if user is logged in and show toast
-    if (!user) {
-      showInfo('To access this, please login.');
-    }
-  }, [user, showInfo, fadeAnim, slideUpAnim, headerAnim]);
+      // Hide skeleton loader after animations complete
+      const hideSkeleton = setTimeout(() => {
+        setLoading(false);
+      }, 2000);
+
+      // Check if user is logged in and show toast
+      if (!user) {
+        showInfo('To access this, please login.');
+      }
+
+      return () => clearTimeout(hideSkeleton);
+    }, [user, showInfo, fadeAnim, slideUpAnim, headerAnim])
+  );
 
   // Filter bookings based on active filter and search query
   const filteredBookings = useMemo(() => {
@@ -142,12 +154,10 @@ export default function CustomerBookingsScreen() {
     if (activeFilter !== 'all') {
       filtered = filtered.filter(booking => {
         if (activeFilter === 'upcoming') {
-          return ['pending', 'accepted'].includes(booking.status) && 
-                 new Date(booking.date) >= new Date();
+          return ['pending', 'accepted'].includes(booking.status);
         }
         if (activeFilter === 'past') {
-          return ['completed', 'cancelled', 'rejected'].includes(booking.status) || 
-                 new Date(booking.date) < new Date();
+          return ['completed', 'cancelled', 'rejected'].includes(booking.status);
         }
         return true;
       });
@@ -168,13 +178,11 @@ export default function CustomerBookingsScreen() {
 
   // Calculate counts for filter tabs
   const upcomingCount = bookings.filter(booking => 
-    ['pending', 'accepted'].includes(booking.status) && 
-    new Date(booking.date) >= new Date()
+    ['pending', 'accepted'].includes(booking.status)
   ).length;
   
   const pastCount = bookings.filter(booking => 
-    ['completed', 'cancelled', 'rejected'].includes(booking.status) || 
-    new Date(booking.date) < new Date()
+    ['completed', 'cancelled', 'rejected'].includes(booking.status)
   ).length;
   
   const totalCount = bookings.length;
@@ -247,6 +255,11 @@ export default function CustomerBookingsScreen() {
     opacity: fadeAnim.value,
     transform: [{ translateY: slideUpAnim.value }],
   }));
+
+  // Show skeleton loader while loading
+  if (loading) {
+    return <BookingsSkeletonLoader isLoading={loading} screenType="bookings" />;
+  }
 
   // Show restricted message for guests
   if (!user) {

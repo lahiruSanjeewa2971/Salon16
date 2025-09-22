@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -71,7 +71,11 @@ export default function CustomerHomeScreen() {
   const rotateAnim = useSharedValue(0);
   const buttonSlideAnim = useSharedValue(100);
 
-  useEffect(() => {
+  // Reset loading state every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setIsLoading(true);
+      
     // Start animations sequence
     const startAnimations = () => {
       // Logo animation
@@ -108,10 +112,11 @@ export default function CustomerHomeScreen() {
     // Hide skeleton loader after animations complete
     const hideSkeleton = setTimeout(() => {
       setIsLoading(false);
-    }, 2000);
+      }, 2000);
 
     return () => clearTimeout(hideSkeleton);
-  }, [buttonSlideAnim, fadeAnim, logoScaleAnim, rotateAnim, scaleAnim, slideUpAnim, servicesAnim, promotionsAnim, headerAnim]);
+    }, [buttonSlideAnim, fadeAnim, logoScaleAnim, rotateAnim, scaleAnim, slideUpAnim, servicesAnim, promotionsAnim, headerAnim])
+  );
 
   // Animated styles
   const decorativeAnimatedStyle = useAnimatedStyle(() => ({

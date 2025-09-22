@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useState, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -14,6 +14,7 @@ import { ThemedText } from '../../components/ThemedText';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
+import BookingsSkeletonLoader from '../../components/ui/BookingsSkeletonLoader';
 
 export default function CustomerReviewsScreen() {
   const { colors, spacing } = useTheme();
@@ -21,20 +22,35 @@ export default function CustomerReviewsScreen() {
   const router = useRouter();
   const { showInfo } = useToastHelpers();
 
+  // State management
+  const [loading, setLoading] = useState(true);
+
   // Animation values
   const fadeAnim = useSharedValue(0);
   const slideUpAnim = useSharedValue(50);
 
-  useEffect(() => {
-    // Start animations
-    fadeAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
-    slideUpAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
+  // Reset loading state every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      
+      // Start animations
+      fadeAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
+      slideUpAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
 
-    // Check if user is logged in and show toast
-    if (!user) {
-      showInfo('To access this, please login.');
-    }
-  }, [user, showInfo, fadeAnim, slideUpAnim]);
+      // Hide skeleton loader after animations complete
+      const hideSkeleton = setTimeout(() => {
+        setLoading(false);
+      }, 2000);
+
+      // Check if user is logged in and show toast
+      if (!user) {
+        showInfo('To access this, please login.');
+      }
+
+      return () => clearTimeout(hideSkeleton);
+    }, [user, showInfo, fadeAnim, slideUpAnim])
+  );
 
   const styles = StyleSheet.create({
     container: {
@@ -94,6 +110,11 @@ export default function CustomerReviewsScreen() {
     opacity: fadeAnim.value,
     transform: [{ translateY: slideUpAnim.value }],
   }));
+
+  // Show skeleton loader while loading
+  if (loading) {
+    return <BookingsSkeletonLoader isLoading={loading} screenType="reviews" />;
+  }
 
   // Show restricted message for guests
   if (!user) {

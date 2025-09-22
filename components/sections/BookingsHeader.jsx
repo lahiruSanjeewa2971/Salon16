@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
 } from 'react-native-reanimated';
@@ -85,7 +84,7 @@ const BookingsHeader = ({
       backgroundColor: 'rgba(255, 255, 255, 0.25)',
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.3)',
-      borderRadius: borderRadius.large,
+      borderRadius: borderRadius.xl,
     },
     filterTabText: {
       fontSize: 15,
@@ -129,6 +128,9 @@ const BookingsHeader = ({
       color: 'white',
       paddingVertical: spacing.xs,
       backgroundColor: 'transparent',
+      borderWidth: 0,
+      outline: 'none',
+      textAlignVertical: 'center',
     },
     clearButton: {
       padding: spacing.xs,
@@ -199,6 +201,8 @@ const BookingsHeader = ({
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="none"
+          underlineColorAndroid="transparent"
+          selectionColor="rgba(255, 255, 255, 0.3)"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity
