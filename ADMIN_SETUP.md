@@ -48,17 +48,19 @@ After running the setup script, you can login with:
 
 #### Users Collection
 ```javascript
-users/salon16admin@gmail.com {
-  email: "salon16admin@gmail.com",
-  displayName: "Salon 16 Admin",
-  userType: "admin",
-  isActive: true,
-  adminSettings: {
-    canManageServices: true,
-    canManageCustomers: true,
-    canViewAnalytics: true,
-    canManageBookings: true,
-    canManageStaff: true
+users/rathne1997@gmail.com {
+  email: "rathne1997@gmail.com",
+  displayName: "Rathne Admin",
+  firstName: "Rathne",
+  lastName: "Admin",
+  phone: "+1234567890",
+  profileImage: "",
+  role: "admin",
+  isEmailVerified: false,
+  preferences: {
+    notifications: true,
+    preferredServices: [],
+    theme: "light"
   }
 }
 ```

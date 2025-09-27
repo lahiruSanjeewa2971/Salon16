@@ -7,20 +7,20 @@
  * Run this script using: node scripts/setupAdminUser.js
  */
 
-import { initializeApp } from 'firebase/app';
-import { 
+const { initializeApp } = require('firebase/app');
+const { 
   getAuth, 
   createUserWithEmailAndPassword, 
   updateProfile,
   sendEmailVerification 
-} from 'firebase/auth';
-import { 
+} = require('firebase/auth');
+const { 
   getFirestore, 
   doc, 
   setDoc, 
   collection,
   addDoc 
-} from 'firebase/firestore';
+} = require('firebase/firestore');
 
 // Firebase configuration (same as in firebase.config.js)
 const firebaseConfig = {
@@ -49,19 +49,11 @@ const adminUserData = {
   firstName: 'Rathne',
   lastName: 'Admin',
   phone: '+1234567890',
-  userType: 'admin',
-  isActive: true,
-  emailVerified: false,
+  profileImage: '',
+  role: 'admin', // Using 'role' field to match existing codebase
+  isEmailVerified: false,
   createdAt: new Date(),
-  updatedAt: new Date(),
   lastLogin: null,
-  adminSettings: {
-    canManageServices: true,
-    canManageCustomers: true,
-    canViewAnalytics: true,
-    canManageBookings: true,
-    canManageStaff: true
-  },
   preferences: {
     notifications: true,
     preferredServices: [],
@@ -69,121 +61,7 @@ const adminUserData = {
   }
 };
 
-// Salon settings data
-const salonSettingsData = {
-  salonName: 'Salon 16',
-  address: '123 Main Street, City, State 12345',
-  phone: '+1234567890',
-  email: 'info@salon16.com',
-  workingHours: {
-    monday: { open: '09:00', close: '18:00', isOpen: true },
-    tuesday: { open: '09:00', close: '18:00', isOpen: true },
-    wednesday: { open: '09:00', close: '18:00', isOpen: true },
-    thursday: { open: '09:00', close: '18:00', isOpen: true },
-    friday: { open: '09:00', close: '18:00', isOpen: true },
-    saturday: { open: '09:00', close: '17:00', isOpen: true },
-    sunday: { open: '10:00', close: '16:00', isOpen: false }
-  },
-  blockedDates: [],
-  timeSlotDuration: 30, // 30 minutes
-  advanceBookingDays: 90, // 90 days
-  rescheduleLimit: 2, // 2 reschedules per day
-  cancellationHours: 2, // 2 hours before appointment
-  createdAt: new Date(),
-  updatedAt: new Date()
-};
-
-// Sample service categories
-const serviceCategories = [
-  {
-    name: 'Hair Services',
-    description: 'Professional hair cutting, styling, and coloring services',
-    icon: 'cut',
-    color: '#6C2A52',
-    sortOrder: 1,
-    isActive: true,
-    createdAt: new Date()
-  },
-  {
-    name: 'Nail Services',
-    description: 'Manicures, pedicures, and nail art services',
-    icon: 'hand-left',
-    color: '#EC4899',
-    sortOrder: 2,
-    isActive: true,
-    createdAt: new Date()
-  },
-  {
-    name: 'Facial Services',
-    description: 'Skincare treatments and facial services',
-    icon: 'flower',
-    color: '#D4AF37',
-    sortOrder: 3,
-    isActive: true,
-    createdAt: new Date()
-  },
-  {
-    name: 'Spa Services',
-    description: 'Relaxing spa and wellness treatments',
-    icon: 'leaf',
-    color: '#8E3B60',
-    sortOrder: 4,
-    isActive: true,
-    createdAt: new Date()
-  }
-];
-
-// Sample services
-const sampleServices = [
-  {
-    categoryId: 'hair-services', // Will be updated with actual category ID
-    name: 'Hair Cut & Style',
-    description: 'Professional haircut with styling and blow-dry',
-    price: 85.00,
-    durationMinutes: 60,
-    isFeatured: true,
-    isActive: true,
-    sortOrder: 1,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    categoryId: 'hair-services',
-    name: 'Hair Coloring',
-    description: 'Full hair coloring service with premium products',
-    price: 150.00,
-    durationMinutes: 120,
-    isFeatured: true,
-    isActive: true,
-    sortOrder: 2,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    categoryId: 'nail-services',
-    name: 'Manicure & Pedicure',
-    description: 'Complete nail care with polish application',
-    price: 65.00,
-    durationMinutes: 75,
-    isFeatured: false,
-    isActive: true,
-    sortOrder: 3,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    categoryId: 'facial-services',
-    name: 'Deep Facial Treatment',
-    description: 'Rejuvenating facial with deep cleansing and moisturizing',
-    price: 120.00,
-    durationMinutes: 90,
-    isFeatured: true,
-    isActive: true,
-    sortOrder: 4,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
+// Only admin user data - no additional services or settings
 
 async function setupAdminUser() {
   try {
@@ -217,37 +95,7 @@ async function setupAdminUser() {
     await setDoc(adminUserRef, adminUserData);
     console.log('✅ Admin user document created in Firestore');
     
-    // Step 5: Create salon settings document
-    console.log('⚙️ Creating salon settings...');
-    const settingsRef = doc(db, 'settings', 'salon');
-    await setDoc(settingsRef, salonSettingsData);
-    console.log('✅ Salon settings created');
-    
-    // Step 6: Create service categories
-    console.log('🏷️ Creating service categories...');
-    const categoriesRef = collection(db, 'categories');
-    const categoryIds = {};
-    
-    for (const category of serviceCategories) {
-      const categoryDoc = await addDoc(categoriesRef, category);
-      categoryIds[category.name.toLowerCase().replace(/\s+/g, '-')] = categoryDoc.id;
-      console.log(`✅ Created category: ${category.name} (ID: ${categoryDoc.id})`);
-    }
-    
-    // Step 7: Create sample services
-    console.log('✂️ Creating sample services...');
-    const servicesRef = collection(db, 'services');
-    
-    for (const service of sampleServices) {
-      // Update categoryId with actual category ID
-      const serviceData = {
-        ...service,
-        categoryId: categoryIds[service.categoryId] || service.categoryId
-      };
-      
-      const serviceDoc = await addDoc(servicesRef, serviceData);
-      console.log(`✅ Created service: ${service.name} (ID: ${serviceDoc.id})`);
-    }
+    // Admin user setup complete - no additional data creation needed
     
     console.log('\n🎉 Admin setup completed successfully!');
     console.log('📋 Summary:');
@@ -255,9 +103,7 @@ async function setupAdminUser() {
     console.log(`   • Admin Password: ${ADMIN_PASSWORD}`);
     console.log(`   • User ID: ${user.uid}`);
     console.log(`   • Email Verification: Sent to ${ADMIN_EMAIL}`);
-    console.log(`   • Firestore Documents: Created`);
-    console.log(`   • Service Categories: ${serviceCategories.length} created`);
-    console.log(`   • Sample Services: ${sampleServices.length} created`);
+    console.log(`   • Firestore User Document: Created`);
     
     console.log('\n🔐 You can now login to the app using:');
     console.log(`   Email: ${ADMIN_EMAIL}`);

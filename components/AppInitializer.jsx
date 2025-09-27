@@ -66,13 +66,22 @@ export default function AppInitializer() {
 
         // Check if user is authenticated
         if (isAuthenticated && user) {
-          console.log('AppInitializer: User is authenticated, navigating to home');
+          console.log('AppInitializer: User is authenticated, navigating based on role');
           console.log('AppInitializer: User details -', {
             uid: user.uid,
             email: user.email,
-            displayName: user.displayName || user.name
+            displayName: user.displayName || user.name,
+            role: user.role
           });
-          router.replace('/(customer-tabs)');
+          
+          // Navigate based on user role
+          if (user.role === 'admin') {
+            console.log('AppInitializer: Admin user detected, navigating to admin dashboard');
+            router.replace('/(admin-tabs)');
+          } else {
+            console.log('AppInitializer: Customer user detected, navigating to customer home');
+            router.replace('/(customer-tabs)');
+          }
         } else {
           console.log('AppInitializer: User not authenticated, showing welcome screen');
           console.log('AppInitializer: Auth details -', {
