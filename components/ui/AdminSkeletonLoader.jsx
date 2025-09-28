@@ -752,6 +752,23 @@ const AdminSkeletonLoader = ({ isLoading = true, screenType = 'dashboard' }) => 
     </>
   );
 
+  const renderProfileContent = () => (
+    <>
+      {/* Profile Sections */}
+      <View style={styles.servicesGrid}>
+        {[1, 2, 3].map((_, index) => (
+          <SkeletonCard
+            key={index}
+            width="100%"
+            height={200}
+            style={styles.serviceCard}
+            delay={200 + index * 200}
+          />
+        ))}
+      </View>
+    </>
+  );
+
   const renderScreenContent = () => {
     switch (screenType) {
       case 'dashboard':
@@ -762,6 +779,8 @@ const AdminSkeletonLoader = ({ isLoading = true, screenType = 'dashboard' }) => 
         return renderServicesContent();
       case 'customers':
         return renderCustomersContent();
+      case 'profile':
+        return renderProfileContent();
       default:
         return renderDashboardContent();
     }
