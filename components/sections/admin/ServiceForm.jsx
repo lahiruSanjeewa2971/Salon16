@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Modal, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Modal, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, interpolate } from 'react-native-reanimated';
 
 import { ThemedText } from '../../ThemedText';
 import { ThemedButton } from '../../themed/ThemedButton';
 import { ThemedInput } from '../../themed/ThemedInput';
+import CloudinaryImageUploader from '../../ui/CloudinaryImageUploader';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useToastHelpers } from '../../ui/ToastSystem';
 
@@ -27,7 +28,7 @@ export default function ServiceForm({
     description: '',
     price: '',
     duration: '',
-    image: '',
+    image: null, // Changed from string to object
   });
   const [errors, setErrors] = useState({});
   
@@ -45,7 +46,10 @@ export default function ServiceForm({
           description: editingService.description || '',
           price: editingService.price?.toString() || '',
           duration: editingService.duration?.toString() || '',
-          image: editingService.image || '',
+          image: editingService.image ? {
+            url: editingService.image,
+            publicId: editingService.publicId || null,
+          } : null,
         });
       } else {
         setFormData({
@@ -53,7 +57,7 @@ export default function ServiceForm({
           description: '',
           price: '',
           duration: '',
-          image: '',
+          image: null,
         });
       }
       setErrors({});
@@ -94,14 +98,8 @@ export default function ServiceForm({
     }
     
     // Image validation
-    if (!formData.image || !formData.image.trim()) {
-      newErrors.image = 'Image URL is required';
-    } else {
-      // Basic URL validation
-      const urlRegex = /^https?:\/\/.+/;
-      if (!urlRegex.test(formData.image.trim())) {
-        newErrors.image = 'Please enter a valid image URL';
-      }
+    if (!formData.image || !formData.image.url) {
+      newErrors.image = 'Image is required';
     }
     
     setErrors(newErrors);
@@ -132,7 +130,8 @@ export default function ServiceForm({
       description: formData.description?.trim() || '',
       price: parseFloat(formData.price) || 0,
       duration: parseInt(formData.duration) || 0,
-      image: formData.image?.trim() || '',
+      image: formData.image?.url || '',
+      publicId: formData.image?.publicId || null,
       category: 'Hair', // Default category
       isActive: true, // Default to active
       createdAt: editingService ? editingService.createdAt : new Date(),
@@ -170,7 +169,12 @@ export default function ServiceForm({
       borderRadius: borderRadius.xl,
       padding: spacing.xl,
       width: width * 0.9,
-      maxHeight: '80%',
+      maxHeight: '90%',
+      flex: 1,
+    },
+    modalScrollContent: {
+      flexGrow: 1,
+      paddingBottom: spacing.xl,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -201,10 +205,37 @@ export default function ServiceForm({
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginTop: spacing.lg,
+      paddingTop: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(0, 0, 0, 0.1)',
+      backgroundColor: 'rgba(248, 249, 250, 0.8)',
+      marginHorizontal: -spacing.xl,
+      paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.lg,
     },
     modalButton: {
       flex: 1,
       marginHorizontal: spacing.sm,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.large,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    cancelButton: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    addButton: {
+      backgroundColor: colors.primary,
+    },
+    modalButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      textAlign: 'center',
     },
   };
 
@@ -229,74 +260,86 @@ export default function ServiceForm({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <ThemedInput
-                label="Service Name *"
-                value={formData.name}
-                onChangeText={(text) => handleInputChange('name', text)}
-                placeholder="Enter service name"
-                error={errors.name}
-              />
-            </View>
+            <ScrollView 
+              style={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.formGroup}>
+                <ThemedInput
+                  label="Service Name *"
+                  value={formData.name}
+                  onChangeText={(text) => handleInputChange('name', text)}
+                  placeholder="Enter service name"
+                  error={errors.name}
+                />
+              </View>
 
-            <View style={styles.formGroup}>
-              <ThemedInput
-                label="Description *"
-                value={formData.description}
-                onChangeText={(text) => handleInputChange('description', text)}
-                placeholder="Enter service description"
-                multiline
-                numberOfLines={3}
-                error={errors.description}
-              />
-            </View>
+              <View style={styles.formGroup}>
+                <ThemedInput
+                  label="Description *"
+                  value={formData.description}
+                  onChangeText={(text) => handleInputChange('description', text)}
+                  placeholder="Enter service description"
+                  multiline
+                  numberOfLines={3}
+                  error={errors.description}
+                />
+              </View>
 
-            <View style={styles.formGroup}>
-              <ThemedInput
-                label="Image URL *"
+              <CloudinaryImageUploader
+                label="Service Image *"
                 value={formData.image}
-                onChangeText={(text) => handleInputChange('image', text)}
-                placeholder="https://example.com/image.jpg"
-                keyboardType="url"
+                onChange={(imageData) => handleInputChange('image', imageData)}
                 error={errors.image}
+                required={true}
+                aspectRatio={[16, 9]}
+                maxWidth={1200}
+                quality={0.8}
+                folder="services"
               />
-            </View>
 
-            <View style={styles.formRow}>
-              <View style={styles.formRowItem}>
-                <ThemedInput
-                  label="Price ($) *"
-                  value={formData.price}
-                  onChangeText={(text) => handleInputChange('price', text)}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  error={errors.price}
-                />
+              <View style={styles.formRow}>
+                <View style={styles.formRowItem}>
+                  <ThemedInput
+                    label="Price ($) *"
+                    value={formData.price}
+                    onChangeText={(text) => handleInputChange('price', text)}
+                    placeholder="0"
+                    keyboardType="numeric"
+                    error={errors.price}
+                  />
+                </View>
+                <View style={styles.formRowItem}>
+                  <ThemedInput
+                    label="Duration (min) *"
+                    value={formData.duration}
+                    onChangeText={(text) => handleInputChange('duration', text)}
+                    placeholder="30"
+                    keyboardType="numeric"
+                    error={errors.duration}
+                  />
+                </View>
               </View>
-              <View style={styles.formRowItem}>
-                <ThemedInput
-                  label="Duration (min) *"
-                  value={formData.duration}
-                  onChangeText={(text) => handleInputChange('duration', text)}
-                  placeholder="30"
-                  keyboardType="numeric"
-                  error={errors.duration}
-                />
-              </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.modalActions}>
-              <ThemedButton
-                title="Cancel"
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
                 onPress={onClose}
-                style={styles.modalButton}
-              />
-              <ThemedButton
-                title="Add Service"
+              >
+                <ThemedText style={[styles.modalButtonText, { color: colors.text }]}>
+                  Cancel
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.addButton]}
                 onPress={handleSaveService}
-                variant="primary"
-                style={styles.modalButton}
-              />
+              >
+                <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
+                  Add Service
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
@@ -321,74 +364,86 @@ export default function ServiceForm({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <ThemedInput
-                label="Service Name *"
-                value={formData.name}
-                onChangeText={(text) => handleInputChange('name', text)}
-                placeholder="Enter service name"
-                error={errors.name}
-              />
-            </View>
+            <ScrollView 
+              style={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.formGroup}>
+                <ThemedInput
+                  label="Service Name *"
+                  value={formData.name}
+                  onChangeText={(text) => handleInputChange('name', text)}
+                  placeholder="Enter service name"
+                  error={errors.name}
+                />
+              </View>
 
-            <View style={styles.formGroup}>
-              <ThemedInput
-                label="Description *"
-                value={formData.description}
-                onChangeText={(text) => handleInputChange('description', text)}
-                placeholder="Enter service description"
-                multiline
-                numberOfLines={3}
-                error={errors.description}
-              />
-            </View>
+              <View style={styles.formGroup}>
+                <ThemedInput
+                  label="Description *"
+                  value={formData.description}
+                  onChangeText={(text) => handleInputChange('description', text)}
+                  placeholder="Enter service description"
+                  multiline
+                  numberOfLines={3}
+                  error={errors.description}
+                />
+              </View>
 
-            <View style={styles.formGroup}>
-              <ThemedInput
-                label="Image URL *"
+              <CloudinaryImageUploader
+                label="Service Image *"
                 value={formData.image}
-                onChangeText={(text) => handleInputChange('image', text)}
-                placeholder="https://example.com/image.jpg"
-                keyboardType="url"
+                onChange={(imageData) => handleInputChange('image', imageData)}
                 error={errors.image}
+                required={true}
+                aspectRatio={[16, 9]}
+                maxWidth={1200}
+                quality={0.8}
+                folder="services"
               />
-            </View>
 
-            <View style={styles.formRow}>
-              <View style={styles.formRowItem}>
-                <ThemedInput
-                  label="Price ($) *"
-                  value={formData.price}
-                  onChangeText={(text) => handleInputChange('price', text)}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  error={errors.price}
-                />
+              <View style={styles.formRow}>
+                <View style={styles.formRowItem}>
+                  <ThemedInput
+                    label="Price ($) *"
+                    value={formData.price}
+                    onChangeText={(text) => handleInputChange('price', text)}
+                    placeholder="0"
+                    keyboardType="numeric"
+                    error={errors.price}
+                  />
+                </View>
+                <View style={styles.formRowItem}>
+                  <ThemedInput
+                    label="Duration (min) *"
+                    value={formData.duration}
+                    onChangeText={(text) => handleInputChange('duration', text)}
+                    placeholder="30"
+                    keyboardType="numeric"
+                    error={errors.duration}
+                  />
+                </View>
               </View>
-              <View style={styles.formRowItem}>
-                <ThemedInput
-                  label="Duration (min) *"
-                  value={formData.duration}
-                  onChangeText={(text) => handleInputChange('duration', text)}
-                  placeholder="30"
-                  keyboardType="numeric"
-                  error={errors.duration}
-                />
-              </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.modalActions}>
-              <ThemedButton
-                title="Cancel"
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
                 onPress={onClose}
-                style={styles.modalButton}
-              />
-              <ThemedButton
-                title="Update Service"
+              >
+                <ThemedText style={[styles.modalButtonText, { color: colors.text }]}>
+                  Cancel
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.addButton]}
                 onPress={handleSaveService}
-                variant="primary"
-                style={styles.modalButton}
-              />
+              >
+                <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
+                  Update Service
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>

@@ -18,13 +18,12 @@ export default function ServicesStats({ stats, animatedStyle }) {
     statCard: {
       flex: 1,
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      borderRadius: borderRadius.large,
+      borderRadius: borderRadius.xl,
       padding: spacing.md,
       marginHorizontal: spacing.xs,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.2)',
       alignItems: 'center',
-      borderRadius: borderRadius.xl,
     },
     statNumber: {
       fontSize: 20,

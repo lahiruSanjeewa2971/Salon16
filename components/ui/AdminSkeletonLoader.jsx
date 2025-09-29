@@ -245,9 +245,7 @@ const AdminSkeletonLoader = ({ isLoading = true, screenType = 'dashboard' }) => 
     startAnimations();
   }, [fadeAnim, slideUpAnim, headerAnim]);
 
-  if (!isLoading) return null;
-
-  // Animated styles
+  // Animated styles - must be called before any early returns
   const headerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: headerAnim.value }],
   }));
@@ -256,6 +254,8 @@ const AdminSkeletonLoader = ({ isLoading = true, screenType = 'dashboard' }) => 
     opacity: fadeAnim.value,
     transform: [{ translateY: slideUpAnim.value }],
   }));
+
+  if (!isLoading) return null;
 
   const createStyles = (colors, spacing, borderRadius) => ({
     container: {

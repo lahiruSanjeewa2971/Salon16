@@ -42,6 +42,7 @@ const mockServices = [
     icon: 'cut-outline',
     color: '#6C2A52',
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop',
+    publicId: 'salon16/services/haircut_1',
     popular: true,
   },
   {
@@ -57,6 +58,7 @@ const mockServices = [
     icon: 'color-palette-outline',
     color: '#D4AF37',
     image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=300&fit=crop',
+    publicId: 'salon16/services/haircoloring_1',
     popular: false,
   },
   {
@@ -72,6 +74,7 @@ const mockServices = [
     icon: 'sparkles-outline',
     color: '#F5E0DC',
     image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
+    publicId: 'salon16/services/hairstyling_1',
     popular: true,
   },
   {
@@ -87,6 +90,7 @@ const mockServices = [
     icon: 'hand-left-outline',
     color: '#FFA500',
     image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop',
+    publicId: 'salon16/services/manicure_1',
     popular: false,
   },
   {
@@ -102,6 +106,7 @@ const mockServices = [
     icon: 'flower-outline',
     color: '#28A745',
     image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=300&fit=crop',
+    publicId: 'salon16/services/facial_1',
     popular: true,
   },
   {
@@ -117,6 +122,7 @@ const mockServices = [
     icon: 'eye-outline',
     color: '#17A2B8',
     image: 'https://images.unsplash.com/photo-1594736797933-d0d0b0b0b0b0?w=400&h=300&fit=crop',
+    publicId: 'salon16/services/eyebrow_1',
     popular: false,
   },
 ];

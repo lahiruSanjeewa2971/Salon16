@@ -243,9 +243,7 @@ const ProfileSkeletonLoader = ({ isLoading = true }) => {
     startAnimations();
   }, [fadeAnim, slideUpAnim, headerAnim, card1Anim, card2Anim, logoutAnim]);
 
-  if (!isLoading) return null;
-
-  // Animated styles
+  // Animated styles - must be called before any early returns
   const headerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: headerAnim.value }],
   }));
@@ -266,6 +264,8 @@ const ProfileSkeletonLoader = ({ isLoading = true }) => {
   const logoutAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: logoutAnim.value }],
   }));
+
+  if (!isLoading) return null;
 
   const styles = StyleSheet.create({
     container: {
