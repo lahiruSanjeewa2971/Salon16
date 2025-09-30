@@ -172,29 +172,29 @@ export default function AdminServicesScreen() {
     // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(service =>
-        service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        service.category.toLowerCase().includes(searchQuery.toLowerCase())
+        (service.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (service.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (service.category || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(service => service.category === selectedCategory);
+      filtered = filtered.filter(service => (service.category || '') === selectedCategory);
     }
 
     // Sort services
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'price':
-          return a.price - b.price;
+          return (a.price || 0) - (b.price || 0);
         case 'duration':
-          return a.duration - b.duration;
+          return (a.duration || 0) - (b.duration || 0);
         case 'category':
-          return a.category.localeCompare(b.category);
+          return (a.category || '').localeCompare(b.category || '');
         case 'name':
         default:
-          return a.name.localeCompare(b.name);
+          return (a.name || '').localeCompare(b.name || '');
       }
     });
 
@@ -204,8 +204,8 @@ export default function AdminServicesScreen() {
   // Calculate statistics
   const stats = useMemo(() => {
     const totalServices = services.length;
-    const activeServices = services.filter(s => s.isActive).length;
-    const totalRevenue = services.reduce((sum, s) => sum + s.price, 0);
+    const activeServices = services.filter(s => s.isActive === true).length;
+    const totalRevenue = services.reduce((sum, s) => sum + (s.price || 0), 0);
     const avgPrice = totalServices > 0 ? totalRevenue / totalServices : 0;
 
     return {

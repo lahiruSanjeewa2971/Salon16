@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import React, { useState, useCallback, memo } from 'react';
+import { ActivityIndicator, Alert, TouchableOpacity, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
+import { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { WebView } from 'react-native-webview';
 
-import { ThemedText } from '../ThemedText';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useToastHelpers } from '../ui/ToastSystem';
 import cloudinaryService from '../../services/cloudinaryService';
+import { ThemedText } from '../ThemedText';
+import { useToastHelpers } from './ToastSystem';
 
-export default function CloudinaryImageUploader({
+function CloudinaryImageUploader({
   value = null, // { url, publicId }
   onChange = () => {},
   onError = () => {},
@@ -19,7 +20,8 @@ export default function CloudinaryImageUploader({
   aspectRatio = [16, 9], // Default for service images
   maxWidth = 1200,
   quality = 0.8,
-  folder = "services", // Cloudinary folder
+  folder = "salon16", // Cloudinary folder
+  preset = "salon16_images", // Cloudinary upload preset
   style = {},
   disabled = false,
 }) {
@@ -29,11 +31,15 @@ export default function CloudinaryImageUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // Use the original URL directly - no cleaning needed
+  const imageUrl = value?.url || null;
+  
+  
   // Animation values
   const scaleAnim = useSharedValue(1);
   const opacityAnim = useSharedValue(1);
 
-  const handleImagePicker = async () => {
+  const handleImagePicker = useCallback(async () => {
     if (disabled) return;
     
     try {
@@ -59,7 +65,7 @@ export default function CloudinaryImageUploader({
       console.error('Image picker error:', error);
       showError('Error', 'Failed to open image picker');
     }
-  };
+  }, [disabled, onChange, onError, showSuccess, showError, folder, preset, maxWidth, quality, aspectRatio]);
 
   const handleImageSelection = async (source) => {
     try {
@@ -90,9 +96,8 @@ export default function CloudinaryImageUploader({
         uploadResult = await cloudinaryService.uploadImageFromURI(
           imageAsset.uri,
           {
-            preset: 'salon16_images',
-            folder: folder,
-            transformation: 'q_auto,f_auto'
+            preset: preset,
+            folder: folder
           }
         );
       } catch (error) {
@@ -101,7 +106,7 @@ export default function CloudinaryImageUploader({
         uploadResult = await cloudinaryService.uploadImageBase64(
           imageAsset.uri,
           {
-            preset: 'salon16_images',
+            preset: preset,
             folder: folder
           }
         );
@@ -127,7 +132,7 @@ export default function CloudinaryImageUploader({
     }
   };
 
-  const handleDeleteImage = async () => {
+  const handleDeleteImage = useCallback(async () => {
     if (!value?.publicId || disabled) return;
 
     Alert.alert(
@@ -160,15 +165,15 @@ export default function CloudinaryImageUploader({
         },
       ]
     );
-  };
+  }, [value?.publicId, disabled, onChange, showSuccess, showError]);
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (value) {
       handleDeleteImage();
     } else {
       handleImagePicker();
     }
-  };
+  }, [value, handleDeleteImage, handleImagePicker]);
 
   // Animation styles
   const animatedStyle = useAnimatedStyle(() => ({
@@ -321,6 +326,59 @@ export default function CloudinaryImageUploader({
       color: colors.error,
       marginLeft: spacing.sm,
     },
+    successContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xl,
+    },
+    successIconContainer: {
+      position: 'relative',
+      marginBottom: spacing.lg,
+    },
+    successIconGlow: {
+      position: 'absolute',
+      top: -10,
+      left: -10,
+      right: -10,
+      bottom: -10,
+      backgroundColor: colors.success + '20',
+      borderRadius: 50,
+      zIndex: -1,
+    },
+    successTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.success,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    successSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+    },
+    imageInfoContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      width: '100%',
+      backgroundColor: colors.inputBackground,
+      borderRadius: borderRadius.medium,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.sm,
+    },
+    imageInfoItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+    },
+    imageInfoText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginLeft: spacing.xs,
+      fontWeight: '500',
+    },
   };
 
   return (
@@ -329,7 +387,7 @@ export default function CloudinaryImageUploader({
         {label} {required && <ThemedText style={styles.requiredIndicator}>*</ThemedText>}
       </ThemedText>
       
-      <Animated.View style={animatedStyle}>
+      <View>
         <TouchableOpacity
           style={[
             styles.uploaderContainer,
@@ -364,25 +422,66 @@ export default function CloudinaryImageUploader({
             </Animatable.View>
           ) : value ? (
             <Animatable.View 
-              animation="fadeInUp" 
-              duration={500}
+              animation="bounceIn" 
+              duration={600}
               style={styles.uploadContent}
             >
               <Animatable.View 
-                animation="zoomIn" 
-                delay={200}
-                style={styles.imageContainer}
+                animation="pulse" 
+                iterationCount="infinite"
+                duration={2000}
+                style={styles.successContainer}
               >
-                <Image source={{ uri: value.url }} style={styles.image} />
-                <View style={styles.imageOverlay}>
-                  <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                <View style={styles.successIconContainer}>
+                  <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+                  <View style={styles.successIconGlow} />
                 </View>
+                
+                <Animatable.View 
+                  animation="fadeInUp" 
+                  delay={300}
+                >
+                  <ThemedText style={styles.successTitle}>
+                    Image Uploaded Successfully!
+                  </ThemedText>
+                </Animatable.View>
+                
+                <Animatable.View 
+                  animation="fadeInUp" 
+                  delay={500}
+                >
+                  <ThemedText style={styles.successSubtitle}>
+                    Your image has been uploaded to Cloudinary
+                  </ThemedText>
+                </Animatable.View>
+                
+                <Animatable.View 
+                  animation="fadeInUp" 
+                  delay={700}
+                >
+                  <View style={styles.imageInfoContainer}>
+                    <View style={styles.imageInfoItem}>
+                      <Ionicons name="image-outline" size={16} color={colors.textSecondary} />
+                      <ThemedText style={styles.imageInfoText}>
+                        {value?.format?.toUpperCase() || 'JPG'}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.imageInfoItem}>
+                      <Ionicons name="resize-outline" size={16} color={colors.textSecondary} />
+                      <ThemedText style={styles.imageInfoText}>
+                        {value?.width}x{value?.height}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.imageInfoItem}>
+                      <Ionicons name="cloud-outline" size={16} color={colors.textSecondary} />
+                      <ThemedText style={styles.imageInfoText}>
+                        Cloudinary
+                      </ThemedText>
+                    </View>
+                  </View>
+                </Animatable.View>
               </Animatable.View>
-              <Animatable.View 
-                animation="fadeInUp" 
-                delay={400}
-                style={styles.actionButtons}
-              >
+              <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={[styles.actionButton, styles.deleteButton]}
                   onPress={handleDeleteImage}
@@ -403,7 +502,7 @@ export default function CloudinaryImageUploader({
                     Change
                   </ThemedText>
                 </TouchableOpacity>
-              </Animatable.View>
+              </View>
             </Animatable.View>
           ) : (
             <Animatable.View 
@@ -443,7 +542,7 @@ export default function CloudinaryImageUploader({
             </Animatable.View>
           )}
         </TouchableOpacity>
-      </Animated.View>
+      </View>
       
       {error && (
         <Animatable.View 
@@ -459,3 +558,5 @@ export default function CloudinaryImageUploader({
     </View>
   );
 }
+
+export default memo(CloudinaryImageUploader);

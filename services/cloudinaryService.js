@@ -57,6 +57,7 @@ export const cloudinaryService = {
         console.log(`📤 Public ID: ${options.public_id}`);
       }
       
+      
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloud_name}/image/upload`;
       console.log(`📤 Upload URL: ${uploadUrl}`);
       

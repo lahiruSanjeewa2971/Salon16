@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Modal, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, interpolate } from 'react-native-reanimated';
@@ -9,6 +9,7 @@ import { ThemedInput } from '../../themed/ThemedInput';
 import CloudinaryImageUploader from '../../ui/CloudinaryImageUploader';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useToastHelpers } from '../../ui/ToastSystem';
+import { serviceService } from '../../../services/firebaseService';
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +21,7 @@ export default function ServiceForm({
   onSave 
 }) {
   const { colors, spacing, borderRadius } = useTheme();
-  const { showError } = useToastHelpers();
+  const { showError, showSuccess } = useToastHelpers();
   
   // Form state
   const [formData, setFormData] = useState({
@@ -31,42 +32,46 @@ export default function ServiceForm({
     image: null, // Changed from string to object
   });
   const [errors, setErrors] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
   
   // Animation
   const modalAnim = useSharedValue(0);
 
+  // Separate effects for Add and Edit modals
   React.useEffect(() => {
-    if (showAddModal || showEditModal) {
+    if (showAddModal) {
       modalAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
       
-      // Initialize form data
-      if (editingService) {
-        setFormData({
-          name: editingService.name || '',
-          description: editingService.description || '',
-          price: editingService.price?.toString() || '',
-          duration: editingService.duration?.toString() || '',
-          image: editingService.image ? {
-            url: editingService.image,
-            publicId: editingService.publicId || null,
-          } : null,
-        });
-      } else {
-        setFormData({
-          name: '',
-          description: '',
-          price: '',
-          duration: '',
-          image: null,
-        });
-      }
+      // Initialize form data for Add modal
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        duration: '',
+        image: null,
+      });
+      setErrors({});
+    } else if (showEditModal && editingService) {
+      modalAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
+      
+      // Initialize form data for Edit modal
+      setFormData({
+        name: editingService.name || '',
+        description: editingService.description || '',
+        price: editingService.price?.toString() || '',
+        duration: editingService.duration?.toString() || '',
+        image: editingService.image ? {
+          url: editingService.image,
+          publicId: editingService.publicId || null,
+        } : null,
+      });
       setErrors({});
     } else {
       modalAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
     }
   }, [showAddModal, showEditModal, editingService]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors = {};
     
     // Service Name validation
@@ -117,40 +122,78 @@ export default function ServiceForm({
     }
     
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData, showError]);
 
-  const handleSaveService = () => {
+  const handleSaveService = useCallback(async () => {
     if (!validateForm()) {
       return;
     }
 
-    const newService = {
-      id: editingService ? editingService.id : Date.now().toString(),
-      name: formData.name?.trim() || '',
-      description: formData.description?.trim() || '',
-      price: parseFloat(formData.price) || 0,
-      duration: parseInt(formData.duration) || 0,
-      image: formData.image?.url || '',
-      publicId: formData.image?.publicId || null,
-      category: 'Hair', // Default category
-      isActive: true, // Default to active
-      createdAt: editingService ? editingService.createdAt : new Date(),
-      updatedAt: new Date(),
-      icon: editingService ? editingService.icon : 'star-outline',
-      color: editingService ? editingService.color : colors.primary,
-      popular: editingService ? editingService.popular : false,
-    };
+    setIsSaving(true);
+    
+    try {
+      const serviceData = {
+        name: formData.name?.trim() || '',
+        description: formData.description?.trim() || '',
+        price: parseFloat(formData.price) || 0,
+        duration: parseInt(formData.duration) || 0,
+        image: formData.image?.url || '',
+        publicId: formData.image?.publicId || null,
+        category: 'Hair', // Default category
+        isActive: true, // Default to active
+        icon: editingService ? editingService.icon : 'star-outline',
+        color: editingService ? editingService.color : colors.primary,
+        popular: editingService ? editingService.popular : false,
+      };
 
-    console.log('Creating new service:', newService);
-    onSave(newService);
-  };
+      // Save to Firebase
+      const savedService = await serviceService.createService(serviceData);
+      
+      // Show success message
+      showSuccess(
+        'Service Created Successfully!',
+        `"${serviceData.name}" has been added to your services.`,
+        { duration: 4000 }
+      );
+      
+      // Close the modal
+      onClose();
+      
+      // Call the onSave callback with the saved service
+      onSave(savedService);
+      
+    } catch (error) {
+      console.error('Error creating service:', error); // Keep for development debugging
+      
+      // Handle different types of errors
+      let errorMessage = 'Failed to create service. Please try again.';
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'You do not have permission to create services.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Service is temporarily unavailable. Please check your internet connection.';
+      } else if (error.code === 'invalid-argument') {
+        errorMessage = 'Invalid service data. Please check all fields.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showError(
+        'Failed to Create Service',
+        errorMessage,
+        { duration: 5000 }
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }, [formData, errors, editingService, colors.primary, showError, showSuccess, onClose, onSave]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-  };
+  }, [errors]);
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     opacity: modalAnim.value,
@@ -237,6 +280,9 @@ export default function ServiceForm({
       fontWeight: '600',
       textAlign: 'center',
     },
+    disabledButton: {
+      opacity: 0.6,
+    },
   };
 
   return (
@@ -297,6 +343,7 @@ export default function ServiceForm({
                 maxWidth={1200}
                 quality={0.8}
                 folder="services"
+                preset="salon16_images"
               />
 
               <View style={styles.formRow}>
@@ -333,11 +380,12 @@ export default function ServiceForm({
                 </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.addButton]}
+                style={[styles.modalButton, styles.addButton, isSaving && styles.disabledButton]}
                 onPress={handleSaveService}
+                disabled={isSaving}
               >
                 <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
-                  Add Service
+                  {isSaving ? 'Creating...' : 'Add Service'}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -401,6 +449,7 @@ export default function ServiceForm({
                 maxWidth={1200}
                 quality={0.8}
                 folder="services"
+                preset="salon16_images"
               />
 
               <View style={styles.formRow}>
@@ -437,11 +486,12 @@ export default function ServiceForm({
                 </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.addButton]}
+                style={[styles.modalButton, styles.addButton, isSaving && styles.disabledButton]}
                 onPress={handleSaveService}
+                disabled={isSaving}
               >
                 <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
-                  Update Service
+                  {isSaving ? 'Updating...' : 'Update Service'}
                 </ThemedText>
               </TouchableOpacity>
             </View>

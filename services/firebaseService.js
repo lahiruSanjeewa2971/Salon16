@@ -94,7 +94,12 @@ export const firestoreService = {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      return docRef.id;
+      return {
+        id: docRef.id,
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
     } catch (error) {
       throw error;
     }

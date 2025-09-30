@@ -162,7 +162,7 @@ export default function ServiceList({
     <View style={styles.servicesGrid}>
       {services.map((service, index) => (
         <Animated.View
-          key={service.id}
+          key={service.id || `service-${index}`}
           style={[
             styles.serviceCard,
             {
