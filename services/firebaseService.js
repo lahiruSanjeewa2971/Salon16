@@ -192,6 +192,31 @@ export const firestoreService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Update document
+  update: async (collectionName, docId, updateData) => {
+    try {
+      const docRef = doc(db, collectionName, docId);
+      await updateDoc(docRef, {
+        ...updateData,
+        updatedAt: serverTimestamp()
+      });
+      return { id: docId, ...updateData };
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Delete document
+  delete: async (collectionName, docId) => {
+    try {
+      const docRef = doc(db, collectionName, docId);
+      await deleteDoc(docRef);
+      return { id: docId };
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
@@ -303,9 +328,10 @@ export const serviceService = {
   // Get all active services
   getActiveServices: async () => {
     try {
+      // Simple query without ordering to avoid index requirement
       return await firestoreService.query('services', [
         { field: 'isActive', operator: '==', value: true }
-      ], { field: 'name', direction: 'asc' });
+      ]);
     } catch (error) {
       throw error;
     }
@@ -317,6 +343,39 @@ export const serviceService = {
       return await firestoreService.create('services', {
         ...serviceData,
         isActive: true
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update service
+  updateService: async (serviceId, updateData) => {
+    try {
+      return await firestoreService.update('services', serviceId, {
+        ...updateData,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Delete service
+  deleteService: async (serviceId) => {
+    try {
+      return await firestoreService.delete('services', serviceId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Toggle service status
+  toggleServiceStatus: async (serviceId, isActive) => {
+    try {
+      return await firestoreService.update('services', serviceId, {
+        isActive,
+        updatedAt: new Date()
       });
     } catch (error) {
       throw error;

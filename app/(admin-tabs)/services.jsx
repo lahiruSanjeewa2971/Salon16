@@ -1,146 +1,102 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View
 } from 'react-native';
-import Animated, {
+import {
   useAnimatedStyle,
-  useSharedValue,
+  useSharedValue, 
   withDelay,
   withSpring
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ThemedText } from '../../components/ThemedText';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
+import { serviceService } from '../../services/firebaseService';
 
 // Import new components
-import ServicesHeader from '../../components/sections/admin/ServicesHeader';
-import ServicesStats from '../../components/sections/admin/ServicesStats';
-import ServicesControls from '../../components/sections/admin/ServicesControls';
 import AddServiceButton from '../../components/sections/admin/AddServiceButton';
 import ServiceForm from '../../components/sections/admin/ServiceForm';
 import ServiceList from '../../components/sections/admin/ServiceList';
-
-// Mock data for services
-const mockServices = [
-  {
-    id: '1',
-    name: 'Hair Cut & Style',
-    description: 'Professional haircut with modern styling techniques',
-    price: 45,
-    duration: 60,
-    category: 'Hair',
-    isActive: true,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    icon: 'cut-outline',
-    color: '#6C2A52',
-    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop',
-    publicId: 'salon16/services/haircut_1',
-    popular: true,
-  },
-  {
-    id: '2',
-    name: 'Hair Coloring',
-    description: 'Full hair coloring service with premium products',
-    price: 85,
-    duration: 120,
-    category: 'Hair',
-    isActive: true,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    icon: 'color-palette-outline',
-    color: '#D4AF37',
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=300&fit=crop',
-    publicId: 'salon16/services/haircoloring_1',
-    popular: false,
-  },
-  {
-    id: '3',
-    name: 'Hair Styling',
-    description: 'Special occasion styling and blowouts',
-    price: 35,
-    duration: 45,
-    category: 'Hair',
-    isActive: true,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    icon: 'sparkles-outline',
-    color: '#F5E0DC',
-    image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop',
-    publicId: 'salon16/services/hairstyling_1',
-    popular: true,
-  },
-  {
-    id: '4',
-    name: 'Manicure',
-    description: 'Professional nail care and polish application',
-    price: 25,
-    duration: 30,
-    category: 'Nails',
-    isActive: true,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    icon: 'hand-left-outline',
-    color: '#FFA500',
-    image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop',
-    publicId: 'salon16/services/manicure_1',
-    popular: false,
-  },
-  {
-    id: '5',
-    name: 'Facial Treatment',
-    description: 'Rejuvenating facial treatment with premium skincare',
-    price: 65,
-    duration: 90,
-    category: 'Skincare',
-    isActive: true,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    icon: 'flower-outline',
-    color: '#28A745',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=300&fit=crop',
-    publicId: 'salon16/services/facial_1',
-    popular: true,
-  },
-  {
-    id: '6',
-    name: 'Eyebrow Shaping',
-    description: 'Professional eyebrow shaping and styling',
-    price: 20,
-    duration: 30,
-    category: 'Beauty',
-    isActive: false,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    icon: 'eye-outline',
-    color: '#17A2B8',
-    image: 'https://images.unsplash.com/photo-1594736797933-d0d0b0b0b0b0?w=400&h=300&fit=crop',
-    publicId: 'salon16/services/eyebrow_1',
-    popular: false,
-  },
-];
+import ServicesControls from '../../components/sections/admin/ServicesControls';
+import ServicesHeader from '../../components/sections/admin/ServicesHeader';
+import ServicesStats from '../../components/sections/admin/ServicesStats';
 
 export default function AdminServicesScreen() {
-  const { colors, spacing } = useTheme();
-  const { showSuccess } = useToastHelpers();
+  const { colors, spacing, borderRadius } = useTheme();
+  const { showSuccess, showError } = useToastHelpers();
   
   // State management
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [services, setServices] = useState(mockServices);
+  const [services, setServices] = useState([]);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('createdAt');
+
+  // Firebase data fetching
+  const fetchServices = useCallback(async (isRefresh = false) => {
+    try {
+      if (!isRefresh) {
+        setIsLoading(true);
+      }
+      setError(null);
+      
+      const fetchedServices = await serviceService.getActiveServices();
+      
+      // Validate and normalize service data
+      const validatedServices = fetchedServices.map(service => ({
+        id: service.id || `service-${Date.now()}-${Math.random()}`,
+        name: service.name || 'Unnamed Service',
+        description: service.description || '',
+        price: typeof service.price === 'number' ? service.price : 0,
+        duration: typeof service.duration === 'number' ? service.duration : 0,
+        category: service.category || 'Hair',
+        isActive: service.isActive !== false,
+        createdAt: service.createdAt?.toDate ? service.createdAt.toDate() : new Date(service.createdAt || new Date()),
+        updatedAt: service.updatedAt?.toDate ? service.updatedAt.toDate() : new Date(service.updatedAt || new Date()),
+        icon: service.icon || 'star-outline',
+        color: service.color || colors.primary,
+        image: service.image || '',
+        publicId: service.publicId || null,
+        popular: service.popular || false,
+      }));
+      
+      setServices(validatedServices);
+      setRetryCount(0);
+      
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      setError(error.message || 'Failed to load services');
+      
+      if (!isRefresh) {
+        showError('Failed to Load Services', error.message || 'Please check your connection and try again.');
+      }
+    } finally {
+      setIsLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      }
+    }
+  }, [colors.primary, showError]);
+
+  // Fetch services on component mount
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -186,6 +142,14 @@ export default function AdminServicesScreen() {
     // Sort services
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case 'createdAt':
+          try {
+            const dateA = new Date(a.createdAt || new Date());
+            const dateB = new Date(b.createdAt || new Date());
+            return dateB - dateA; // Latest first
+          } catch (error) {
+            return 0;
+          }
         case 'price':
           return (a.price || 0) - (b.price || 0);
         case 'duration':
@@ -219,11 +183,8 @@ export default function AdminServicesScreen() {
   // Event handlers
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-      showSuccess('Services refreshed!');
-    }, 1000);
+    await fetchServices(true);
+    showSuccess('Services refreshed!');
   };
 
   const handleAddService = () => {
@@ -235,26 +196,102 @@ export default function AdminServicesScreen() {
     setShowEditModal(true);
   };
 
-  const handleDeleteService = (service) => {
-    setServices(prev => prev.filter(s => s.id !== service.id));
+  const handleDeleteService = async (service) => {
+    try {
+      // Optimistic update - remove from local state immediately
+      setServices(prev => prev.filter(s => s.id !== service.id));
+      
+      // Delete from Firebase
+      await serviceService.deleteService(service.id);
+      
+      // Delete image from Cloudinary if it exists
+      if (service.publicId) {
+        try {
+          // Note: Cloudinary deletion should ideally be done server-side
+          // For now, we'll just log it as the client-side deletion has limitations
+          console.log('Service image should be deleted from Cloudinary:', service.publicId);
+        } catch (imageError) {
+          console.warn('Could not delete image from Cloudinary:', imageError);
+          // Don't fail the entire operation if image deletion fails
+        }
+      }
+      
+      showSuccess('Service deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      
+      // Revert optimistic update on error
+      setServices(prev => [...prev, service]);
+      
+      showError('Delete Failed', 'Failed to delete service. Please try again.');
+    }
   };
 
-  const handleToggleServiceStatus = (service) => {
-    setServices(prev =>
-      prev.map(s =>
-        s.id === service.id ? { ...s, isActive: !s.isActive } : s
-      )
-    );
-  };
-
-  const handleSaveService = (newService) => {
-    if (editingService) {
+  const handleToggleServiceStatus = async (service) => {
+    try {
+      const newStatus = !service.isActive;
+      
+      // Optimistic update - update local state immediately
       setServices(prev =>
-        prev.map(s => (s.id === editingService.id ? newService : s))
+        prev.map(s =>
+          s.id === service.id ? { ...s, isActive: newStatus } : s
+        )
+      );
+      
+      // Update Firebase
+      await serviceService.toggleServiceStatus(service.id, newStatus);
+      
+      showSuccess(`Service ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+    } catch (error) {
+      console.error('Error toggling service status:', error);
+      
+      // Revert optimistic update on error
+      setServices(prev =>
+        prev.map(s =>
+          s.id === service.id ? { ...s, isActive: service.isActive } : s
+        )
+      );
+      
+      showError('Update Failed', 'Failed to update service status. Please try again.');
+    }
+  };
+
+  const handleSaveService = (savedService) => {
+    if (editingService) {
+      // Update existing service - preserve original properties and merge with updates
+      const updatedService = {
+        ...editingService, // Preserve original service properties
+        ...savedService,  // Apply updates
+        id: editingService.id, // Ensure ID is preserved
+        createdAt: editingService.createdAt, // Preserve original creation date
+        updatedAt: savedService.updatedAt?.toDate ? savedService.updatedAt.toDate() : new Date(savedService.updatedAt || new Date()),
+      };
+      
+      setServices(prev =>
+        prev.map(s => (s.id === editingService.id ? updatedService : s))
       );
       showSuccess('Service updated successfully!');
     } else {
-      setServices(prev => [...prev, newService]);
+      // Ensure the new service has all required properties
+      const formattedService = {
+        id: savedService.id || `service-${Date.now()}-${Math.random()}`,
+        name: savedService.name || 'Unnamed Service',
+        description: savedService.description || '',
+        price: typeof savedService.price === 'number' ? savedService.price : 0,
+        duration: typeof savedService.duration === 'number' ? savedService.duration : 0,
+        category: savedService.category || 'Hair',
+        isActive: savedService.isActive !== false,
+        createdAt: savedService.createdAt?.toDate ? savedService.createdAt.toDate() : new Date(savedService.createdAt || new Date()),
+        updatedAt: savedService.updatedAt?.toDate ? savedService.updatedAt.toDate() : new Date(savedService.updatedAt || new Date()),
+        icon: savedService.icon || 'star-outline',
+        color: savedService.color || colors.primary,
+        image: savedService.image || '',
+        publicId: savedService.publicId || null,
+        popular: savedService.popular || false,
+      };
+      
+      // Add to the beginning of the list (latest first)
+      setServices(prev => [formattedService, ...prev]);
       showSuccess('Service added successfully!');
     }
     handleCloseModal();
@@ -301,6 +338,56 @@ export default function AdminServicesScreen() {
     scrollContent: {
       paddingBottom: spacing.xxxl,
       paddingTop: spacing.sm,
+    },
+    errorContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+      margin: spacing.lg,
+      backgroundColor: colors.error + '10',
+      borderRadius: borderRadius.large,
+      borderWidth: 1,
+      borderColor: colors.error + '30',
+    },
+    errorText: {
+      fontSize: 16,
+      color: colors.error,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    retryButton: {
+      backgroundColor: colors.error,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.medium,
+    },
+    retryButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xxxl,
+      margin: spacing.lg,
+    },
+    emptyText: {
+      fontSize: 18,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+    },
+    addFirstButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.medium,
+    },
+    addFirstButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '600',
     },
   });
 
@@ -350,13 +437,43 @@ export default function AdminServicesScreen() {
           <AddServiceButton onPress={handleAddService} />
 
           {/* Services List */}
-          <ServiceList
-            services={filteredServices}
-            fadeAnim={fadeAnim}
-            onEditService={handleEditService}
-            onDeleteService={handleDeleteService}
-            onToggleServiceStatus={handleToggleServiceStatus}
-          />
+          {error && !isLoading ? (
+            <View style={styles.errorContainer}>
+              <ThemedText style={styles.errorText}>
+                {error}
+          </ThemedText>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={() => fetchServices()}
+              >
+                <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+              </TouchableOpacity>
+            </View>
+          ) : filteredServices.length === 0 && !isLoading ? (
+            <View style={styles.emptyContainer}>
+              <ThemedText style={styles.emptyText}>
+                {searchQuery || selectedCategory !== 'all' 
+                  ? 'No services match your search criteria' 
+                  : 'No services found. Add your first service!'}
+          </ThemedText>
+              {!searchQuery && selectedCategory === 'all' && (
+                <TouchableOpacity 
+                  style={styles.addFirstButton}
+                  onPress={handleAddService}
+                >
+                  <ThemedText style={styles.addFirstButtonText}>Add Service</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <ServiceList
+              services={filteredServices}
+              fadeAnim={fadeAnim}
+              onEditService={handleEditService}
+              onDeleteService={handleDeleteService}
+              onToggleServiceStatus={handleToggleServiceStatus}
+            />
+          )}
         </ScrollView>
       </View>
 

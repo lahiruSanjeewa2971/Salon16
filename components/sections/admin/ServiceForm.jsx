@@ -137,8 +137,8 @@ export default function ServiceForm({
         description: formData.description?.trim() || '',
         price: parseFloat(formData.price) || 0,
         duration: parseInt(formData.duration) || 0,
-        image: formData.image?.url || '',
-        publicId: formData.image?.publicId || null,
+        image: formData.image?.url || (editingService ? editingService.image : ''),
+        publicId: formData.image?.publicId || (editingService ? editingService.publicId : null),
         category: 'Hair', // Default category
         isActive: true, // Default to active
         icon: editingService ? editingService.icon : 'star-outline',
@@ -147,14 +147,28 @@ export default function ServiceForm({
       };
 
       // Save to Firebase
-      const savedService = await serviceService.createService(serviceData);
-      
-      // Show success message
-      showSuccess(
-        'Service Created Successfully!',
-        `"${serviceData.name}" has been added to your services.`,
-        { duration: 4000 }
-      );
+      let savedService;
+      if (editingService) {
+        // Update existing service
+        savedService = await serviceService.updateService(editingService.id, serviceData);
+        
+        // Show success message
+        showSuccess(
+          'Service Updated Successfully!',
+          `"${serviceData.name}" has been updated.`,
+          { duration: 4000 }
+        );
+      } else {
+        // Create new service
+        savedService = await serviceService.createService(serviceData);
+        
+        // Show success message
+        showSuccess(
+          'Service Created Successfully!',
+          `"${serviceData.name}" has been added to your services.`,
+          { duration: 4000 }
+        );
+      }
       
       // Close the modal
       onClose();
@@ -163,13 +177,17 @@ export default function ServiceForm({
       onSave(savedService);
       
     } catch (error) {
-      console.error('Error creating service:', error); // Keep for development debugging
+      console.error('Error saving service:', error); // Keep for development debugging
       
       // Handle different types of errors
-      let errorMessage = 'Failed to create service. Please try again.';
+      let errorMessage = editingService 
+        ? 'Failed to update service. Please try again.'
+        : 'Failed to create service. Please try again.';
       
       if (error.code === 'permission-denied') {
-        errorMessage = 'You do not have permission to create services.';
+        errorMessage = editingService 
+          ? 'You do not have permission to update services.'
+          : 'You do not have permission to create services.';
       } else if (error.code === 'unavailable') {
         errorMessage = 'Service is temporarily unavailable. Please check your internet connection.';
       } else if (error.code === 'invalid-argument') {
@@ -179,7 +197,7 @@ export default function ServiceForm({
       }
       
       showError(
-        'Failed to Create Service',
+        editingService ? 'Update Failed' : 'Creation Failed',
         errorMessage,
         { duration: 5000 }
       );
