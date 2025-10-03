@@ -15,7 +15,11 @@ import { useTheme } from '../../contexts/ThemeContext';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 
 export default function AdminCustomersScreen() {
-  const { colors, spacing } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const colors = theme?.colors || {};
+  const spacing = theme?.spacing || {};
   const [isLoading, setIsLoading] = useState(true);
 
   // Animation values

@@ -6,7 +6,19 @@ import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function DashboardStats({ stats, animatedStyle }) {
-  const { spacing, borderRadius } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const spacing = theme?.spacing || {};
+  const borderRadius = theme?.borderRadius || {};
+
+  // Add null safety for stats
+  const safeStats = stats || {
+    totalBookings: 0,
+    pendingBookings: 0,
+    todayRevenue: 0,
+    activeServices: 0,
+  };
 
   const styles = {
     statsContainer: {
@@ -42,19 +54,19 @@ export default function DashboardStats({ stats, animatedStyle }) {
     <Animated.View style={animatedStyle}>
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <ThemedText style={styles.statNumber}>{stats.totalBookings}</ThemedText>
+          <ThemedText style={styles.statNumber}>{safeStats.totalBookings}</ThemedText>
           <ThemedText style={styles.statLabel}>Total Bookings</ThemedText>
         </View>
         <View style={styles.statCard}>
-          <ThemedText style={styles.statNumber}>{stats.pendingBookings}</ThemedText>
+          <ThemedText style={styles.statNumber}>{safeStats.pendingBookings}</ThemedText>
           <ThemedText style={styles.statLabel}>Pending</ThemedText>
         </View>
         <View style={styles.statCard}>
-          <ThemedText style={styles.statNumber}>${stats.todayRevenue}</ThemedText>
+          <ThemedText style={styles.statNumber}>${safeStats.todayRevenue}</ThemedText>
           <ThemedText style={styles.statLabel}>Today's Revenue</ThemedText>
         </View>
         <View style={styles.statCard}>
-          <ThemedText style={styles.statNumber}>{stats.activeServices}</ThemedText>
+          <ThemedText style={styles.statNumber}>{safeStats.activeServices}</ThemedText>
           <ThemedText style={styles.statLabel}>Active Services</ThemedText>
         </View>
       </View>

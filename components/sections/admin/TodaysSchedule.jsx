@@ -7,7 +7,15 @@ import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking }) {
-  const { spacing, borderRadius, colors } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const spacing = theme?.spacing || {};
+  const borderRadius = theme?.borderRadius || {};
+  const colors = theme?.colors || {};
+
+  // Add null safety for schedule
+  const safeSchedule = schedule || [];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -23,7 +31,7 @@ export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking 
     switch (status) {
       case 'completed': return 'checkmark-circle';
       case 'in-progress': return 'time';
-      case 'upcoming': return 'clock';
+      case 'upcoming': return 'time-outline';
       case 'cancelled': return 'close-circle';
       default: return 'ellipse';
     }
@@ -111,18 +119,18 @@ export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking 
         <View style={styles.scheduleHeader}>
           <ThemedText style={styles.scheduleTitle}>Today's Schedule</ThemedText>
           <ThemedText style={styles.scheduleSubtitle}>
-            {schedule.length} appointments scheduled
+            {safeSchedule.length} appointments scheduled
           </ThemedText>
         </View>
         
-        {schedule.length === 0 ? (
+        {safeSchedule.length === 0 ? (
           <View style={styles.emptyState}>
             <ThemedText style={styles.emptyText}>
               No appointments scheduled for today
             </ThemedText>
           </View>
         ) : (
-          schedule.map((booking, index) => (
+          safeSchedule.map((booking, index) => (
             <TouchableOpacity
               key={booking.id}
               style={styles.bookingItem}

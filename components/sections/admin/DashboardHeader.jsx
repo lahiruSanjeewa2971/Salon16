@@ -6,7 +6,10 @@ import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function DashboardHeader({ animatedStyle }) {
-  const { spacing } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const spacing = theme?.spacing || {};
 
   const styles = {
     header: {

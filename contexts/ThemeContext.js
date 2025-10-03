@@ -38,6 +38,12 @@ export function ThemeProvider({ children }) {
     return isDarkMode ? 'dark' : 'light';
   };
 
+  // Get safe theme colors
+  const getSafeColors = () => {
+    const themeName = getCurrentTheme();
+    return Colors[themeName] || Colors.light; // Fallback to light theme
+  };
+
   // Theme object
   const theme = {
     // Color scheme
@@ -45,19 +51,19 @@ export function ThemeProvider({ children }) {
     colorScheme: getCurrentTheme(),
     
     // Colors
-    colors: Colors[getCurrentTheme()],
+    colors: getSafeColors(),
     colorPalette: Colors,
     
     // Typography
-    typography: Typography,
-    fonts: Typography,
+    typography: Typography || {},
+    fonts: Typography || {},
     
     // Spacing and layout
-    spacing: Spacing,
-    borderRadius: BorderRadius,
-    shadows: Shadows,
-    layout: Layout,
-    animation: Animation,
+    spacing: Spacing || {},
+    borderRadius: BorderRadius || {},
+    shadows: Shadows || {},
+    layout: Layout || {},
+    animation: Animation || {},
     
     // Theme management
     toggleDarkMode,
@@ -84,7 +90,24 @@ export function ThemeProvider({ children }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    // Return a fallback theme instead of throwing an error
+    return {
+      colors: Colors.light || {},
+      spacing: Spacing || {},
+      borderRadius: BorderRadius || {},
+      shadows: Shadows || {},
+      layout: Layout || {},
+      animation: Animation || {},
+      typography: Typography || {},
+      fonts: Typography || {},
+      isDark: false,
+      colorScheme: 'light',
+      colorPalette: Colors || {},
+      toggleDarkMode: () => {},
+      setTheme: () => {},
+      resetTheme: () => {},
+      isCustomTheme: false,
+    };
   }
   return context;
 }

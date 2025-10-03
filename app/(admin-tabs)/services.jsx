@@ -31,7 +31,12 @@ import ServicesHeader from '../../components/sections/admin/ServicesHeader';
 import ServicesStats from '../../components/sections/admin/ServicesStats';
 
 export default function AdminServicesScreen() {
-  const { colors, spacing, borderRadius } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const colors = theme?.colors || {};
+  const spacing = theme?.spacing || {};
+  const borderRadius = theme?.borderRadius || {};
   const { showSuccess, showError } = useToastHelpers();
   
   // State management

@@ -8,6 +8,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 export default function AdminTabLayout() {
   const { colors } = useTheme();
+  
+  // Add safety checks for color properties
+  const safeColors = {
+    primary: colors?.primary || '#8B5CF6',
+    primaryDark: colors?.primaryDark || colors?.primary || '#7C3AED',
+    accent: colors?.accent || '#D4AF37',
+  };
 
   return (
     <Tabs
@@ -28,7 +35,7 @@ export default function AdminTabLayout() {
         },
         tabBarBackground: () => (
           <LinearGradient
-            colors={[colors.primary, colors.primaryDark, colors.accent]}
+            colors={[safeColors.primary, safeColors.primaryDark, safeColors.accent]}
             style={{ flex: 1 }}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}

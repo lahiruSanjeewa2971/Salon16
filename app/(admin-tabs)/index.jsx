@@ -21,12 +21,21 @@ import DashboardStats from '../../components/sections/admin/DashboardStats';
 import TodaysSchedule from '../../components/sections/admin/TodaysSchedule';
 import QuickActions from '../../components/sections/admin/QuickActions';
 import CategoryManager from '../../components/sections/admin/CategoryManager';
+import CategoryForm from '../../components/sections/admin/CategoryForm';
 
 export default function AdminDashboardScreen() {
-  const { colors, spacing, borderRadius } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const colors = theme?.colors || {};
+  const spacing = theme?.spacing || {};
+  const borderRadius = theme?.borderRadius || {};
+  
   const { showSuccess, showError } = useToastHelpers();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
 
   // Mock data for dashboard
   const mockStats = {
@@ -151,12 +160,37 @@ export default function AdminDashboardScreen() {
   };
 
   const handleAddCategory = () => {
-    showSuccess('Add Category modal');
+    setEditingCategory(null);
+    setShowCategoryModal(true);
   };
 
   const handleEditCategory = (category) => {
-    showSuccess(`Edit category: ${category.name}`);
+    setEditingCategory(category);
+    setShowCategoryModal(true);
   };
+
+  const handleCloseCategoryModal = () => {
+    setShowCategoryModal(false);
+    setEditingCategory(null);
+  };
+
+  const handleSaveCategory = (categoryData) => {
+    // In a real app, this would save to Firebase
+    console.log('Category saved:', categoryData);
+    // Update the mock categories list
+    // This would typically trigger a re-fetch of categories
+  };
+
+  // Add null safety for all props passed to components
+  const safeMockStats = mockStats || {
+    totalBookings: 0,
+    pendingBookings: 0,
+    todayRevenue: 0,
+    activeServices: 0,
+  };
+
+  const safeMockSchedule = mockSchedule || [];
+  const safeMockCategories = mockCategories || [];
 
   const handleViewCategoryStats = () => {
     showSuccess('View Category Statistics');
@@ -233,11 +267,11 @@ export default function AdminDashboardScreen() {
           }
         >
           {/* Stats Section */}
-          <DashboardStats stats={mockStats} animatedStyle={contentAnimatedStyle} />
+          <DashboardStats stats={safeMockStats} animatedStyle={contentAnimatedStyle} />
 
           {/* Today's Schedule */}
           <TodaysSchedule 
-            schedule={mockSchedule} 
+            schedule={safeMockSchedule} 
             animatedStyle={contentAnimatedStyle}
             onViewBooking={handleViewBooking}
           />
@@ -253,7 +287,7 @@ export default function AdminDashboardScreen() {
 
           {/* Category Management */}
           <CategoryManager 
-            categories={mockCategories}
+            categories={safeMockCategories}
             animatedStyle={contentAnimatedStyle}
             onAddCategory={handleAddCategory}
             onEditCategory={handleEditCategory}
@@ -261,6 +295,14 @@ export default function AdminDashboardScreen() {
           />
         </ScrollView>
       </View>
+
+      {/* Category Form Modal */}
+      <CategoryForm
+        showModal={showCategoryModal}
+        editingCategory={editingCategory}
+        onClose={handleCloseCategoryModal}
+        onSave={handleSaveCategory}
+      />
     </SafeAreaView>
   );
 }

@@ -39,7 +39,13 @@ import AITrendsSection from '../../components/sections/admin/AITrendsSection';
 const { width, height } = Dimensions.get('window');
 
 export default function AdminProfileScreen() {
-  const { colors, spacing, borderRadius, shadows } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const colors = theme?.colors || {};
+  const spacing = theme?.spacing || {};
+  const borderRadius = theme?.borderRadius || {};
+  const shadows = theme?.shadows || {};
   const router = useRouter();
   const { showSuccess, showError, showWarning, showInfo } = useToastHelpers();
   const { signOut } = useAuthActions();

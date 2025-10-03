@@ -7,7 +7,12 @@ import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function QuickActions({ animatedStyle, onAddService, onNewBooking, onViewCustomers, onManageCategories }) {
-  const { spacing, borderRadius, colors } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const spacing = theme?.spacing || {};
+  const borderRadius = theme?.borderRadius || {};
+  const colors = theme?.colors || {};
 
   const actions = [
     {

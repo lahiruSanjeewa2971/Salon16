@@ -7,7 +7,15 @@ import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function CategoryManager({ categories, animatedStyle, onAddCategory, onEditCategory, onViewCategoryStats }) {
-  const { spacing, borderRadius, colors } = useTheme();
+  const theme = useTheme();
+  
+  // Add comprehensive safety checks for theme destructuring
+  const spacing = theme?.spacing || {};
+  const borderRadius = theme?.borderRadius || {};
+  const colors = theme?.colors || {};
+
+  // Add null safety for categories
+  const safeCategories = categories || [];
 
   const getCategoryColor = (categoryName) => {
     const colorMap = {
@@ -135,7 +143,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
           </ThemedText>
         </View>
         
-        {categories.length === 0 ? (
+        {safeCategories.length === 0 ? (
           <View style={styles.emptyState}>
             <ThemedText style={styles.emptyText}>
               No categories created yet. Add your first category to organize services.
@@ -150,7 +158,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
         ) : (
           <>
             <View style={styles.categoryGrid}>
-              {categories.map((category, index) => (
+              {safeCategories.map((category, index) => (
                 <TouchableOpacity
                   key={category.id}
                   style={styles.categoryItem}
