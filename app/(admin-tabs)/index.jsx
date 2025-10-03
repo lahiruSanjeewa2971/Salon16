@@ -1,16 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
-import Animated, { 
+import { 
   useSharedValue, 
   withSpring, 
   withDelay,
   useAnimatedStyle 
 } from 'react-native-reanimated';
 
-import { ThemedText } from '../../components/ThemedText';
 import { useTheme } from '../../contexts/ThemeContext';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
@@ -22,6 +21,7 @@ import TodaysSchedule from '../../components/sections/admin/TodaysSchedule';
 import QuickActions from '../../components/sections/admin/QuickActions';
 import CategoryManager from '../../components/sections/admin/CategoryManager';
 import CategoryForm from '../../components/sections/admin/CategoryForm';
+import { categoryService } from '../../services/firebaseService';
 
 export default function AdminDashboardScreen() {
   const theme = useTheme();
@@ -29,13 +29,13 @@ export default function AdminDashboardScreen() {
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
   const spacing = theme?.spacing || {};
-  const borderRadius = theme?.borderRadius || {};
   
   const { showSuccess, showError } = useToastHelpers();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [categories, setCategories] = useState([]);
 
   // Mock data for dashboard
   const mockStats = {
@@ -83,28 +83,60 @@ export default function AdminDashboardScreen() {
     },
   ];
 
-  const mockCategories = [
-    {
-      id: '1',
-      name: 'Hair',
-      serviceCount: 5,
-    },
-    {
-      id: '2',
-      name: 'Nail',
-      serviceCount: 3,
-    },
-    {
-      id: '3',
-      name: 'Facial',
-      serviceCount: 2,
-    },
-    {
-      id: '4',
-      name: 'Spa',
-      serviceCount: 1,
-    },
-  ];
+  // Fetch all categories from Firebase (for admin panel)
+  const fetchCategories = useCallback(async () => {
+    try {
+      console.log('Fetching all categories from Firebase (admin)...');
+      const fetchedCategories = await categoryService.getAllCategoriesForAdmin();
+      
+      // Convert Firestore timestamps to Date objects and add serviceCount
+      const validatedCategories = fetchedCategories.map(category => ({
+        ...category,
+        createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
+        updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
+        serviceCount: 0, // TODO: Calculate actual service count per category
+        isActive: category.isActive !== undefined ? category.isActive : true, // Ensure isActive field exists
+      }));
+      
+      console.log('All categories fetched successfully:', validatedCategories.length);
+      setCategories(validatedCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      showError('Fetch Failed', 'Failed to load categories. Please try again.');
+    }
+  }, [showError]);
+
+  // Load categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // Set up real-time subscription for all categories
+  useEffect(() => {
+    console.log('Setting up real-time subscription for all categories (admin)...');
+    const unsubscribe = categoryService.subscribeToCategories((updatedCategories) => {
+      console.log('Real-time categories update received:', updatedCategories.length);
+      
+      // Convert Firestore timestamps to Date objects and add serviceCount
+      const validatedCategories = updatedCategories.map(category => ({
+        ...category,
+        createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
+        updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
+        serviceCount: 0, // TODO: Calculate actual service count per category
+        isActive: category.isActive !== undefined ? category.isActive : true, // Ensure isActive field exists
+      }));
+      
+      setCategories(validatedCategories);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('Cleaning up categories subscription...');
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -130,14 +162,20 @@ export default function AdminDashboardScreen() {
   );
 
   // Event handlers
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
+    try {
+      console.log('Refreshing dashboard data...');
+      await fetchCategories();
+      console.log('Dashboard refreshed successfully');
       showSuccess('Dashboard refreshed!');
-    }, 1500);
-  };
+    } catch (error) {
+      console.error('Refresh error:', error);
+      showError('Refresh Failed', 'Failed to refresh data. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchCategories, showError, showSuccess]);
 
   const handleViewBooking = (booking) => {
     showSuccess(`Viewing booking: ${booking.service} for ${booking.customer}`);
@@ -165,8 +203,19 @@ export default function AdminDashboardScreen() {
   };
 
   const handleEditCategory = (category) => {
+    console.log('Edit category clicked:', category);
     setEditingCategory(category);
     setShowCategoryModal(true);
+  };
+
+  const handleToggleCategoryStatus = (category) => {
+    console.log('Toggle category status clicked:', category);
+    // TODO: Implement toggle status functionality
+  };
+
+  const handleDeleteCategory = (category) => {
+    console.log('Delete category clicked:', category);
+    // TODO: Implement delete functionality
   };
 
   const handleCloseCategoryModal = () => {
@@ -174,11 +223,11 @@ export default function AdminDashboardScreen() {
     setEditingCategory(null);
   };
 
-  const handleSaveCategory = (categoryData) => {
-    // In a real app, this would save to Firebase
+  const handleSaveCategory = async (categoryData) => {
+    // CategoryForm already handles the Firebase creation and success toast
+    // This function just handles any additional UI updates if needed
     console.log('Category saved:', categoryData);
-    // Update the mock categories list
-    // This would typically trigger a re-fetch of categories
+    // The real-time subscription will automatically update the list
   };
 
   // Add null safety for all props passed to components
@@ -190,7 +239,7 @@ export default function AdminDashboardScreen() {
   };
 
   const safeMockSchedule = mockSchedule || [];
-  const safeMockCategories = mockCategories || [];
+  const safeCategories = categories || [];
 
   const handleViewCategoryStats = () => {
     showSuccess('View Category Statistics');
@@ -287,11 +336,13 @@ export default function AdminDashboardScreen() {
 
           {/* Category Management */}
           <CategoryManager 
-            categories={safeMockCategories}
+            categories={safeCategories}
             animatedStyle={contentAnimatedStyle}
             onAddCategory={handleAddCategory}
             onEditCategory={handleEditCategory}
             onViewCategoryStats={handleViewCategoryStats}
+            onToggleCategoryStatus={handleToggleCategoryStatus}
+            onDeleteCategory={handleDeleteCategory}
           />
         </ScrollView>
       </View>

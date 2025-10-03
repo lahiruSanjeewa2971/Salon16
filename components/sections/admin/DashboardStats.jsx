@@ -63,7 +63,7 @@ export default function DashboardStats({ stats, animatedStyle }) {
         </View>
         <View style={styles.statCard}>
           <ThemedText style={styles.statNumber}>${safeStats.todayRevenue}</ThemedText>
-          <ThemedText style={styles.statLabel}>Today's Revenue</ThemedText>
+          <ThemedText style={styles.statLabel}>Today&apos;s Revenue</ThemedText>
         </View>
         <View style={styles.statCard}>
           <ThemedText style={styles.statNumber}>{safeStats.activeServices}</ThemedText>

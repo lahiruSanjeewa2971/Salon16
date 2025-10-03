@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
 
-export default function CategoryManager({ categories, animatedStyle, onAddCategory, onEditCategory, onViewCategoryStats }) {
+export default function CategoryManager({ categories, animatedStyle, onAddCategory, onEditCategory, onViewCategoryStats, onToggleCategoryStatus, onDeleteCategory }) {
   const theme = useTheme();
   
   // Add comprehensive safety checks for theme destructuring
@@ -30,85 +30,154 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
 
   const styles = {
     categoryContainer: {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
       borderRadius: borderRadius.xl,
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
       overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 5,
     },
     categoryHeader: {
-      padding: spacing.lg,
+      padding: spacing.xl,
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     },
     categoryTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
+      fontSize: 20,
+      fontWeight: '800',
       color: 'white',
       marginBottom: spacing.xs,
     },
     categorySubtitle: {
-      fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: 15,
+      color: 'rgba(255, 255, 255, 0.7)',
+      fontWeight: '500',
     },
     categoryGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      padding: spacing.md,
+      padding: spacing.lg,
+      justifyContent: 'space-between',
     },
     categoryItem: {
-      width: '50%',
-      padding: spacing.md,
-      alignItems: 'center',
+      width: '48%',
+      marginBottom: spacing.lg,
     },
     categoryCard: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      borderRadius: borderRadius.large,
-      padding: spacing.md,
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
       alignItems: 'center',
       width: '100%',
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+      position: 'relative',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+      elevation: 8,
+      marginBottom: spacing.lg,
+    },
+    categoryContent: {
+      alignItems: 'center',
+      flex: 1,
+      marginBottom: spacing.md,
     },
     categoryIcon: {
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      borderRadius: borderRadius.xl,
+      padding: spacing.md,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
     },
     categoryName: {
-      fontSize: 14,
-      fontWeight: '600',
+      fontSize: 18,
+      fontWeight: '800',
       color: 'white',
       textAlign: 'center',
-      marginBottom: spacing.xs,
+      marginBottom: spacing.sm,
+      letterSpacing: 0.5,
     },
     categoryCount: {
-      fontSize: 12,
+      fontSize: 14,
       color: 'rgba(255, 255, 255, 0.8)',
       textAlign: 'center',
+      fontWeight: '600',
+    },
+    categoryActions: {
+      position: 'absolute',
+      top: spacing.md,
+      right: spacing.md,
+      flexDirection: 'row',
+      gap: spacing.xs,
+    },
+    categoryButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      borderRadius: borderRadius.large,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      width: 36,
+      height: 36,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    statusButton: {
+      backgroundColor: 'rgba(156, 163, 175, 0.2)',
+      borderColor: 'rgba(156, 163, 175, 0.3)',
+    },
+    statusButtonActive: {
+      backgroundColor: 'rgba(34, 197, 94, 0.3)',
+      borderColor: 'rgba(34, 197, 94, 0.5)',
+    },
+    deleteButton: {
+      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+      borderColor: 'rgba(239, 68, 68, 0.3)',
     },
     categoryActions: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.lg,
       borderTopWidth: 1,
-      borderTopColor: 'rgba(255, 255, 255, 0.2)',
+      borderTopColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: 'rgba(255, 255, 255, 0.02)',
     },
     actionButton: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.medium,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.large,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.2)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
     },
     actionButtonText: {
-      fontSize: 12,
+      fontSize: 14,
       color: 'white',
-      marginLeft: spacing.xs,
+      marginLeft: spacing.sm,
+      fontWeight: '600',
     },
     emptyState: {
       padding: spacing.xl,
@@ -159,27 +228,67 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
           <>
             <View style={styles.categoryGrid}>
               {safeCategories.map((category, index) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.categoryItem}
-                  onPress={() => onEditCategory(category)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.categoryCard}>
-                    <Ionicons
-                      name="grid"
-                      size={24}
-                      color={getCategoryColor(category.name)}
-                      style={styles.categoryIcon}
-                    />
-                    <ThemedText style={styles.categoryName}>
-                      {category.name}
-                    </ThemedText>
-                    <ThemedText style={styles.categoryCount}>
-                      {category.serviceCount} services
-                    </ThemedText>
-                  </View>
-                </TouchableOpacity>
+                <View key={category.id} style={styles.categoryItem}>
+                  <TouchableOpacity
+                    style={styles.categoryCard}
+                    onPress={() => {
+                      console.log('Category card clicked for edit:', category);
+                      onEditCategory(category);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    {/* Action Buttons - Top Right */}
+                    <View style={styles.categoryActions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.categoryButton, 
+                          category.isActive ? styles.statusButtonActive : styles.statusButton
+                        ]}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          console.log('Toggle status clicked for category:', category);
+                          onToggleCategoryStatus(category);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons 
+                          name={category.isActive ? "eye" : "eye-off"} 
+                          size={16} 
+                          color="white" 
+                        />
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={[styles.categoryButton, styles.deleteButton]}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          console.log('Delete clicked for category:', category);
+                          onDeleteCategory(category);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="trash-outline" size={16} color="white" />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Main Content */}
+                    <View style={styles.categoryContent}>
+                      <View style={styles.categoryIcon}>
+                        <Ionicons
+                          name="grid"
+                          size={28}
+                          color={getCategoryColor(category.name)}
+                        />
+                      </View>
+                      <ThemedText style={styles.categoryName}>
+                        {category.name}
+                      </ThemedText>
+                      <ThemedText style={styles.categoryCount}>
+                        {category.serviceCount} services
+                      </ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               ))}
             </View>
             

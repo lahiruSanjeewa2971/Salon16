@@ -8,6 +8,7 @@ import { ThemedButton } from '../../themed/ThemedButton';
 import { ThemedInput } from '../../themed/ThemedInput';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useToastHelpers } from '../../ui/ToastSystem';
+import { categoryService } from '../../../services/firebaseService';
 
 const { width } = Dimensions.get('window');
 
@@ -89,36 +90,26 @@ export default function CategoryForm({
     setIsSaving(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const categoryData = {
         name: formData.name.trim(),
         slug: formData.name.trim().toLowerCase().replace(/\s+/g, '-'),
         isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
       
-      if (editingCategory) {
-        showSuccess('Category Updated Successfully!', `"${categoryData.name}" has been updated.`, { duration: 4000 });
-      } else {
-        showSuccess('Category Created Successfully!', `"${categoryData.name}" has been added to your categories.`, { duration: 4000 });
-      }
+      const savedCategory = await categoryService.createCategory(categoryData);
+      showSuccess('Category Created Successfully!', `"${categoryData.name}" has been added to your categories.`, { duration: 4000 });
       
       onClose();
-      onSave(categoryData);
+      onSave(savedCategory);
     } catch (error) {
       console.error('Error saving category:', error);
-      let errorMessage = editingCategory
-        ? 'Failed to update category. Please try again.'
-        : 'Failed to create category. Please try again.';
+      let errorMessage = 'Failed to create category. Please try again.';
       
       if (error.message) {
         errorMessage = error.message;
       }
       
-      showError(editingCategory ? 'Update Failed' : 'Creation Failed', errorMessage, { duration: 5000 });
+      showError('Creation Failed', errorMessage, { duration: 5000 });
     } finally {
       setIsSaving(false);
     }

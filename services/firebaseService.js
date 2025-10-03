@@ -383,6 +383,58 @@ export const serviceService = {
   }
 };
 
+export const categoryService = {
+  // Create new category
+  createCategory: async (categoryData) => {
+    try {
+      return await firestoreService.create('categories', {
+        ...categoryData,
+        isActive: true
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get all active categories
+  getActiveCategories: async () => {
+    try {
+      return await firestoreService.query('categories', [
+        { field: 'isActive', operator: '==', value: true }
+      ]);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get all categories for admin (active and inactive)
+  getAllCategoriesForAdmin: async () => {
+    try {
+      return await firestoreService.query('categories', []);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get all categories (active and inactive)
+  getAllCategories: async () => {
+    try {
+      return await firestoreService.query('categories', []);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Subscribe to all categories changes (real-time updates for admin)
+  subscribeToCategories: (callback) => {
+    try {
+      return firestoreService.listen('categories', [], callback);
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
 export const reviewService = {
   // Create new review
   createReview: async (reviewData) => {

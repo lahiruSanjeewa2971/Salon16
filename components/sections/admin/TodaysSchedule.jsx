@@ -117,7 +117,7 @@ export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking 
     <Animated.View style={animatedStyle}>
       <View style={styles.scheduleContainer}>
         <View style={styles.scheduleHeader}>
-          <ThemedText style={styles.scheduleTitle}>Today's Schedule</ThemedText>
+          <ThemedText style={styles.scheduleTitle}>Today&apos;s Schedule</ThemedText>
           <ThemedText style={styles.scheduleSubtitle}>
             {safeSchedule.length} appointments scheduled
           </ThemedText>

@@ -41,7 +41,7 @@ export default function DashboardHeader({ animatedStyle }) {
           Admin Dashboard
         </ThemedText>
         <ThemedText style={styles.headerSubtitle}>
-          Welcome back! Here's your salon overview for today
+          Welcome back! Here&apos;s your salon overview for today
         </ThemedText>
       </View>
     </Animated.View>
