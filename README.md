@@ -22,6 +22,16 @@ Salon 16 is a **cross-platform mobile-first application** built with **React Nat
 
 ---
 
+## 📸 Screenshots
+
+Here are some previews of the **Salon 16 Mobile App**:
+
+### 👩 Customer Side
+
+### 🛠️ Admin Side
+
+---
+
 ## 🏗️ Tech Stack  
 - **Frontend**: React Native (Expo) + React Native Web (for web support / optional PWA)  
 - **Backend**: Firebase (Firestore, Auth, Storage, Cloud Functions)  
@@ -30,18 +40,4 @@ Salon 16 is a **cross-platform mobile-first application** built with **React Nat
 
 ---
 
-## 📂 Project Structure  
-/salon16
-├── /src
-│ ├── /components # Reusable UI components
-│ ├── /screens # App screens (Customer + Admin)
-│ ├── /services # Firebase services & API handlers
-│ ├── /navigation # App navigation setup
-│ ├── /theme # Design tokens & styles
-│ └── App.js
-├── app.json # Expo configuration
-├── package.json
-└── README.md
-
----
 
