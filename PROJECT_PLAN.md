@@ -203,6 +203,7 @@
 - **Today's Schedule**: Current day appointments
 - **Revenue Tracking**: Daily, weekly, monthly earnings
 - **Quick Actions**: Accept/reject bookings, manage services
+- **Manage Categories**: manage categories
 
 #### 📋 Booking Management
 - **Calendar View**: All bookings in calendar format
@@ -217,6 +218,13 @@
 - **Duration Settings**: Configure service duration
 - **Availability Rules**: Set working hours and breaks
 - **Service Categories**: Organize services by type
+
+#### 📂 Category Management
+- **Category CRUD**: Create, read, update, delete service categories
+- **Category Organization**: Organize services by category type
+- **Dynamic Categories**: Add/remove categories as business grows
+- **Category Validation**: Ensure services are properly categorized
+- **Category Statistics**: Track services per category
 
 #### 👥 Customer Management
 - **Customer List**: View all registered customers
@@ -289,11 +297,13 @@ Bottom Tabs:
 ├── Dashboard (Overview, Quick Actions)
 ├── Bookings (Calendar, List View)
 ├── Services (Manage Services)
-└── Customers (Customer Management)
+├── Customers (Manage Customers)
+└── Profile (Profile Management) 
 
 Stack Navigation:
 ├── Booking Details
 ├── Service Editor
+├── Category Editor
 ├── Customer Details
 ├── Analytics
 └── Settings
@@ -338,7 +348,20 @@ services: {
     description: string,
     price: number,
     duration: number, // in minutes
-    category: string,
+    category: string, // References categories.id
+    isActive: boolean,
+    createdAt: timestamp,
+    updatedAt: timestamp
+  }
+}
+```
+
+#### Categories Collection
+```javascript
+categories: {
+  categoryId: {
+    name: string, // e.g., "Hair Styling"
+    slug: string, // e.g., "hair-styling"
     isActive: boolean,
     createdAt: timestamp,
     updatedAt: timestamp
@@ -566,10 +589,12 @@ settings: {
 - [ ] **Screen Implementation**: Converting placeholder screens to themed components
 - [ ] **Service Integration**: Connecting UI components to backend services
 - [ ] **Booking Flow**: Create booking form and calendar integration
+- [ ] **Category Management**: Implementing category CRUD operations
 
 ### 📋 **Next Steps**
 - [ ] **Booking Flow**: Create booking form and calendar integration
 - [ ] **Admin Dashboard**: Build admin interface for salon management
+- [ ] **Category Management**: Implement category CRUD operations
 - [ ] **Firebase Integration**: Connect WeekView to real availability data
 - [ ] **Push Notifications**: Implement notification system for bookings
 
@@ -652,6 +677,7 @@ settings: {
 - [ ] Build dashboard with booking overview
 - [ ] Implement calendar and list views for bookings
 - [ ] Create service management CRUD
+- [ ] **Create category management CRUD**
 - [ ] Build customer management interface
 - [ ] Add booking approval/rejection workflow
 - [ ] Implement admin settings and configuration

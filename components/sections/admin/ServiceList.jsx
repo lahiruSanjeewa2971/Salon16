@@ -1,9 +1,8 @@
-import React from 'react';
-import { View, TouchableOpacity, Alert, Image } from 'react-native';
+import { Alert, Image, TouchableOpacity, View } from 'react-native';
 import Animated, { Extrapolate, interpolate } from 'react-native-reanimated';
 
-import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { ThemedText } from '../../ThemedText';
 
 export default function ServiceList({ 
   services, 
@@ -118,7 +117,7 @@ export default function ServiceList({
     statusBadge: {
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-      borderRadius: borderRadius.large,
+      borderRadius: borderRadius.xl,
     },
     statusBadgeActive: {
       backgroundColor: colors.success + '15',
@@ -152,7 +151,7 @@ export default function ServiceList({
       flex: 1,
       marginHorizontal: spacing.xs,
       paddingVertical: spacing.md,
-      borderRadius: borderRadius.large,
+      borderRadius: borderRadius.xl,
       alignItems: 'center',
       justifyContent: 'center',
     },
