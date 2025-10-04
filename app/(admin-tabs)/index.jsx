@@ -21,7 +21,7 @@ import TodaysSchedule from '../../components/sections/admin/TodaysSchedule';
 import QuickActions from '../../components/sections/admin/QuickActions';
 import CategoryManager from '../../components/sections/admin/CategoryManager';
 import CategoryForm from '../../components/sections/admin/CategoryForm';
-import { categoryService } from '../../services/firebaseService';
+import { categoryService, serviceService } from '../../services/firebaseService';
 
 export default function AdminDashboardScreen() {
   const theme = useTheme();
@@ -89,14 +89,29 @@ export default function AdminDashboardScreen() {
       console.log('Fetching all categories from Firebase (admin)...');
       const fetchedCategories = await categoryService.getAllCategoriesForAdmin();
       
-      // Convert Firestore timestamps to Date objects and add serviceCount
-      const validatedCategories = fetchedCategories.map(category => ({
-        ...category,
-        createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
-        updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
-        serviceCount: 0, // TODO: Calculate actual service count per category
-        isActive: category.isActive !== undefined ? category.isActive : true, // Ensure isActive field exists
-      }));
+      // Fetch services to count per category
+      const services = await serviceService.getActiveServices();
+      
+      // Convert Firestore timestamps to Date objects and calculate serviceCount
+      const validatedCategories = fetchedCategories.map(category => {
+        const serviceCount = services.filter(service => {
+          // Handle both old (string) and new (object) category formats
+          if (typeof service.category === 'object' && service.category?.id) {
+            return service.category.id === category.id;
+          } else if (typeof service.category === 'string') {
+            return service.category === category.name;
+          }
+          return false;
+        }).length;
+        
+        return {
+          ...category,
+          createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
+          updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
+          serviceCount,
+          isActive: category.isActive !== undefined ? category.isActive : true, // Ensure isActive field exists
+        };
+      });
       
       console.log('All categories fetched successfully:', validatedCategories.length);
       setCategories(validatedCategories);
@@ -114,19 +129,47 @@ export default function AdminDashboardScreen() {
   // Set up real-time subscription for all categories
   useEffect(() => {
     console.log('Setting up real-time subscription for all categories (admin)...');
-    const unsubscribe = categoryService.subscribeToCategories((updatedCategories) => {
+    const unsubscribe = categoryService.subscribeToCategories(async (updatedCategories) => {
       console.log('Real-time categories update received:', updatedCategories.length);
       
-      // Convert Firestore timestamps to Date objects and add serviceCount
-      const validatedCategories = updatedCategories.map(category => ({
-        ...category,
-        createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
-        updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
-        serviceCount: 0, // TODO: Calculate actual service count per category
-        isActive: category.isActive !== undefined ? category.isActive : true, // Ensure isActive field exists
-      }));
-      
-      setCategories(validatedCategories);
+      try {
+        // Fetch services to count per category
+        const services = await serviceService.getActiveServices();
+        
+        // Convert Firestore timestamps to Date objects and calculate serviceCount
+        const validatedCategories = updatedCategories.map(category => {
+          const serviceCount = services.filter(service => {
+            // Handle both old (string) and new (object) category formats
+            if (typeof service.category === 'object' && service.category?.id) {
+              return service.category.id === category.id;
+            } else if (typeof service.category === 'string') {
+              return service.category === category.name;
+            }
+            return false;
+          }).length;
+          
+          return {
+            ...category,
+            createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
+            updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
+            serviceCount,
+            isActive: category.isActive !== undefined ? category.isActive : true, // Ensure isActive field exists
+          };
+        });
+        
+        setCategories(validatedCategories);
+      } catch (error) {
+        console.error('Error calculating service counts in real-time update:', error);
+        // Fallback to categories without service counts
+        const validatedCategories = updatedCategories.map(category => ({
+          ...category,
+          createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
+          updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
+          serviceCount: 0,
+          isActive: category.isActive !== undefined ? category.isActive : true,
+        }));
+        setCategories(validatedCategories);
+      }
     });
 
     // Cleanup subscription on unmount
@@ -208,14 +251,30 @@ export default function AdminDashboardScreen() {
     setShowCategoryModal(true);
   };
 
-  const handleToggleCategoryStatus = (category) => {
-    console.log('Toggle category status clicked:', category);
-    // TODO: Implement toggle status functionality
+  const handleToggleCategoryStatus = async (category) => {
+    try {
+      const newStatus = !category.isActive;
+      
+      // Update Firebase - real-time subscription will handle UI update
+      await categoryService.toggleCategoryStatus(category.id, newStatus);
+      
+      showSuccess(`Category ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+    } catch (error) {
+      console.error('Error toggling category status:', error);
+      showError('Update Failed', 'Failed to update category status. Please try again.');
+    }
   };
 
-  const handleDeleteCategory = (category) => {
-    console.log('Delete category clicked:', category);
-    // TODO: Implement delete functionality
+  const handleDeleteCategory = async (category) => {
+    try {
+      // Delete from Firebase - real-time subscription will handle UI update
+      await categoryService.deleteCategory(category.id);
+      
+      showSuccess('Category deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      showError('Delete Failed', 'Failed to delete category. Please try again.');
+    }
   };
 
   const handleCloseCategoryModal = () => {
@@ -223,11 +282,11 @@ export default function AdminDashboardScreen() {
     setEditingCategory(null);
   };
 
-  const handleSaveCategory = async (categoryData) => {
-    // CategoryForm already handles the Firebase creation and success toast
-    // This function just handles any additional UI updates if needed
-    console.log('Category saved:', categoryData);
+  const handleSaveCategory = (savedCategory) => {
+    // CategoryForm already handles the Firebase creation/update and success toast
     // The real-time subscription will automatically update the list
+    console.log('Category saved:', savedCategory);
+    handleCloseCategoryModal();
   };
 
   // Add null safety for all props passed to components
@@ -240,10 +299,6 @@ export default function AdminDashboardScreen() {
 
   const safeMockSchedule = mockSchedule || [];
   const safeCategories = categories || [];
-
-  const handleViewCategoryStats = () => {
-    showSuccess('View Category Statistics');
-  };
 
   // Animated styles
   const headerAnimatedStyle = useAnimatedStyle(() => ({
@@ -340,7 +395,6 @@ export default function AdminDashboardScreen() {
             animatedStyle={contentAnimatedStyle}
             onAddCategory={handleAddCategory}
             onEditCategory={handleEditCategory}
-            onViewCategoryStats={handleViewCategoryStats}
             onToggleCategoryStatus={handleToggleCategoryStatus}
             onDeleteCategory={handleDeleteCategory}
           />

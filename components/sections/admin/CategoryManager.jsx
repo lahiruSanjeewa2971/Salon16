@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, Alert } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
 
-export default function CategoryManager({ categories, animatedStyle, onAddCategory, onEditCategory, onViewCategoryStats, onToggleCategoryStatus, onDeleteCategory }) {
+export default function CategoryManager({ categories, animatedStyle, onAddCategory, onEditCategory, onToggleCategoryStatus, onDeleteCategory }) {
   const theme = useTheme();
   
   // Add comprehensive safety checks for theme destructuring
@@ -16,6 +16,23 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
 
   // Add null safety for categories
   const safeCategories = categories || [];
+
+  const handleDeleteCategory = (category) => {
+    Alert.alert(
+      'Delete Category',
+      `Are you sure you want to delete "${category.name}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            onDeleteCategory(category);
+          },
+        },
+      ]
+    );
+  };
 
   const getCategoryColor = (categoryName) => {
     const colorMap = {
@@ -151,7 +168,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
     },
     categoryActions: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'center',
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.lg,
       borderTopWidth: 1,
@@ -246,7 +263,6 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
                         ]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          console.log('Toggle status clicked for category:', category);
                           onToggleCategoryStatus(category);
                         }}
                         activeOpacity={0.8}
@@ -262,8 +278,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
                         style={[styles.categoryButton, styles.deleteButton]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          console.log('Delete clicked for category:', category);
-                          onDeleteCategory(category);
+                          handleDeleteCategory(category);
                         }}
                         activeOpacity={0.8}
                       >
@@ -299,14 +314,6 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
               >
                 <Ionicons name="add" size={16} color="white" />
                 <ThemedText style={styles.actionButtonText}>Add Category</ThemedText>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={onViewCategoryStats}
-              >
-                <Ionicons name="analytics" size={16} color="white" />
-                <ThemedText style={styles.actionButtonText}>View Stats</ThemedText>
               </TouchableOpacity>
             </View>
           </>

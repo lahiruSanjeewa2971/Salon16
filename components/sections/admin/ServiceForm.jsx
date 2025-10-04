@@ -7,9 +7,10 @@ import { ThemedText } from '../../ThemedText';
 import { ThemedButton } from '../../themed/ThemedButton';
 import { ThemedInput } from '../../themed/ThemedInput';
 import CloudinaryImageUploader from '../../ui/CloudinaryImageUploader';
+import CategoryDropdown from '../../ui/CategoryDropdown';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useToastHelpers } from '../../ui/ToastSystem';
-import { serviceService } from '../../../services/firebaseService';
+import { serviceService, categoryService } from '../../../services/firebaseService';
 
 const { width } = Dimensions.get('window');
 
@@ -30,12 +31,36 @@ export default function ServiceForm({
     price: '',
     duration: '',
     image: null, // Changed from string to object
+    category: null, // Added category field
   });
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   
   // Animation
   const modalAnim = useSharedValue(0);
+
+  // Fetch active categories
+  const fetchCategories = useCallback(async () => {
+    try {
+      setIsLoadingCategories(true);
+      const activeCategories = await categoryService.getActiveCategories();
+      setCategories(activeCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      showError('Error', 'Failed to load categories. Please try again.');
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  }, [showError]);
+
+  // Fetch categories when modal opens
+  React.useEffect(() => {
+    if (showAddModal || showEditModal) {
+      fetchCategories();
+    }
+  }, [showAddModal, showEditModal, fetchCategories]);
 
   // Separate effects for Add and Edit modals
   React.useEffect(() => {
@@ -49,12 +74,25 @@ export default function ServiceForm({
         price: '',
         duration: '',
         image: null,
+        category: null,
       });
       setErrors({});
     } else if (showEditModal && editingService) {
       modalAnim.value = withSpring(1, { damping: 15, stiffness: 150 });
       
-      // Initialize form data for Edit modal
+       // Initialize form data for Edit modal
+       let matchingCategory = null;
+       
+       if (editingService.category) {
+         if (typeof editingService.category === 'string') {
+           // Handle old format (string) - find matching category object
+           matchingCategory = categories.find(cat => cat.name === editingService.category) || null;
+         } else if (editingService.category.id && editingService.category.name) {
+           // Handle new format (object) - find matching category object
+           matchingCategory = categories.find(cat => cat.id === editingService.category.id) || null;
+         }
+       }
+      
       setFormData({
         name: editingService.name || '',
         description: editingService.description || '',
@@ -64,12 +102,13 @@ export default function ServiceForm({
           url: editingService.image,
           publicId: editingService.publicId || null,
         } : null,
+        category: matchingCategory,
       });
       setErrors({});
     } else {
       modalAnim.value = withSpring(0, { damping: 15, stiffness: 150 });
     }
-  }, [showAddModal, showEditModal, editingService]);
+  }, [showAddModal, showEditModal, editingService, categories]);
 
   const validateForm = useCallback(() => {
     const newErrors = {};
@@ -107,6 +146,11 @@ export default function ServiceForm({
       newErrors.image = 'Image is required';
     }
     
+    // Category validation
+    if (!formData.category) {
+      newErrors.category = 'Please select a category';
+    }
+    
     setErrors(newErrors);
     
     // Show toast for validation errors
@@ -139,7 +183,10 @@ export default function ServiceForm({
         duration: parseInt(formData.duration) || 0,
         image: formData.image?.url || (editingService ? editingService.image : ''),
         publicId: formData.image?.publicId || (editingService ? editingService.publicId : null),
-        category: 'Hair', // Default category
+         category: formData.category ? {
+           id: formData.category.id,
+           name: formData.category.name
+         } : { id: 'default', name: 'Hair' }, // Save as object with id and name
         isActive: true, // Default to active
         icon: editingService ? editingService.icon : 'star-outline',
         color: editingService ? editingService.color : colors.primary,
@@ -351,6 +398,17 @@ export default function ServiceForm({
                 />
               </View>
 
+              <View style={styles.formGroup}>
+                <CategoryDropdown
+                  label="Category *"
+                  categories={categories}
+                  selectedCategory={formData.category}
+                  onSelectCategory={(category) => handleInputChange('category', category)}
+                  error={errors.category}
+                  placeholder="Select Category"
+                />
+              </View>
+
               <CloudinaryImageUploader
                 label="Service Image *"
                 value={formData.image}
@@ -454,6 +512,17 @@ export default function ServiceForm({
                   multiline
                   numberOfLines={3}
                   error={errors.description}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <CategoryDropdown
+                  label="Category *"
+                  categories={categories}
+                  selectedCategory={formData.category}
+                  onSelectCategory={(category) => handleInputChange('category', category)}
+                  error={errors.category}
+                  placeholder="Select Category"
                 />
               </View>
 

@@ -93,23 +93,31 @@ export default function CategoryForm({
       const categoryData = {
         name: formData.name.trim(),
         slug: formData.name.trim().toLowerCase().replace(/\s+/g, '-'),
-        isActive: true,
+        isActive: editingCategory ? editingCategory.isActive : true,
       };
       
-      const savedCategory = await categoryService.createCategory(categoryData);
-      showSuccess('Category Created Successfully!', `"${categoryData.name}" has been added to your categories.`, { duration: 4000 });
+      let savedCategory;
+      if (editingCategory) {
+        savedCategory = await categoryService.updateCategory(editingCategory.id, categoryData);
+        showSuccess('Category Updated Successfully!', `"${categoryData.name}" has been updated.`, { duration: 4000 });
+      } else {
+        savedCategory = await categoryService.createCategory(categoryData);
+        showSuccess('Category Created Successfully!', `"${categoryData.name}" has been added to your categories.`, { duration: 4000 });
+      }
       
       onClose();
       onSave(savedCategory);
     } catch (error) {
       console.error('Error saving category:', error);
-      let errorMessage = 'Failed to create category. Please try again.';
+      let errorMessage = editingCategory 
+        ? 'Failed to update category. Please try again.'
+        : 'Failed to create category. Please try again.';
       
       if (error.message) {
         errorMessage = error.message;
       }
       
-      showError('Creation Failed', errorMessage, { duration: 5000 });
+      showError(editingCategory ? 'Update Failed' : 'Creation Failed', errorMessage, { duration: 5000 });
     } finally {
       setIsSaving(false);
     }

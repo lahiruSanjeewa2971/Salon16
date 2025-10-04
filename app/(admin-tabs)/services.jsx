@@ -69,7 +69,9 @@ export default function AdminServicesScreen() {
         description: service.description || '',
         price: typeof service.price === 'number' ? service.price : 0,
         duration: typeof service.duration === 'number' ? service.duration : 0,
-        category: service.category || 'Hair',
+        category: typeof service.category === 'object' && service.category?.name 
+          ? service.category.name 
+          : service.category || 'Hair', // Handle both object and string formats
         isActive: service.isActive !== false,
         createdAt: service.createdAt?.toDate ? service.createdAt.toDate() : new Date(service.createdAt || new Date()),
         updatedAt: service.updatedAt?.toDate ? service.updatedAt.toDate() : new Date(service.updatedAt || new Date()),
@@ -261,7 +263,7 @@ export default function AdminServicesScreen() {
     }
   };
 
-  const handleSaveService = (savedService) => {
+  const handleSaveService = async (savedService) => {
     if (editingService) {
       // Update existing service - preserve original properties and merge with updates
       const updatedService = {
@@ -272,9 +274,8 @@ export default function AdminServicesScreen() {
         updatedAt: savedService.updatedAt?.toDate ? savedService.updatedAt.toDate() : new Date(savedService.updatedAt || new Date()),
       };
       
-      setServices(prev =>
-        prev.map(s => (s.id === editingService.id ? updatedService : s))
-      );
+      // Refresh the services list to get the latest data
+      await fetchServices();
       showSuccess('Service updated successfully!');
     } else {
       // Ensure the new service has all required properties
@@ -295,8 +296,8 @@ export default function AdminServicesScreen() {
         popular: savedService.popular || false,
       };
       
-      // Add to the beginning of the list (latest first)
-      setServices(prev => [formattedService, ...prev]);
+      // Refresh the services list to get the latest data
+      await fetchServices();
       showSuccess('Service added successfully!');
     }
     handleCloseModal();

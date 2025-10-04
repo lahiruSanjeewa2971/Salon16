@@ -432,6 +432,39 @@ export const categoryService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Delete category
+  deleteCategory: async (categoryId) => {
+    try {
+      return await firestoreService.delete('categories', categoryId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Toggle category status
+  toggleCategoryStatus: async (categoryId, isActive) => {
+    try {
+      return await firestoreService.update('categories', categoryId, {
+        isActive,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update category
+  updateCategory: async (categoryId, updateData) => {
+    try {
+      return await firestoreService.update('categories', categoryId, {
+        ...updateData,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
