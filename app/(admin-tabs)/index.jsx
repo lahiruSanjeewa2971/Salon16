@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { 
   useSharedValue, 
   withSpring, 
@@ -36,6 +36,8 @@ export default function AdminDashboardScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [categories, setCategories] = useState([]);
+  const categorySectionRef = useRef(null);
+  const scrollViewRef = useRef(null);
 
   // Mock data for dashboard
   const mockStats = {
@@ -225,19 +227,26 @@ export default function AdminDashboardScreen() {
   };
 
   const handleAddService = () => {
-    showSuccess('Navigate to Add Service');
+    router.push('/(admin-tabs)/services');
   };
 
   const handleNewBooking = () => {
-    showSuccess('Navigate to New Booking');
+    router.push('/(admin-tabs)/bookings');
   };
 
   const handleViewCustomers = () => {
-    showSuccess('Navigate to Customers');
+    router.push('/(admin-tabs)/customers');
   };
 
   const handleManageCategories = () => {
-    showSuccess('Navigate to Category Management');
+    if (scrollViewRef.current) {
+      // Calculate approximate scroll position for Category Management section
+      // Based on typical section heights: Stats (~200px) + Schedule (~300px) + Quick Actions (~200px) = ~700px
+      scrollViewRef.current.scrollTo({
+        y: 700, // Approximate position of Category Management section
+        animated: true,
+      });
+    }
   };
 
   const handleAddCategory = () => {
@@ -358,6 +367,7 @@ export default function AdminDashboardScreen() {
       {/* Content */}
       <View style={styles.content}>
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -390,14 +400,16 @@ export default function AdminDashboardScreen() {
           />
 
           {/* Category Management */}
-          <CategoryManager 
-            categories={safeCategories}
-            animatedStyle={contentAnimatedStyle}
-            onAddCategory={handleAddCategory}
-            onEditCategory={handleEditCategory}
-            onToggleCategoryStatus={handleToggleCategoryStatus}
-            onDeleteCategory={handleDeleteCategory}
-          />
+          <View ref={categorySectionRef}>
+            <CategoryManager 
+              categories={safeCategories}
+              animatedStyle={contentAnimatedStyle}
+              onAddCategory={handleAddCategory}
+              onEditCategory={handleEditCategory}
+              onToggleCategoryStatus={handleToggleCategoryStatus}
+              onDeleteCategory={handleDeleteCategory}
+            />
+          </View>
         </ScrollView>
       </View>
 
