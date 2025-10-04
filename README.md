@@ -27,8 +27,7 @@ Salon 16 is a **cross-platform mobile-first application** built with **React Nat
 Here are some previews of the **Salon 16 Mobile App**:
 
 ### 👩 Customer Side
-<img src="assets/screenshots/welcome-screen.png" alt="Home Screen" width="250" height="500">
-<img src="assets/screenshots/user-home-screen.png" alt="Home Screen" width="250" height="500">
+<img src="assets/screenshots/welcome-screen.png" alt="Home Screen" width="200" height="400"> <img src="assets/screenshots/user-home-screen.png" alt="Home Screen" width="200" height="400">
 ### 🛠️ Admin Side
 
 ---
