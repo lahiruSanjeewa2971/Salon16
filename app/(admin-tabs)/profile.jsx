@@ -32,9 +32,9 @@ import { useAuthActions } from '../../hooks/useAuth';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 
 // Section Components
-import SalonInformation from '../../components/sections/admin/SalonInformation';
-import NotificationSettings from '../../components/sections/admin/NotificationSettings';
-import AITrendsSection from '../../components/sections/admin/AITrendsSection';
+import SalonInformation from '../../components/sections/admin/profile/SalonInformation';
+import NotificationSettings from '../../components/sections/admin/profile/NotificationSettings';
+import AITrendsSection from '../../components/sections/admin/dashboard/AITrendsSection';
 
 const { width, height } = Dimensions.get('window');
 

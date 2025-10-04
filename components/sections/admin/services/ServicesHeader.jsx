@@ -2,8 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../ThemedText';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 export default function ServicesHeader({ animatedStyle }) {
   const { spacing } = useTheme();

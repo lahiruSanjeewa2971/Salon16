@@ -3,8 +3,8 @@ import { View, TouchableOpacity } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '../../ThemedText';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 export default function BookingsHeader({ animatedStyle, onSearch }) {
   const theme = useTheme();

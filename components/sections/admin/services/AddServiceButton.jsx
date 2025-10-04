@@ -2,8 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedButton } from '../../themed/ThemedButton';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { ThemedButton } from '../../../themed/ThemedButton';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 export default function AddServiceButton({ onPress }) {
   const { spacing } = useTheme();

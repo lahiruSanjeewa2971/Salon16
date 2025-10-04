@@ -3,8 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Calendar } from 'react-native-calendars';
 
-import { ThemedText } from '../../ThemedText';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
+import { useTheme } from '../../../../contexts/ThemeContext';
 
 export default function BookingsCalendar({ animatedStyle, onDateSelect, bookings = [], selectedDate }) {
   const theme = useTheme();

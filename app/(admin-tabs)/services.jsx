@@ -23,12 +23,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { serviceService } from '../../services/firebaseService';
 
 // Import new components
-import AddServiceButton from '../../components/sections/admin/AddServiceButton';
-import ServiceForm from '../../components/sections/admin/ServiceForm';
-import ServiceList from '../../components/sections/admin/ServiceList';
-import ServicesControls from '../../components/sections/admin/ServicesControls';
-import ServicesHeader from '../../components/sections/admin/ServicesHeader';
-import ServicesStats from '../../components/sections/admin/ServicesStats';
+import AddServiceButton from '../../components/sections/admin/services/AddServiceButton';
+import ServiceForm from '../../components/sections/admin/services/ServiceForm';
+import ServiceList from '../../components/sections/admin/services/ServiceList';
+import ServicesControls from '../../components/sections/admin/services/ServicesControls';
+import ServicesHeader from '../../components/sections/admin/services/ServicesHeader';
+import ServicesStats from '../../components/sections/admin/services/ServicesStats';
 
 export default function AdminServicesScreen() {
   const theme = useTheme();
