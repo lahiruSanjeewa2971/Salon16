@@ -439,7 +439,7 @@ npm install @react-native-netinfo/netinfo  # Update from deprecated version
   - **Solution**: Desktop-friendly layout
 
 **C. Form Components:**
-- `components/sections/admin/ServiceForm.jsx`
+- `components/sections/admin/services/ServiceForm.jsx`
   - **Issue**: Modal behavior on web
   - **Solution**: Web-appropriate modal styling
   ```javascript

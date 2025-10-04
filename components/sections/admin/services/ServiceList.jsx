@@ -1,8 +1,8 @@
 import { Alert, Image, TouchableOpacity, View } from 'react-native';
 import Animated, { Extrapolate, interpolate } from 'react-native-reanimated';
 
-import { useTheme } from '../../../contexts/ThemeContext';
-import { ThemedText } from '../../ThemedText';
+import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 
 export default function ServiceList({ 
   services, 

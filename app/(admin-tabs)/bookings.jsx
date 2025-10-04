@@ -16,9 +16,9 @@ import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 
 // Import new booking components
-import BookingsHeader from '../../components/sections/admin/BookingsHeader';
-import BookingsCalendar from '../../components/sections/admin/BookingsCalendar';
-import TodaysBookings from '../../components/sections/admin/TodaysBookings';
+import BookingsHeader from '../../components/sections/admin/bookings/BookingsHeader';
+import BookingsCalendar from '../../components/sections/admin/bookings/BookingsCalendar';
+import TodaysBookings from '../../components/sections/admin/bookings/TodaysBookings';
 
 export default function AdminBookingsScreen() {
   const theme = useTheme();

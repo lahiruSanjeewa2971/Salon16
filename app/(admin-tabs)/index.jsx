@@ -15,12 +15,12 @@ import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 
 // Import dashboard components
-import DashboardHeader from '../../components/sections/admin/DashboardHeader';
-import DashboardStats from '../../components/sections/admin/DashboardStats';
-import TodaysSchedule from '../../components/sections/admin/TodaysSchedule';
-import QuickActions from '../../components/sections/admin/QuickActions';
-import CategoryManager from '../../components/sections/admin/CategoryManager';
-import CategoryForm from '../../components/sections/admin/CategoryForm';
+import DashboardHeader from '../../components/sections/admin/dashboard/DashboardHeader';
+import DashboardStats from '../../components/sections/admin/dashboard/DashboardStats';
+import TodaysSchedule from '../../components/sections/admin/dashboard/TodaysSchedule';
+import QuickActions from '../../components/sections/admin/dashboard/QuickActions';
+import CategoryManager from '../../components/sections/admin/categories/CategoryManager';
+import CategoryForm from '../../components/sections/admin/categories/CategoryForm';
 import { categoryService, serviceService } from '../../services/firebaseService';
 
 export default function AdminDashboardScreen() {

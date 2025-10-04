@@ -7,8 +7,8 @@ import Animated, {
   FadeIn,
 } from 'react-native-reanimated';
 
-import { ThemedText } from '../../ThemedText';
-import { ThemedButton } from '../../themed/ThemedButton';
+import { ThemedText } from '../../../ThemedText';
+import { ThemedButton } from '../../../themed/ThemedButton';
 
 const NotificationSettings = ({ 
   colors, 

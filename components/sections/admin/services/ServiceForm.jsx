@@ -3,14 +3,14 @@ import { View, Modal, TouchableOpacity, Dimensions, ScrollView } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, interpolate } from 'react-native-reanimated';
 
-import { ThemedText } from '../../ThemedText';
-import { ThemedButton } from '../../themed/ThemedButton';
-import { ThemedInput } from '../../themed/ThemedInput';
-import CloudinaryImageUploader from '../../ui/CloudinaryImageUploader';
-import CategoryDropdown from '../../ui/CategoryDropdown';
-import { useTheme } from '../../../contexts/ThemeContext';
-import { useToastHelpers } from '../../ui/ToastSystem';
-import { serviceService, categoryService } from '../../../services/firebaseService';
+import { ThemedText } from '../../../ThemedText';
+import { ThemedButton } from '../../../themed/ThemedButton';
+import { ThemedInput } from '../../../themed/ThemedInput';
+import CloudinaryImageUploader from '../../../ui/CloudinaryImageUploader';
+import CategoryDropdown from '../../../ui/CategoryDropdown';
+import { useTheme } from '../../../../contexts/ThemeContext';
+import { useToastHelpers } from '../../../ui/ToastSystem';
+import { serviceService, categoryService } from '../../../../services/firebaseService';
 
 const { width } = Dimensions.get('window');
 

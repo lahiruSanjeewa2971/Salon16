@@ -1,9 +1,10 @@
-import React from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../ThemedText';
-import { useTheme } from '../../../contexts/ThemeContext';
+// import { ThemedText } from '../../../../ThemedText';
+// import { useTheme } from '../../../../../contexts/ThemeContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 
 export default function DashboardHeader({ animatedStyle }) {
   const theme = useTheme();
