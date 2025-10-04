@@ -3,7 +3,7 @@ import { storageService } from './storageService';
 
 // Token configuration
 const TOKEN_CONFIG = {
-  ACCESS_TOKEN_DURATION: 2 * 60 * 60 * 1000, // 2 hours in milliseconds (reduced for better security)
+  ACCESS_TOKEN_DURATION: 8 * 60 * 60 * 1000, // 8 hours in milliseconds
   REFRESH_BUFFER: 15 * 60 * 1000, // 15 minutes in milliseconds
   MAX_RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 second
@@ -109,7 +109,7 @@ class TokenService {
       };
 
       await storageService.saveTokens(tokenData);
-      console.log('TokenService: Successfully saved tokens with 2-hour expiry');
+      console.log('TokenService: Successfully saved tokens with 8-hour expiry');
       
       return tokenData;
     } catch (error) {
