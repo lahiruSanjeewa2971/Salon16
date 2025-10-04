@@ -28,7 +28,9 @@ Here are some previews of the **Salon 16 Mobile App**:
 
 ### 👩 Customer Side
 <img src="assets/screenshots/welcome-screen.png" alt="Home Screen" width="200" height="400"> <img src="assets/screenshots/user-home-screen.png" alt="Home Screen" width="200" height="400">
+
 ### 🛠️ Admin Side
+<img src="assets/screenshots/welcome-screen.png" alt="Home Screen" width="200" height="400"> <img src="assets/screenshots/admin-dashboard.png" alt="Home Screen" width="200" height="400">
 
 ---
 
