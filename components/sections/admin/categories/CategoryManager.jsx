@@ -166,7 +166,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
       backgroundColor: 'rgba(239, 68, 68, 0.2)',
       borderColor: 'rgba(239, 68, 68, 0.3)',
     },
-    categoryActions: {
+    bottomActions: {
       flexDirection: 'row',
       justifyContent: 'center',
       paddingHorizontal: spacing.xl,
@@ -255,7 +255,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
                     activeOpacity={0.8}
                   >
                     {/* Action Buttons - Top Right */}
-                    <View style={styles.categoryActions}>
+                    <View style={styles.bottomActions}>
                       <TouchableOpacity
                         style={[
                           styles.categoryButton, 
@@ -307,7 +307,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
               ))}
             </View>
             
-            <View style={styles.categoryActions}>
+            <View style={styles.bottomActions}>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={onAddCategory}

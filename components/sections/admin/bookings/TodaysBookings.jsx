@@ -173,7 +173,7 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
       <Animated.View style={animatedStyle}>
         <View style={styles.bookingsContainer}>
           <View style={styles.bookingsHeader}>
-            <ThemedText style={styles.bookingsTitle}>📋 {displayDate}'s Bookings</ThemedText>
+            <ThemedText style={styles.bookingsTitle}>📋 {displayDate}&apos;s Bookings</ThemedText>
             <ThemedText style={styles.bookingsSubtitle}>
               No bookings scheduled for {displayDate.toLowerCase()}
             </ThemedText>
@@ -192,7 +192,7 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
     <Animated.View style={animatedStyle}>
         <View style={styles.bookingsContainer}>
           <View style={styles.bookingsHeader}>
-            <ThemedText style={styles.bookingsTitle}>📋 {displayDate}'s Bookings</ThemedText>
+            <ThemedText style={styles.bookingsTitle}>📋 {displayDate}&apos;s Bookings</ThemedText>
             <ThemedText style={styles.bookingsSubtitle}>
               {bookings.length} appointment{bookings.length !== 1 ? 's' : ''} scheduled
             </ThemedText>
