@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AlertProvider } from '../components/ui/AlertSystem';
 import { ToastProvider } from '../components/ui/ToastSystem';
@@ -29,29 +30,31 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AlertProvider>
-          <ToastProvider>
-            <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
-                        <Stack.Screen name="index" options={{ headerShown: false }} />
-                        <Stack.Screen name="TestScreen" options={{ headerShown: false }} />
-                        <Stack.Screen name="WelcomeScreen" options={{ headerShown: false }} />
-                        <Stack.Screen name="LoginScreen" options={{ headerShown: false }} />
-                        <Stack.Screen name="RegisterScreen" options={{ headerShown: false }} />
-                        <Stack.Screen name="HomeScreen" options={{ headerShown: false }} />
-                        <Stack.Screen name="DebugScreen" options={{ headerShown: false }} />
-                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                        <Stack.Screen name="(customer-tabs)" options={{ headerShown: false }} />
-                        <Stack.Screen name="(admin-tabs)" options={{ headerShown: false }} />
-                        <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-            </NavigationThemeProvider>
-          </ToastProvider>
-        </AlertProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <AuthProvider>
+          <AlertProvider>
+            <ToastProvider>
+              <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <Stack>
+                          <Stack.Screen name="index" options={{ headerShown: false }} />
+                          <Stack.Screen name="TestScreen" options={{ headerShown: false }} />
+                          <Stack.Screen name="WelcomeScreen" options={{ headerShown: false }} />
+                          <Stack.Screen name="LoginScreen" options={{ headerShown: false }} />
+                          <Stack.Screen name="RegisterScreen" options={{ headerShown: false }} />
+                          <Stack.Screen name="HomeScreen" options={{ headerShown: false }} />
+                          <Stack.Screen name="DebugScreen" options={{ headerShown: false }} />
+                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                          <Stack.Screen name="(customer-tabs)" options={{ headerShown: false }} />
+                          <Stack.Screen name="(admin-tabs)" options={{ headerShown: false }} />
+                          <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="auto" />
+              </NavigationThemeProvider>
+            </ToastProvider>
+          </AlertProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

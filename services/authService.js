@@ -296,8 +296,11 @@ class AuthService {
         return null;
       }
     } catch (error) {
+      // Only log the error, don't throw it to prevent duplicate error handling
       console.error('AuthService: Failed to get user document', error);
-      throw new Error(`${AUTH_ERRORS.FIRESTORE_ERROR}: ${error.message}`);
+      
+      // Return null instead of throwing to allow graceful degradation
+      return null;
     }
   }
 
@@ -670,7 +673,9 @@ class AuthService {
         try {
           if (user) {
             // User is signed in
+            console.log('AuthService: User signed in, fetching user document...');
             const userData = await this.getUserDocument(user.uid);
+            
             if (userData) {
               // Update cache
               await storageService.saveUserData(userData);
@@ -678,15 +683,29 @@ class AuthService {
                 lastUpdated: Date.now(),
                 data: userData,
               });
+              console.log('AuthService: User data cached successfully');
+            } else {
+              console.log('AuthService: No user document found, using basic user info');
+              // Use basic user info from Firebase Auth if no Firestore document
+              const basicUserData = {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                role: 'customer' // Default role
+              };
+              await storageService.saveUserData(basicUserData);
             }
-            onAuthStateChange({ user: userData, isAuthenticated: true });
+            
+            onAuthStateChange({ user: userData || user, isAuthenticated: true });
           } else {
             // User is signed out
+            console.log('AuthService: User signed out');
             onAuthStateChange({ user: null, isAuthenticated: false });
           }
         } catch (error) {
           console.error('AuthService: Auth state listener error', error);
-          onAuthStateChange({ user: null, isAuthenticated: false, error });
+          // Don't pass error to callback to prevent duplicate error handling
+          onAuthStateChange({ user: null, isAuthenticated: false });
         }
       });
 
