@@ -10,7 +10,6 @@ export default function CustomerHeader({ animatedStyle, onSearch }) {
   const theme = useTheme();
   
   // Add comprehensive safety checks for theme destructuring
-  const colors = theme?.colors || {};
   const spacing = theme?.spacing || {};
   const borderRadius = theme?.borderRadius || {};
 
