@@ -17,6 +17,7 @@ import {
     orderBy,
     query,
     serverTimestamp,
+    startAfter,
     updateDoc,
     where
 } from 'firebase/firestore';
@@ -491,4 +492,201 @@ export const reviewService = {
       throw error;
     }
   }
+};
+
+export const customerService = {
+  // Get customers with pagination
+  getCustomers: async (lastDoc = null, limitCount = 20) => {
+    try {
+      console.log('🔍 CustomerService: Fetching customers from Firestore...');
+      
+      let q = collection(db, 'users');
+      
+      // Add where condition for customers only
+      q = query(q, where('role', '==', 'customer'));
+      
+      // Add order by
+      q = query(q, orderBy('createdAt', 'desc'));
+      
+      // Add pagination
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+      
+      // Add limit
+      q = query(q, limit(limitCount));
+      
+      const querySnapshot = await getDocs(q);
+      const customers = [];
+      let lastVisible = null;
+      
+      querySnapshot.forEach((doc) => {
+        const customerData = { id: doc.id, ...doc.data() };
+        customers.push(customerData);
+        lastVisible = doc;
+      });
+      
+      console.log(`📊 CustomerService: Fetched ${customers.length} customers`);
+      console.log('📋 CustomerService: Full customer list:', customers);
+      
+      return {
+        customers,
+        lastDoc: lastVisible,
+        hasMore: customers.length === limitCount
+      };
+    } catch (error) {
+      console.error('❌ CustomerService: Error fetching customers:', error);
+      throw error;
+    }
+  },
+
+  // Get customer with stats (bookings, spending, etc.)
+  getCustomerWithStats: async (customerId) => {
+    try {
+      // Get customer basic info
+      const customer = await firestoreService.read('users', customerId);
+      
+      // Get customer bookings
+      const bookings = await firestoreService.query('bookings', [
+        { field: 'userId', operator: '==', value: customerId }
+      ], { field: 'createdAt', direction: 'desc' });
+      
+      // Calculate stats
+      const stats = {
+        totalBookings: bookings.length,
+        totalSpent: bookings.reduce((sum, booking) => sum + (booking.totalPrice || 0), 0),
+        lastVisit: bookings.length > 0 ? bookings[0].createdAt : null,
+        favoriteService: getFavoriteService(bookings),
+        status: getCustomerStatus(bookings)
+      };
+      
+      return {
+        ...customer,
+        ...stats
+      };
+    } catch (error) {
+      console.error('❌ CustomerService: Error fetching customer stats:', error);
+      throw error;
+    }
+  },
+
+  // Search customers
+  searchCustomers: async (searchQuery, lastDoc = null, limitCount = 20) => {
+    try {
+      console.log(`🔍 CustomerService: Searching customers with query: "${searchQuery}"`);
+      
+      let q = collection(db, 'users');
+      
+      // Add where condition for customers only
+      q = query(q, where('role', '==', 'customer'));
+      
+      // Add order by
+      q = query(q, orderBy('name', 'asc'));
+      
+      // Add pagination
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+      
+      // Add limit
+      q = query(q, limit(limitCount));
+      
+      const querySnapshot = await getDocs(q);
+      const customers = [];
+      let lastVisible = null;
+      
+      querySnapshot.forEach((doc) => {
+        const customerData = { id: doc.id, ...doc.data() };
+        
+        // Client-side filtering for search (since Firestore doesn't support case-insensitive search)
+        const matchesSearch = !searchQuery || 
+          (customerData.name && customerData.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (customerData.email && customerData.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (customerData.phone && customerData.phone.includes(searchQuery));
+        
+        if (matchesSearch) {
+          customers.push(customerData);
+        }
+        lastVisible = doc;
+      });
+      
+      console.log(`📊 CustomerService: Found ${customers.length} customers matching search`);
+      
+      return {
+        customers,
+        lastDoc: lastVisible,
+        hasMore: customers.length === limitCount
+      };
+    } catch (error) {
+      console.error('❌ CustomerService: Error searching customers:', error);
+      throw error;
+    }
+  },
+
+  // Real-time listener for customers
+  listenToCustomers: (callback) => {
+    try {
+      return firestoreService.listen('users', [
+        { field: 'role', operator: '==', value: 'customer' }
+      ], callback);
+    } catch (error) {
+      console.error('❌ CustomerService: Error setting up customer listener:', error);
+      throw error;
+    }
+  },
+
+  // Update customer
+  updateCustomer: async (customerId, updateData) => {
+    try {
+      return await firestoreService.update('users', customerId, {
+        ...updateData,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('❌ CustomerService: Error updating customer:', error);
+      throw error;
+    }
+  },
+
+  // Delete customer (soft delete by updating role)
+  deleteCustomer: async (customerId) => {
+    try {
+      return await firestoreService.update('users', customerId, {
+        role: 'deleted',
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('❌ CustomerService: Error deleting customer:', error);
+      throw error;
+    }
+  }
+};
+
+// Helper functions
+const getFavoriteService = (bookings) => {
+  if (!bookings || bookings.length === 0) return 'N/A';
+  
+  const serviceCounts = {};
+  bookings.forEach(booking => {
+    const serviceName = booking.serviceName || 'Unknown Service';
+    serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+  });
+  
+  const favorite = Object.keys(serviceCounts).reduce((a, b) => 
+    serviceCounts[a] > serviceCounts[b] ? a : b
+  );
+  
+  return favorite;
+};
+
+const getCustomerStatus = (bookings) => {
+  if (!bookings || bookings.length === 0) return 'new';
+  
+  const lastBooking = bookings[0];
+  const lastVisitDate = lastBooking.createdAt?.toDate ? lastBooking.createdAt.toDate() : new Date(lastBooking.createdAt);
+  const daysSinceLastVisit = (new Date() - lastVisitDate) / (1000 * 60 * 60 * 24);
+  
+  if (daysSinceLastVisit <= 90) return 'active';
+  return 'inactive';
 };

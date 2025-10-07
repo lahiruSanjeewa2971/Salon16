@@ -93,7 +93,7 @@ export default function CustomerDetailBottomSheet({
       translateY.value = withTiming(SCREEN_HEIGHT, { duration: 300 });
       sheetOpacity.value = withTiming(0, { duration: 200 });
     }
-  }, [visible]);
+  }, [visible, backdropOpacity, sheetOpacity, translateY]);
 
   // Animated styles
   const backdropAnimatedStyle = useAnimatedStyle(() => ({
