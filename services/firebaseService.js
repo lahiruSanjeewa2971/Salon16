@@ -381,6 +381,111 @@ export const serviceService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Get services by category
+  getServicesByCategory: async (categoryId) => {
+    try {
+      return await firestoreService.query('services', [
+        { field: 'category.id', operator: '==', value: categoryId }
+      ]);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get active services by category
+  getActiveServicesByCategory: async (categoryId) => {
+    try {
+      console.log(`🔍 ServiceService: Searching for active services with category.id = ${categoryId}`);
+      const services = await firestoreService.query('services', [
+        { field: 'category.id', operator: '==', value: categoryId },
+        { field: 'isActive', operator: '==', value: true }
+      ]);
+      console.log(`📊 ServiceService: Found ${services.length} active services for category ${categoryId}`);
+      return services;
+    } catch (error) {
+      console.error('❌ ServiceService: Error getting active services by category:', error);
+      throw error;
+    }
+  },
+
+  // Cascade deactivate services in category
+  cascadeDeactivateServicesInCategory: async (categoryId) => {
+    try {
+      console.log(`🔄 ServiceService: Starting cascade deactivation for category ${categoryId}`);
+      
+      // Get all active services in this category
+      const activeServices = await serviceService.getActiveServicesByCategory(categoryId);
+      console.log(`📊 ServiceService: Found ${activeServices.length} active services in category`);
+      
+      if (activeServices.length === 0) {
+        console.log('✅ ServiceService: No active services found, skipping cascade deactivation');
+        return { deactivatedCount: 0, services: [] };
+      }
+
+      // Deactivate all services in the category
+      const deactivationPromises = activeServices.map(service => 
+        serviceService.toggleServiceStatus(service.id, false)
+      );
+
+      await Promise.all(deactivationPromises);
+      
+      console.log(`✅ ServiceService: Successfully deactivated ${activeServices.length} services`);
+      
+      return {
+        deactivatedCount: activeServices.length,
+        services: activeServices.map(service => ({
+          id: service.id,
+          name: service.name,
+          price: service.price
+        }))
+      };
+    } catch (error) {
+      console.error('❌ ServiceService: Error in cascade deactivation:', error);
+      throw error;
+    }
+  },
+
+  // Cascade reactivate services in category
+  cascadeReactivateServicesInCategory: async (categoryId) => {
+    try {
+      console.log(`🔄 ServiceService: Starting cascade reactivation for category ${categoryId}`);
+      
+      // Get all inactive services in this category
+      const inactiveServices = await firestoreService.query('services', [
+        { field: 'category.id', operator: '==', value: categoryId },
+        { field: 'isActive', operator: '==', value: false }
+      ]);
+      
+      console.log(`📊 ServiceService: Found ${inactiveServices.length} inactive services in category`);
+      
+      if (inactiveServices.length === 0) {
+        console.log('✅ ServiceService: No inactive services found, skipping cascade reactivation');
+        return { reactivatedCount: 0, services: [] };
+      }
+
+      // Reactivate all services in the category
+      const reactivationPromises = inactiveServices.map(service => 
+        serviceService.toggleServiceStatus(service.id, true)
+      );
+
+      await Promise.all(reactivationPromises);
+      
+      console.log(`✅ ServiceService: Successfully reactivated ${inactiveServices.length} services`);
+      
+      return {
+        reactivatedCount: inactiveServices.length,
+        services: inactiveServices.map(service => ({
+          id: service.id,
+          name: service.name,
+          price: service.price
+        }))
+      };
+    } catch (error) {
+      console.error('❌ ServiceService: Error in cascade reactivation:', error);
+      throw error;
+    }
   }
 };
 
@@ -447,11 +552,20 @@ export const categoryService = {
   // Toggle category status
   toggleCategoryStatus: async (categoryId, isActive) => {
     try {
-      return await firestoreService.update('categories', categoryId, {
+      console.log(`🔄 CategoryService: Toggling category ${categoryId} to ${isActive ? 'active' : 'inactive'}`);
+      
+      await firestoreService.update('categories', categoryId, {
         isActive,
         updatedAt: new Date()
       });
+      
+      console.log(`✅ CategoryService: Category ${isActive ? 'activated' : 'deactivated'} successfully`);
+      return {
+        success: true,
+        message: `Category ${isActive ? 'activated' : 'deactivated'} successfully.`
+      };
     } catch (error) {
+      console.error('❌ CategoryService: Error toggling category status:', error);
       throw error;
     }
   },

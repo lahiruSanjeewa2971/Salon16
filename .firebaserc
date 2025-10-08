@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "salon16"
-  }
+    "default": "salon16",
+    "salon16": "salon16"
+  },
+  "targets": {},
+  "etags": {}
 }
