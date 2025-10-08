@@ -20,7 +20,34 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
   // Add null safety for categories
   const safeCategories = categories || [];
 
-  const handleDeleteCategory = (category) => {
+  // Reusable function to check for related services and handle the operation
+  const checkServicesAndExecute = async (category, operation, operationName) => {
+    try {
+      console.log(`🔍 CategoryManager: Checking for services before ${operationName}...`);
+      const allServices = await serviceService.getServicesByCategory(category.id);
+      
+      if (allServices.length > 0) {
+        console.log(`⚠️ CategoryManager: Found ${allServices.length} services in category, preventing ${operationName}`);
+        showError(
+          `Cannot ${operationName} Category`,
+          `There are ${allServices.length} services related to this category. Please remove or reassign them before ${operationName.toLowerCase()}ing this category.`
+        );
+        return false; // Operation blocked
+      }
+      
+      // No services found - proceed with operation
+      console.log(`✅ CategoryManager: No services found, proceeding with ${operationName}`);
+      await operation();
+      return true; // Operation successful
+      
+    } catch (error) {
+      console.error(`❌ CategoryManager: Error during ${operationName}:`, error);
+      showError(`Failed to ${operationName} Category`, error.message || 'Please try again.');
+      return false; // Operation failed
+    }
+  };
+
+  const handleDeleteCategory = async (category) => {
     Alert.alert(
       'Delete Category',
       `Are you sure you want to delete "${category.name}"? This action cannot be undone.`,
@@ -29,8 +56,13 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            onDeleteCategory(category);
+          onPress: async () => {
+            const deleteOperation = async () => {
+              await categoryService.deleteCategory(category.id);
+              onDeleteCategory(category);
+            };
+            
+            await checkServicesAndExecute(category, deleteOperation, 'Delete');
           },
         },
       ]
@@ -38,33 +70,15 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
   };
 
   const handleToggleCategoryStatus = async (category) => {
-    try {
-      const newStatus = !category.isActive;
-      
-      if (!newStatus) {
-        // Deactivating - check for any services (active or inactive)
-        console.log('🔍 CategoryManager: Checking for services in category...');
-        const allServices = await serviceService.getServicesByCategory(category.id);
-        
-        if (allServices.length > 0) {
-          console.log(`⚠️ CategoryManager: Found ${allServices.length} services in category, preventing deactivation`);
-          showError(
-            'Cannot Deactivate Category',
-            `There are ${allServices.length} services related to this category. Please remove or reassign them before deactivating this category.`
-          );
-          return; // Stop the process
-        }
-      }
-      
-      // No services found or reactivating - proceed with toggle
-      console.log('✅ CategoryManager: No services found, proceeding with status change');
+    const newStatus = !category.isActive;
+    const operationName = newStatus ? 'Activate' : 'Deactivate';
+    
+    const toggleOperation = async () => {
       await categoryService.toggleCategoryStatus(category.id, newStatus);
       onToggleCategoryStatus(category);
-      
-    } catch (error) {
-      console.error('❌ CategoryManager: Error toggling category status:', error);
-      showError('Failed to Update Category', error.message || 'Please try again.');
-    }
+    };
+    
+    await checkServicesAndExecute(category, toggleOperation, operationName);
   };
 
 
