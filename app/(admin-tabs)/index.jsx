@@ -265,9 +265,14 @@ export default function AdminDashboardScreen() {
       const newStatus = !category.isActive;
       
       // Update Firebase - real-time subscription will handle UI update
-      await categoryService.toggleCategoryStatus(category.id, newStatus);
+      const result = await categoryService.toggleCategoryStatus(category.id, newStatus);
       
-      showSuccess(`Category ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      // Show appropriate success message based on result
+      if (result && result.message) {
+        showSuccess(result.message);
+      } else {
+        showSuccess(`Category ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      }
     } catch (error) {
       console.error('Error toggling category status:', error);
       showError('Update Failed', 'Failed to update category status. Please try again.');
