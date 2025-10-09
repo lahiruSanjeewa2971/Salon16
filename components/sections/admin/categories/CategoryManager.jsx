@@ -5,12 +5,17 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
-import { serviceService, categoryService } from '../../../../services/firebaseService';
+import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
+import { useAuth } from '../../../../contexts/AuthContext';
 import { useToastHelpers } from '../../../ui/ToastSystem';
 
 export default function CategoryManager({ categories, animatedStyle, onAddCategory, onEditCategory, onToggleCategoryStatus, onDeleteCategory }) {
   const theme = useTheme();
   const { showSuccess, showError } = useToastHelpers();
+  const { user } = useAuth();
+  
+  // Create secure service with user context
+  const secureService = createSecureFirestoreService(user);
   
   // Add comprehensive safety checks for theme destructuring
   const spacing = theme?.spacing || {};
@@ -24,7 +29,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
   const checkServicesAndExecute = async (category, operation, operationName) => {
     try {
       console.log(`🔍 CategoryManager: Checking for services before ${operationName}...`);
-      const allServices = await serviceService.getServicesByCategory(category.id);
+      const allServices = await secureService.adminOperations.getServicesByCategory(category.id);
       
       if (allServices.length > 0) {
         console.log(`⚠️ CategoryManager: Found ${allServices.length} services in category, preventing ${operationName}`);
@@ -58,7 +63,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
           style: 'destructive',
           onPress: async () => {
             const deleteOperation = async () => {
-              await categoryService.deleteCategory(category.id);
+              await secureService.adminOperations.deleteCategory(category.id);
               onDeleteCategory(category);
             };
             
@@ -74,7 +79,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
     const operationName = newStatus ? 'Activate' : 'Deactivate';
     
     const toggleOperation = async () => {
-      await categoryService.toggleCategoryStatus(category.id, newStatus);
+      await secureService.adminOperations.toggleCategoryStatus(category.id, newStatus);
       onToggleCategoryStatus(category);
     };
     

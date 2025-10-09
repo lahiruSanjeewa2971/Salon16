@@ -10,7 +10,8 @@ import CloudinaryImageUploader from '../../../ui/CloudinaryImageUploader';
 import CategoryDropdown from '../../../ui/CategoryDropdown';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToastHelpers } from '../../../ui/ToastSystem';
-import { serviceService, categoryService } from '../../../../services/firebaseService';
+import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +24,10 @@ export default function ServiceForm({
 }) {
   const { colors, spacing, borderRadius } = useTheme();
   const { showError, showSuccess } = useToastHelpers();
+  const { user } = useAuth();
+  
+  // Create secure service with user context
+  const secureService = createSecureFirestoreService(user);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -45,7 +50,7 @@ export default function ServiceForm({
   const fetchCategories = useCallback(async () => {
     try {
       setIsLoadingCategories(true);
-      const activeCategories = await categoryService.getActiveCategories();
+      const activeCategories = await secureService.sharedOperations.getActiveCategories();
       setCategories(activeCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -197,7 +202,7 @@ export default function ServiceForm({
       let savedService;
       if (editingService) {
         // Update existing service
-        savedService = await serviceService.updateService(editingService.id, serviceData);
+        savedService = await secureService.adminOperations.updateService(editingService.id, serviceData);
         
         // Show success message
         showSuccess(
@@ -207,7 +212,7 @@ export default function ServiceForm({
         );
       } else {
         // Create new service
-        savedService = await serviceService.createService(serviceData);
+        savedService = await secureService.adminOperations.createService(serviceData);
         
         // Show success message
         showSuccess(

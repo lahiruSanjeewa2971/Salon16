@@ -21,10 +21,15 @@ import TodaysSchedule from '../../components/sections/admin/dashboard/TodaysSche
 import QuickActions from '../../components/sections/admin/dashboard/QuickActions';
 import CategoryManager from '../../components/sections/admin/categories/CategoryManager';
 import CategoryForm from '../../components/sections/admin/categories/CategoryForm';
-import { categoryService, serviceService } from '../../services/firebaseService';
+import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminDashboardScreen() {
   const theme = useTheme();
+  const { user } = useAuth();
+  
+  // Create secure service with user context
+  const secureService = createSecureFirestoreService(user);
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -89,10 +94,10 @@ export default function AdminDashboardScreen() {
   const fetchCategories = useCallback(async () => {
     try {
       console.log('Fetching all categories from Firebase (admin)...');
-      const fetchedCategories = await categoryService.getAllCategoriesForAdmin();
+      const fetchedCategories = await secureService.adminOperations.getAllCategories();
       
       // Fetch services to count per category
-      const services = await serviceService.getActiveServices();
+      const services = await secureService.sharedOperations.getActiveServices();
       
       // Convert Firestore timestamps to Date objects and calculate serviceCount
       const validatedCategories = fetchedCategories.map(category => {
@@ -131,12 +136,12 @@ export default function AdminDashboardScreen() {
   // Set up real-time subscription for all categories
   useEffect(() => {
     console.log('Setting up real-time subscription for all categories (admin)...');
-    const unsubscribe = categoryService.subscribeToCategories(async (updatedCategories) => {
+    const unsubscribe = secureService.adminOperations.subscribeToCategories(async (updatedCategories) => {
       console.log('Real-time categories update received:', updatedCategories.length);
       
       try {
         // Fetch services to count per category
-        const services = await serviceService.getActiveServices();
+        const services = await secureService.sharedOperations.getActiveServices();
         
         // Convert Firestore timestamps to Date objects and calculate serviceCount
         const validatedCategories = updatedCategories.map(category => {
@@ -265,7 +270,7 @@ export default function AdminDashboardScreen() {
       const newStatus = !category.isActive;
       
       // Update Firebase - real-time subscription will handle UI update
-      const result = await categoryService.toggleCategoryStatus(category.id, newStatus);
+      const result = await secureService.adminOperations.toggleCategoryStatus(category.id, newStatus);
       
       // Show appropriate success message based on result
       if (result && result.message) {
@@ -282,7 +287,7 @@ export default function AdminDashboardScreen() {
   const handleDeleteCategory = async (category) => {
     try {
       // Delete from Firebase - real-time subscription will handle UI update
-      await categoryService.deleteCategory(category.id);
+      await secureService.adminOperations.deleteCategory(category.id);
       
       showSuccess('Category deleted successfully!');
     } catch (error) {
