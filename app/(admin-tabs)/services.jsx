@@ -20,7 +20,8 @@ import { ThemedText } from '../../components/ThemedText';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
-import { serviceService } from '../../services/firebaseService';
+import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Import new components
 import AddServiceButton from '../../components/sections/admin/services/AddServiceButton';
@@ -32,6 +33,10 @@ import ServicesStats from '../../components/sections/admin/services/ServicesStat
 
 export default function AdminServicesScreen() {
   const theme = useTheme();
+  const { user } = useAuth();
+  
+  // Create secure service with user context
+  const secureService = createSecureFirestoreService(user);
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -60,7 +65,7 @@ export default function AdminServicesScreen() {
       }
       setError(null);
       
-      const fetchedServices = await serviceService.getActiveServices();
+      const fetchedServices = await secureService.sharedOperations.getActiveServices();
       
       // Validate and normalize service data
       const validatedServices = fetchedServices.map(service => ({
@@ -209,7 +214,7 @@ export default function AdminServicesScreen() {
       setServices(prev => prev.filter(s => s.id !== service.id));
       
       // Delete from Firebase
-      await serviceService.deleteService(service.id);
+      await secureService.adminOperations.deleteService(service.id);
       
       // Delete image from Cloudinary if it exists
       if (service.publicId) {
@@ -246,7 +251,7 @@ export default function AdminServicesScreen() {
       );
       
       // Update Firebase
-      await serviceService.toggleServiceStatus(service.id, newStatus);
+      await secureService.adminOperations.toggleServiceStatus(service.id, newStatus);
       
       showSuccess(`Service ${newStatus ? 'activated' : 'deactivated'} successfully!`);
     } catch (error) {

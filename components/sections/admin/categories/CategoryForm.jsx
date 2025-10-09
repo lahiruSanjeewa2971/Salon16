@@ -8,7 +8,8 @@ import { ThemedButton } from '../../../themed/ThemedButton';
 import { ThemedInput } from '../../../themed/ThemedInput';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useToastHelpers } from '../../../ui/ToastSystem';
-import { categoryService } from '../../../../services/firebaseService';
+import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,10 @@ export default function CategoryForm({
   const spacing = theme?.spacing || {};
   const borderRadius = theme?.borderRadius || {};
   const { showError, showSuccess } = useToastHelpers();
+  const { user } = useAuth();
+  
+  // Create secure service with user context
+  const secureService = createSecureFirestoreService(user);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -98,10 +103,10 @@ export default function CategoryForm({
       
       let savedCategory;
       if (editingCategory) {
-        savedCategory = await categoryService.updateCategory(editingCategory.id, categoryData);
+        savedCategory = await secureService.adminOperations.updateCategory(editingCategory.id, categoryData);
         showSuccess('Category Updated Successfully!', `"${categoryData.name}" has been updated.`, { duration: 4000 });
       } else {
-        savedCategory = await categoryService.createCategory(categoryData);
+        savedCategory = await secureService.adminOperations.createCategory(categoryData);
         showSuccess('Category Created Successfully!', `"${categoryData.name}" has been added to your categories.`, { duration: 4000 });
       }
       

@@ -616,11 +616,8 @@ export const customerService = {
       
       let q = collection(db, 'users');
       
-      // Add where condition for customers only
+      // Add where condition for customers only (no orderBy to avoid index requirement)
       q = query(q, where('role', '==', 'customer'));
-      
-      // Add order by
-      q = query(q, orderBy('createdAt', 'desc'));
       
       // Add pagination
       if (lastDoc) {
@@ -638,6 +635,13 @@ export const customerService = {
         const customerData = { id: doc.id, ...doc.data() };
         customers.push(customerData);
         lastVisible = doc;
+      });
+      
+      // Sort customers by createdAt on client side (newest first)
+      customers.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+        return dateB - dateA; // Descending order (newest first)
       });
       
       console.log(`📊 CustomerService: Fetched ${customers.length} customers`);
@@ -691,11 +695,8 @@ export const customerService = {
       
       let q = collection(db, 'users');
       
-      // Add where condition for customers only
+      // Add where condition for customers only (no orderBy to avoid index requirement)
       q = query(q, where('role', '==', 'customer'));
-      
-      // Add order by
-      q = query(q, orderBy('name', 'asc'));
       
       // Add pagination
       if (lastDoc) {
@@ -722,6 +723,13 @@ export const customerService = {
           customers.push(customerData);
         }
         lastVisible = doc;
+      });
+      
+      // Sort customers by name on client side (A-Z)
+      customers.sort((a, b) => {
+        const nameA = a.name || '';
+        const nameB = b.name || '';
+        return nameA.localeCompare(nameB);
       });
       
       console.log(`📊 CustomerService: Found ${customers.length} customers matching search`);

@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useTheme } from '../../contexts/ThemeContext';
-import { customerService } from '../../services/firebaseService';
+import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
+import { useAuth } from '../../contexts/AuthContext';
 // import { useToastHelpers } from '../../hooks/useToastHelpers';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 
@@ -26,6 +27,10 @@ import CustomerStats from '../../components/sections/admin/customers/CustomerSta
 
 export default function AdminCustomersScreen() {
   const theme = useTheme();
+  const { user } = useAuth();
+  
+  // Create secure service with user context (memoized to prevent infinite re-renders)
+  const secureService = useMemo(() => createSecureFirestoreService(user), [user]);
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -48,6 +53,7 @@ export default function AdminCustomersScreen() {
   // Refs
   const flatListRef = useRef(null);
   const scrollToTopVisible = useSharedValue(0);
+  const lastDocRef = useRef(null);
 
   // Data fetching functions
   const fetchCustomers = useCallback(async (isRefresh = false, isLoadMore = false) => {
@@ -62,9 +68,9 @@ export default function AdminCustomersScreen() {
       
       let result;
       if (searchQuery.trim()) {
-        result = await customerService.searchCustomers(searchQuery, isLoadMore ? lastDoc : null);
+        result = await secureService.adminOperations.searchCustomers(searchQuery, isLoadMore ? lastDocRef.current : null);
       } else {
-        result = await customerService.getCustomers(isLoadMore ? lastDoc : null);
+        result = await secureService.adminOperations.getAllCustomers(isLoadMore ? lastDocRef.current : null);
       }
       
       const { customers: fetchedCustomers, lastDoc: newLastDoc, hasMore: moreAvailable } = result;
@@ -72,7 +78,7 @@ export default function AdminCustomersScreen() {
       // Transform customer data to match UI expectations
       const transformedCustomers = fetchedCustomers.map(customer => ({
         id: customer.id,
-        name: customer.name || 'Unknown Customer',
+        name: customer.displayName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Unknown Customer',
         email: customer.email || '',
         phone: customer.phone || '',
         profileImage: customer.profileImage || '',
@@ -95,6 +101,7 @@ export default function AdminCustomersScreen() {
       }
       
       setLastDoc(newLastDoc);
+      lastDocRef.current = newLastDoc;
       setHasMore(moreAvailable);
       
       if (isRefresh) {
@@ -117,37 +124,32 @@ export default function AdminCustomersScreen() {
         setLoadingMore(false);
       }
     }
-  }, [searchQuery, lastDoc, showSuccess, showError]);
+  }, [searchQuery, showSuccess, showError, secureService]);
 
   // Load more customers (infinite scroll)
   const loadMoreCustomers = useCallback(() => {
     if (!loadingMore && hasMore && !isSearching) {
       fetchCustomers(false, true);
     }
-  }, [loadingMore, hasMore, isSearching, fetchCustomers]);
+  }, [loadingMore, hasMore, isSearching]);
 
   // Refresh customers
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     setLastDoc(null);
+    lastDocRef.current = null;
     setHasMore(true);
     await fetchCustomers(true);
   }, [fetchCustomers]);
 
-  // Search customers with debounce
+  // Search customers (immediate state update)
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
     setIsSearching(!!query.trim());
     setLastDoc(null);
+    lastDocRef.current = null;
     setHasMore(true);
-    
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      fetchCustomers();
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
-  }, [fetchCustomers]);
+  }, []);
 
   // Calculate customer stats
   const customerStats = useMemo(() => {
@@ -266,7 +268,18 @@ export default function AdminCustomersScreen() {
   // Fetch customers on component mount
   useEffect(() => {
     fetchCustomers();
-  }, [fetchCustomers]);
+  }, []); // Empty dependency array - only run once on mount
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchCustomers();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, fetchCustomers]);
 
   useFocusEffect(
     useCallback(() => {
