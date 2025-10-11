@@ -1,10 +1,9 @@
-import React from 'react';
-import { View, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  interpolate,
   Extrapolate,
+  interpolate,
+  useAnimatedStyle,
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../ThemedText';
@@ -19,6 +18,7 @@ const AllServicesGrid = ({
   borderRadius, 
   shadows,
   onServicePress,
+  isLoading = false,
   // Animation values
   servicesAnim,
 }) => {
@@ -32,21 +32,80 @@ const AllServicesGrid = ({
 
   const styles = createStyles(colors, spacing, borderRadius, shadows);
 
+  // Loading state component
+  const renderLoadingState = () => (
+    <Animated.View style={[styles.section, servicesAnimatedStyle]}>
+      <View style={styles.sectionHeader}>
+        <ThemedText style={styles.sectionTitleWhite}>All Services</ThemedText>
+      </View>
+      <View style={styles.servicesGrid}>
+        {[1, 2, 3, 4].map((index) => (
+          <View key={index} style={styles.loadingCard}>
+            <View style={styles.loadingImage} />
+            <View style={styles.loadingContent}>
+              <View style={styles.loadingTitle} />
+              <View style={styles.loadingDescription} />
+              <View style={styles.loadingFooter}>
+                <View style={styles.loadingPrice} />
+                <View style={styles.loadingDuration} />
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    </Animated.View>
+  );
+
+  // Empty state component
+  const renderEmptyState = () => (
+    <Animated.View style={[styles.section, servicesAnimatedStyle]}>
+      <View style={styles.sectionHeader}>
+        <ThemedText style={styles.sectionTitleWhite}>All Services</ThemedText>
+      </View>
+      <View style={styles.emptyStateContainer}>
+        <View style={styles.emptyStateContent}>
+          <View style={styles.emptyStateIcon}>
+            <Ionicons 
+              name="cut-outline" 
+              size={48} 
+              color="rgba(255, 255, 255, 0.6)" 
+            />
+          </View>
+          <ThemedText style={styles.emptyStateTitle}>
+            No Services Available
+          </ThemedText>
+          <ThemedText style={styles.emptyStateDescription}>
+            We're currently updating our service offerings. Please check back soon!
+          </ThemedText>
+        </View>
+      </View>
+    </Animated.View>
+  );
+
+  // Show loading state
+  if (isLoading) {
+    return renderLoadingState();
+  }
+
+  // Show empty state if no services
+  if (!services || services.length === 0) {
+    return renderEmptyState();
+  }
+
   return (
     <Animated.View style={[styles.section, servicesAnimatedStyle]}>
       <View style={styles.sectionHeader}>
         <ThemedText style={styles.sectionTitleWhite}>All Services</ThemedText>
       </View>
       <View style={styles.servicesGrid}>
-        {(services || []).map((service, index) => {
+        {services.map((service, index) => {
           const serviceName = service?.name || "Service";
-          const serviceDescription =
-            service?.description || "Professional service";
+          const serviceDescription = service?.description || "Professional service";
           const servicePrice = service?.price || 0;
           const serviceDuration = service?.duration || "30 min";
-          const serviceRating = service?.rating || "0.0";
-          const serviceImage =
-            service?.image || "https://via.placeholder.com/300x200";
+          const serviceImage = service?.image || "https://via.placeholder.com/300x200";
+          const categoryName = service?.category?.name || "General";
+          const categoryColor = service?.color || colors.primary || "#6C2A52";
 
           return (
             <Animated.View
@@ -84,38 +143,47 @@ const AllServicesGrid = ({
                     </ThemedText>
                   </View>
                 )}
-                <View style={styles.serviceContent}>
-                  <View style={styles.serviceHeader}>
-                    <ThemedText
-                      style={styles.serviceName}
-                      numberOfLines={1}
-                    >
-                      {serviceName}
-                    </ThemedText>
-                    <View style={styles.ratingContainer}>
-                      <Ionicons
-                        name="star"
-                        size={12}
-                        color={colors.warning}
-                      />
-                      <ThemedText style={styles.ratingText}>
-                        {serviceRating}
-                      </ThemedText>
-                    </View>
-                  </View>
-                  <ThemedText
-                    style={styles.serviceDescription}
-                    numberOfLines={2}
-                  >
-                    {serviceDescription}
+                <View style={styles.categoryBadge}>
+                  <ThemedText style={styles.categoryBadgeText}>
+                    {categoryName}
                   </ThemedText>
+                </View>
+                <View style={styles.serviceContent}>
+                  <View>
+                    <View style={styles.serviceHeader}>
+                      <ThemedText
+                        style={styles.serviceName}
+                        numberOfLines={1}
+                      >
+                        {serviceName}
+                      </ThemedText>
+                      <View style={styles.durationContainer}>
+                        <Ionicons
+                          name="time-outline"
+                          size={12}
+                          color="rgba(255, 255, 255, 0.8)"
+                        />
+                        <ThemedText style={styles.durationText}>
+                          {serviceDuration}
+                        </ThemedText>
+                      </View>
+                    </View>
+                    <ThemedText
+                      style={styles.serviceDescription}
+                      numberOfLines={2}
+                    >
+                      {serviceDescription}
+                    </ThemedText>
+                  </View>
                   <View style={styles.serviceFooter}>
                     <ThemedText
                       style={styles.servicePrice}
                     >{`$${servicePrice}`}</ThemedText>
-                    <ThemedText style={styles.serviceDuration}>
-                      {serviceDuration}
-                    </ThemedText>
+                    <View style={styles.bookButton}>
+                      <ThemedText style={styles.bookButtonText}>
+                        Book Now
+                      </ThemedText>
+                    </View>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -157,8 +225,8 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   serviceCard: {
     width: SERVICE_CARD_WIDTH,
     marginBottom: spacing.md,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: borderRadius.large,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    borderRadius: borderRadius.xl,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
@@ -171,7 +239,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   serviceImage: {
     width: "100%",
     height: 140,
-    backgroundColor: colors.background,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   popularBadge: {
     position: "absolute",
@@ -189,6 +257,8 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   },
   serviceContent: {
     padding: spacing.md,
+    flex: 1,
+    justifyContent: 'space-between',
   },
   serviceHeader: {
     flexDirection: "row",
@@ -216,13 +286,15 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   serviceDescription: {
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
-    marginBottom: spacing.sm,
     lineHeight: 18,
+    flex: 1,
+    marginBottom: spacing.sm,
   },
   serviceFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: spacing.sm,
   },
   servicePrice: {
     fontSize: 16,
@@ -233,6 +305,135 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
     fontWeight: "500",
+  },
+  // New service card elements
+  categoryBadge: {
+    position: "absolute",
+    top: spacing.sm,
+    left: spacing.sm,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+  },
+  categoryBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "white",
+  },
+  durationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  durationText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+    marginLeft: 4,
+  },
+  bookButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  bookButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "white",
+  },
+  // Loading state styles
+  loadingCard: {
+    width: SERVICE_CARD_WIDTH,
+    marginBottom: spacing.md,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: borderRadius.large,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  loadingImage: {
+    width: "100%",
+    height: 140,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  loadingContent: {
+    padding: spacing.md,
+  },
+  loadingTitle: {
+    height: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: borderRadius.small,
+    marginBottom: spacing.xs,
+  },
+  loadingDescription: {
+    height: 32,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: borderRadius.small,
+    marginBottom: spacing.sm,
+  },
+  loadingFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  loadingPrice: {
+    height: 16,
+    width: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: borderRadius.small,
+  },
+  loadingDuration: {
+    height: 16,
+    width: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: borderRadius.small,
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+  },
+  emptyStateContent: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: borderRadius.large,
+    padding: spacing.xl,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: "blur(10px)",
+  },
+  emptyStateIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "white",
+    textAlign: "center",
+    marginBottom: spacing.sm,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  emptyStateDescription: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: spacing.md,
   },
 });
 

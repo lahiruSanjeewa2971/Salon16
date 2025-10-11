@@ -80,7 +80,7 @@ export const authService = {
   },
 
   // Listen to auth state changes
-  onAuthStateChanged: (callback) => {
+  setupAuthStateListener: (callback) => {
     return onAuthStateChanged(auth, callback);
   }
 };
@@ -204,17 +204,6 @@ export const firestoreService = {
         updatedAt: serverTimestamp()
       });
       return { id: docId, ...updateData };
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Delete document
-  delete: async (collectionName, docId) => {
-    try {
-      const docRef = doc(db, collectionName, docId);
-      await deleteDoc(docRef);
-      return { id: docId };
     } catch (error) {
       throw error;
     }

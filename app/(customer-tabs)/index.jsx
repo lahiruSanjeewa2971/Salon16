@@ -1,26 +1,28 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState, useCallback } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import {
   Dimensions,
   ScrollView,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
-import Animated, { useSharedValue, useAnimatedStyle, withDelay, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useFocusEffect } from "expo-router";
 
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
-import { useTheme } from "../../contexts/ThemeContext";
-import { useAuth } from "../../hooks/useAuth";
 import { useToastHelpers } from "../../components/ui/ToastSystem";
+import { useTheme } from "../../contexts/ThemeContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { createSecureFirestoreService } from "../../services/createSecureFirestoreService";
 
 // Section Components
-import HeroSection from "../../components/sections/HeroSection";
-import TodaysAvailability from "../../components/sections/TodaysAvailability";
-import FeaturedServices from "../../components/sections/FeaturedServices";
 import AllServicesGrid from "../../components/sections/AllServicesGrid";
-import WeekViewSection from "../../components/sections/WeekViewSection";
+import FeaturedServices from "../../components/sections/FeaturedServices";
+import HeroSection from "../../components/sections/HeroSection";
 import LocationSection from "../../components/sections/LocationSection";
+import TodaysAvailability from "../../components/sections/TodaysAvailability";
+import WeekViewSection from "../../components/sections/WeekViewSection";
 
 const { height } = Dimensions.get("window");
 
@@ -34,21 +36,106 @@ const SALON_COORDINATES = {
 
 export default function CustomerHomeScreen() {
   const theme = useTheme();
-  const auth = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
-  const { showInfo, showWarning, showSuccess } = useToastHelpers();
+  const { showInfo, showWarning, showSuccess, showError } = useToastHelpers();
 
   // Safe destructuring with fallbacks
   const colors = theme?.colors || {};
   const spacing = theme?.spacing || {};
   const borderRadius = theme?.borderRadius || {};
   const shadows = theme?.shadows || {};
-  const user = auth?.user || null;
 
   const [selectedService, setSelectedService] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapRegion, setMapRegion] = useState(SALON_COORDINATES);
   const [isToastShowing, setIsToastShowing] = useState(false);
+  const [services, setServices] = useState([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Create secure service with user context (memoized to prevent infinite re-renders)
+  const secureService = useMemo(() => createSecureFirestoreService(user), [user]);
+
+  // Fetch services from Firestore
+  const fetchServices = useCallback(async (isRefresh = false) => {
+    try {
+      // Check if user is authenticated before fetching services
+      if (!user || !user.uid) {
+        console.log('🔍 CustomerHome: User not authenticated, skipping service fetch');
+        setServices([]);
+        return;
+      }
+
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoadingServices(true);
+      }
+      
+      console.log('🔍 CustomerHome: Fetching active services...');
+      
+      const fetchedServices = await secureService.sharedOperations.getActiveServices();
+      console.log('📊 CustomerHome: Fetched services:', fetchedServices.length);
+      
+      // Transform services to match expected format
+      const transformedServices = fetchedServices.map(service => ({
+        id: service.id,
+        name: service.name || 'Service',
+        description: service.description || 'Professional service',
+        price: service.price || 0,
+        duration: service.duration || '30 min',
+        category: service.category || { id: 'unknown', name: 'General' },
+        color: service.color || colors.primary || '#6C2A52',
+        icon: service.icon || 'cut-outline',
+        image: service.image || 'https://via.placeholder.com/300x200',
+        popular: service.popular || false,
+        isActive: service.isActive || true,
+        createdAt: service.createdAt,
+        updatedAt: service.updatedAt,
+        publicId: service.publicId
+      }));
+      
+      setServices(transformedServices);
+      console.log('✅ CustomerHome: Services loaded successfully');
+      
+      // Show success message for refresh
+      if (isRefresh) {
+        showSuccess('Services Updated', 'Latest services have been loaded successfully.');
+      }
+    } catch (error) {
+      console.error('❌ CustomerHome: Error fetching services:', error);
+      showError('Error Loading Services', 'Failed to load services. Please try again.');
+      setServices([]);
+    } finally {
+      if (isRefresh) {
+        setIsRefreshing(false);
+      } else {
+        setIsLoadingServices(false);
+      }
+    }
+  }, [secureService, showError, showSuccess, colors.primary, user]);
+
+  // Fetch services on component mount
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  // Handle user authentication changes
+  useEffect(() => {
+    if (!user || !user.uid) {
+      console.log('🔍 CustomerHome: User logged out, clearing services');
+      setServices([]);
+      setIsLoadingServices(false);
+      setIsRefreshing(false);
+    }
+  }, [user]);
+
+  // Pull to refresh handler
+  const handleRefresh = useCallback(async () => {
+    console.log('🔄 CustomerHome: Pull to refresh triggered');
+    await fetchServices(true); // Pass true to indicate it's a refresh
+  }, [fetchServices]);
 
   // Create styles with theme values - safe approach
   const styles = React.useMemo(() => {
@@ -123,87 +210,10 @@ export default function CustomerHomeScreen() {
     transform: [{ rotate: `${rotateAnim.value}deg` }],
   }));
 
-  // Dummy data for services
-  const services = [
-    {
-      id: 1,
-      name: "Haircut & Style",
-      price: 45,
-      duration: "60 min",
-      category: "Hair",
-      icon: "cut-outline",
-      color: colors.primary || "#6C2A52",
-      description: "Professional haircut with styling",
-      image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
-      rating: 4.9,
-      popular: true,
-    },
-    {
-      id: 2,
-      name: "Hair Coloring",
-      price: 85,
-      duration: "120 min",
-      category: "Hair",
-      icon: "color-palette-outline",
-      color: colors.accent || "#D4AF37",
-      description: "Full hair coloring service",
-      image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=300&fit=crop",
-      rating: 4.8,
-      popular: false,
-    },
-    {
-      id: 3,
-      name: "Hair Styling",
-      price: 35,
-      duration: "45 min",
-      category: "Hair",
-      icon: "sparkles-outline",
-      color: colors.secondary || "#F5E0DC",
-      description: "Special occasion styling",
-      image: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=300&fit=crop",
-      rating: 4.7,
-      popular: true,
-    },
-    {
-      id: 4,
-      name: "Manicure",
-      price: 25,
-      duration: "30 min",
-      category: "Nails",
-      icon: "hand-left-outline",
-      color: colors.warning || "#FFA500",
-      description: "Professional nail care",
-      image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop",
-      rating: 4.6,
-      popular: false,
-    },
-    {
-      id: 5,
-      name: "Facial Treatment",
-      price: 65,
-      duration: "90 min",
-      category: "Skincare",
-      icon: "flower-outline",
-      color: colors.success || "#28A745",
-      description: "Rejuvenating facial treatment",
-      image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=300&fit=crop",
-      rating: 4.9,
-      popular: true,
-    },
-    {
-      id: 6,
-      name: "Eyebrow Shaping",
-      price: 20,
-      duration: "30 min",
-      category: "Beauty",
-      icon: "eye-outline",
-      color: colors.info || "#17A2B8",
-      description: "Professional eyebrow shaping",
-      image: "https://images.unsplash.com/photo-1594736797933-d0d0b0b0b0b0?w=400&h=300&fit=crop",
-      rating: 4.5,
-      popular: false,
-    },
-  ];
+  // Featured services for horizontal scroll (filtered from fetched services)
+  const featuredServices = useMemo(() => {
+    return services.filter(service => service.popular === true);
+  }, [services]);
 
   // Dummy data for today's availability
   const todaySlots = [
@@ -233,10 +243,6 @@ export default function CustomerHomeScreen() {
     { time: "19:30", available: false },
   ];
 
-  // Featured services for horizontal scroll
-  const featuredServices = Array.isArray(services)
-    ? services.filter((service) => service?.popular === true)
-    : [];
 
   // Event handlers
   const handleServicePress = (service) => {
@@ -343,6 +349,17 @@ export default function CustomerHomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="white"
+            colors={["white"]}
+            progressBackgroundColor="rgba(255, 255, 255, 0.2)"
+            title="Pull to refresh services"
+            titleColor="white"
+          />
+        }
       >
         {/* Hero Section */}
         <HeroSection
@@ -393,6 +410,7 @@ export default function CustomerHomeScreen() {
           shadows={shadows}
           onServicePress={handleServicePress}
           servicesAnim={servicesAnim}
+          isLoading={isLoadingServices}
         />
 
         {/* Week View Section */}
