@@ -9,6 +9,37 @@ import Animated, {
 
 import { ThemedText } from '../ThemedText';
 
+/**
+ * FeaturedServices Component - Dynamic Popular Services Display
+ * 
+ * PLAN FOR IMPLEMENTATION:
+ * 
+ * 1. Home Page Load: Fetch latest 50 bookings
+ *    - Query Firestore for most recent 50 bookings
+ *    - Include service.id reference in each booking
+ * 
+ * 2. Calculate: Count bookings by service.id
+ *    - Group bookings by service.id
+ *    - Count occurrences for each service
+ *    - Sort by booking count (descending)
+ * 
+ * 3. Display: Show top 3 popular services
+ *    - Take first 3 services from sorted list
+ *    - Display in horizontal scroll format
+ *    - Show service details (name, price, rating, image)
+ * 
+ * 4. Smart Caching Strategy:
+ *    - Cache results for 2-3 hours
+ *    - Refresh when new booking is created
+ *    - Refresh when cache is older than 4 hours
+ *    - Add manual refresh button for admin control
+ * 
+ * 5. Fallback: Display "No popular services" message
+ *    - When no bookings exist
+ *    - When insufficient data for calculation
+ *    - Beautiful empty state design
+ */
+
 const { width } = Dimensions.get('window');
 const SERVICE_CARD_WIDTH = (width - 48) / 2;
 
@@ -101,6 +132,33 @@ const FeaturedServices = ({
     );
   };
 
+  // Empty state component for when no featured services are available
+  const renderEmptyState = () => (
+    <Animated.View style={[styles.emptyStateContainer, servicesAnimatedStyle]}>
+      <View style={styles.emptyStateContent}>
+        <View style={styles.emptyStateIcon}>
+          <Ionicons 
+            name="star-outline" 
+            size={48} 
+            color="rgba(255, 255, 255, 0.6)" 
+          />
+        </View>
+        <ThemedText style={styles.emptyStateTitle}>
+          No Popular Services Yet
+        </ThemedText>
+        <ThemedText style={styles.emptyStateDescription}>
+          Popular services will appear here based on recent bookings. Check back soon!
+        </ThemedText>
+        <View style={styles.emptyStateBadge}>
+          <Ionicons name="trending-up" size={16} color="rgba(255, 255, 255, 0.8)" />
+          <ThemedText style={styles.emptyStateBadgeText}>
+            Based on Latest Bookings
+          </ThemedText>
+        </View>
+      </View>
+    </Animated.View>
+  );
+
   return (
     <Animated.View style={[styles.section, servicesAnimatedStyle]}>
       <View style={styles.sectionHeader}>
@@ -119,19 +177,25 @@ const FeaturedServices = ({
           />
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={featuredServices || []}
-        renderItem={renderServiceCard}
-        keyExtractor={(item, index) =>
-          item?.id?.toString() || index.toString()
-        }
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.horizontalScrollContent}
-        decelerationRate="fast"
-        snapToInterval={SERVICE_CARD_WIDTH + 16}
-        snapToAlignment="start"
-      />
+      
+      {/* Show services if available, otherwise show empty state */}
+      {featuredServices && featuredServices.length > 0 ? (
+        <FlatList
+          data={featuredServices}
+          renderItem={renderServiceCard}
+          keyExtractor={(item, index) =>
+            item?.id?.toString() || index.toString()
+          }
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScrollContent}
+          decelerationRate="fast"
+          snapToInterval={SERVICE_CARD_WIDTH + 16}
+          snapToAlignment="start"
+        />
+      ) : (
+        renderEmptyState()
+      )}
     </Animated.View>
   );
 };
@@ -256,6 +320,65 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
     fontWeight: "500",
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+  },
+  emptyStateContent: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: borderRadius.large,
+    padding: spacing.xl,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: "blur(10px)",
+  },
+  emptyStateIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "white",
+    textAlign: "center",
+    marginBottom: spacing.sm,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  emptyStateDescription: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+  },
+  emptyStateBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.small,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  emptyStateBadgeText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: "600",
+    marginLeft: spacing.xs,
   },
 });
 
