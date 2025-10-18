@@ -1,19 +1,23 @@
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
+  RefreshControl,
   ScrollView,
   StyleSheet,
-  RefreshControl,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ThemedText } from "../../components/ThemedText";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { useToastHelpers } from "../../components/ui/ToastSystem";
-import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { createSecureFirestoreService } from "../../services/createSecureFirestoreService";
 
 // Section Components
@@ -208,6 +212,16 @@ export default function CustomerHomeScreen() {
   // Animated styles
   const decorativeAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotateAnim.value}deg` }],
+  }));
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: buttonSlideAnim.value }],
+  }));
+
+  const fabPulseStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: 1 + Math.sin(Date.now() / 1000) * 0.05 },
+    ],
   }));
 
   // Featured services for horizontal scroll (filtered from fetched services)
@@ -443,6 +457,33 @@ export default function CustomerHomeScreen() {
           promotionsAnim={promotionsAnim}
         />
       </ScrollView>
+
+      {/* Floating Action Button - Login (Fixed to Screen) */}
+      {!user && (
+        <Animated.View style={[styles.fabContainer, buttonAnimatedStyle]}>
+          <Animated.View style={fabPulseStyle}>
+            <LinearGradient
+              colors={[
+                colors.primary || '#6C2A52',
+                colors.primaryDark || '#553C9A',
+                colors.accent || '#EC4899'
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.floatingActionButton}
+            >
+              <TouchableOpacity
+                style={styles.fabTouchable}
+                onPress={handleLoginPress}
+                activeOpacity={0.8}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <Ionicons name="log-in" size={24} color="white" />
+              </TouchableOpacity>
+            </LinearGradient>
+          </Animated.View>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -497,5 +538,33 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   content: {
     paddingBottom: 100, // Space for bottom tabs
     backgroundColor: 'transparent',
+  },
+  // Floating Action Button Styles
+  fabContainer: {
+    position: 'absolute',
+    bottom: 100, // Above bottom navigation
+    right: spacing.lg || 20,
+    zIndex: 1000,
+  },
+  floatingActionButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: colors.primary || '#6C2A52',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fabTouchable: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
 });

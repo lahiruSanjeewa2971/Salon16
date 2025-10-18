@@ -6,7 +6,13 @@ import { Calendar } from 'react-native-calendars';
 import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
 
-export default function BookingsCalendar({ animatedStyle, onDateSelect, bookings = [], selectedDate }) {
+export default function BookingsCalendar({ 
+  animatedStyle, 
+  onDateSelect, 
+  onDayLongPress,
+  bookings = [], 
+  selectedDate 
+}) {
   const theme = useTheme();
   
   // Add comprehensive safety checks for theme destructuring
@@ -46,9 +52,16 @@ export default function BookingsCalendar({ animatedStyle, onDateSelect, bookings
   }, [bookings, selectedDate, colors?.primary, colors?.success, today]);
 
   const handleDateSelect = (day) => {
-    // Only call the parent handler, don't manage local state
+    // Single click - keep current implementation
     if (onDateSelect) {
       onDateSelect(day.dateString);
+    }
+  };
+
+  const handleDayLongPress = (day) => {
+    // Long press - open bottom sheet for that day
+    if (onDayLongPress) {
+      onDayLongPress(day.dateString);
     }
   };
 
@@ -88,7 +101,7 @@ export default function BookingsCalendar({ animatedStyle, onDateSelect, bookings
         <View style={styles.calendarHeader}>
           <ThemedText style={styles.calendarTitle}>📅 Calendar View</ThemedText>
           <ThemedText style={styles.calendarSubtitle}>
-            Select a date to view appointments
+            Tap to select date • Long press to open booking sheet
           </ThemedText>
         </View>
         
@@ -96,6 +109,7 @@ export default function BookingsCalendar({ animatedStyle, onDateSelect, bookings
           <Calendar
             current={today}
             onDayPress={handleDateSelect}
+            onDayLongPress={handleDayLongPress}
             monthFormat={'MMMM yyyy'}
             hideExtraDays={true}
             firstDay={1}
