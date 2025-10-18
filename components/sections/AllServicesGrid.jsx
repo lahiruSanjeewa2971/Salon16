@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Extrapolate,
@@ -7,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../ThemedText';
+import ServiceBookingBottomSheet from '../ui/ServiceBookingBottomSheet';
 
 const { width } = Dimensions.get('window');
 const SERVICE_CARD_WIDTH = (width - 48) / 2;
@@ -31,6 +33,22 @@ const AllServicesGrid = ({
   }));
 
   const styles = createStyles(colors, spacing, borderRadius, shadows);
+
+  // Bottom sheet state
+  const [selectedService, setSelectedService] = useState(null);
+  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+
+  // Handle service booking
+  const handleBookNow = (service) => {
+    setSelectedService(service);
+    setIsBottomSheetVisible(true);
+  };
+
+  // Handle bottom sheet close
+  const handleCloseBottomSheet = () => {
+    setIsBottomSheetVisible(false);
+    setSelectedService(null);
+  };
 
   // Loading state component
   const renderLoadingState = () => (
@@ -127,11 +145,7 @@ const AllServicesGrid = ({
                 },
               ]}
             >
-              <TouchableOpacity
-                style={styles.serviceCardTouchable}
-                onPress={() => onServicePress(service)}
-                activeOpacity={0.8}
-              >
+              <View style={styles.serviceCardTouchable}>
                 <Image
                   source={{ uri: serviceImage }}
                   style={styles.serviceImage}
@@ -179,18 +193,29 @@ const AllServicesGrid = ({
                     <ThemedText
                       style={styles.servicePrice}
                     >{`$${servicePrice}`}</ThemedText>
-                    <View style={styles.bookButton}>
+                    <TouchableOpacity 
+                      style={styles.bookButton}
+                      onPress={() => handleBookNow(service)}
+                      activeOpacity={0.8}
+                    >
                       <ThemedText style={styles.bookButtonText}>
                         Book Now
                       </ThemedText>
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </View>
             </Animated.View>
           );
         })}
       </View>
+      
+      {/* Service Booking Bottom Sheet */}
+      <ServiceBookingBottomSheet
+        visible={isBottomSheetVisible}
+        service={selectedService}
+        onClose={handleCloseBottomSheet}
+      />
     </Animated.View>
   );
 };
