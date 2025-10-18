@@ -15,9 +15,8 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
-  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -44,22 +43,19 @@ export default function CustomerDetailBottomSheet({
   const backdropOpacity = useSharedValue(0);
   const sheetOpacity = useSharedValue(0);
 
-  // Refs for gesture handling
-  const gestureRef = useRef(null);
-
-  // Gesture handler for drag to dismiss
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, context) => {
-      context.startY = translateY.value;
-    },
-    onActive: (event, context) => {
-      const newTranslateY = context.startY + event.translationY;
+  // Modern gesture handler for drag to dismiss
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      // Store the starting position
+    })
+    .onUpdate((event) => {
+      const newTranslateY = translateY.value + event.translationY;
       // Only allow dragging down
       if (newTranslateY >= 0) {
         translateY.value = newTranslateY;
       }
-    },
-    onEnd: (event) => {
+    })
+    .onEnd((event) => {
       const shouldDismiss = event.translationY > 100 || event.velocityY > 500;
       
       if (shouldDismiss) {
@@ -74,8 +70,7 @@ export default function CustomerDetailBottomSheet({
           stiffness: 300,
         });
       }
-    },
-  });
+    });
 
   useEffect(() => {
     if (visible) {
@@ -381,7 +376,7 @@ export default function CustomerDetailBottomSheet({
         </Animated.View>
 
         {/* Bottom Sheet */}
-        <PanGestureHandler ref={gestureRef} onGestureEvent={gestureHandler}>
+        <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.sheetContainer, sheetAnimatedStyle]}>
             <SafeAreaView style={{ flex: 1 }}>
               {/* Handle Bar */}
@@ -544,7 +539,7 @@ export default function CustomerDetailBottomSheet({
               </ScrollView>
             </SafeAreaView>
           </Animated.View>
-        </PanGestureHandler>
+        </GestureDetector>
       </View>
     </Modal>
   );
