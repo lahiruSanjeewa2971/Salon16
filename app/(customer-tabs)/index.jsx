@@ -18,7 +18,7 @@ import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { useToastHelpers } from "../../components/ui/ToastSystem";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { createSecureFirestoreService } from "../../services/createSecureFirestoreService";
+import { serviceService } from "../../services/firebaseService";
 
 // Section Components
 import AllServicesGrid from "../../components/sections/AllServicesGrid";
@@ -58,29 +58,17 @@ export default function CustomerHomeScreen() {
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Create secure service with user context (memoized to prevent infinite re-renders)
-  const secureService = useMemo(() => createSecureFirestoreService(user), [user]);
 
   // Fetch services from Firestore
   const fetchServices = useCallback(async (isRefresh = false) => {
     try {
-      // Check if user is authenticated before fetching services
-      if (!user || !user.uid) {
-        console.log('🔍 CustomerHome: User not authenticated, skipping service fetch');
-        setServices([]);
-        return;
-      }
-
       if (isRefresh) {
         setIsRefreshing(true);
       } else {
         setIsLoadingServices(true);
       }
       
-      console.log('🔍 CustomerHome: Fetching active services...');
-      
-      const fetchedServices = await secureService.sharedOperations.getActiveServices();
-      console.log('📊 CustomerHome: Fetched services:', fetchedServices.length);
+      const fetchedServices = await serviceService.getActiveServices();
       
       // Transform services to match expected format
       const transformedServices = fetchedServices.map(service => ({
@@ -101,7 +89,6 @@ export default function CustomerHomeScreen() {
       }));
       
       setServices(transformedServices);
-      console.log('✅ CustomerHome: Services loaded successfully');
       
       // Show success message for refresh
       if (isRefresh) {
@@ -118,7 +105,7 @@ export default function CustomerHomeScreen() {
         setIsLoadingServices(false);
       }
     }
-  }, [secureService, showError, showSuccess, colors.primary, user]);
+  }, [showError, showSuccess, colors.primary]);
 
   // Fetch services on component mount
   useEffect(() => {
@@ -510,6 +497,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     borderRadius: 100,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     zIndex: 1,
+    pointerEvents: 'none', // Prevent touch event blocking
   },
   decorativeCircle2: {
     position: 'absolute',
@@ -520,6 +508,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     borderRadius: 150,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     zIndex: 1,
+    pointerEvents: 'none', // Prevent touch event blocking
   },
   decorativeCircle3: {
     position: 'absolute',
@@ -530,6 +519,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     borderRadius: 80,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     zIndex: 1,
+    pointerEvents: 'none', // Prevent touch event blocking
   },
   scrollView: {
     flex: 1,

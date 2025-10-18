@@ -28,17 +28,17 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Services collection - Admin owns all operations, customers can only read
+    // Services collection - Public read access, admin-only write operations
     match /services/{serviceId} {
-      allow read: if isAuthenticated();
+      allow read: if true; // Allow public read access for guests and authenticated users
       allow write: if isAdmin();
       allow create: if isAdmin();
       allow delete: if isAdmin();
     }
     
-    // Categories collection - Admin owns all operations, customers can only read
+    // Categories collection - Public read access, admin-only write operations
     match /categories/{categoryId} {
-      allow read: if isAuthenticated();
+      allow read: if true; // Allow public read access for guests and authenticated users
       allow write: if isAdmin();
       allow create: if isAdmin();
       allow delete: if isAdmin();

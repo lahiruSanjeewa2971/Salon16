@@ -40,8 +40,10 @@ const AllServicesGrid = ({
 
   // Handle service booking
   const handleBookNow = (service) => {
+    console.log('🔘 Book Now button pressed for service:', service.name);
     setSelectedService(service);
     setIsBottomSheetVisible(true);
+    console.log('📱 Bottom sheet should be visible now');
   };
 
   // Handle bottom sheet close
@@ -195,8 +197,12 @@ const AllServicesGrid = ({
                     >{`$${servicePrice}`}</ThemedText>
                     <TouchableOpacity 
                       style={styles.bookButton}
-                      onPress={() => handleBookNow(service)}
+                      onPress={() => {
+                        console.log('🔘 TouchableOpacity pressed for:', service.name);
+                        handleBookNow(service);
+                      }}
                       activeOpacity={0.8}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                       <ThemedText style={styles.bookButtonText}>
                         Book Now
