@@ -1,12 +1,7 @@
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+  useAnimatedStyle
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../ThemedText';
@@ -27,21 +22,9 @@ const HeroSection = ({
   rotateAnim,
   buttonSlideAnim,
 }) => {
-  // Login button press animation
-  const loginPressAnim = useSharedValue(1);
-  const loginGlowAnim = useSharedValue(0);
-
   const handleLoginPress = () => {
-    // Press animation
-    loginPressAnim.value = withSpring(0.95, { damping: 15, stiffness: 300 });
-    loginGlowAnim.value = withTiming(1, { duration: 150 });
-    
-    // Reset after animation
-    setTimeout(() => {
-      loginPressAnim.value = withSpring(1, { damping: 15, stiffness: 300 });
-      loginGlowAnim.value = withTiming(0, { duration: 300 });
-    }, 150);
-    
+    console.log("🔐 FAB Login button pressed - HeroSection");
+    console.log("✅ Floating Action Button is working correctly!");
     onLoginPress();
   };
 
@@ -64,49 +47,12 @@ const HeroSection = ({
     transform: [{ translateY: buttonSlideAnim.value }],
   }));
 
-  const loginButtonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: loginPressAnim.value }],
-  }));
-
-  const loginGlowAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: loginGlowAnim.value,
-  }));
-
   const styles = createStyles(colors, spacing, borderRadius, shadows);
 
   return (
     <>
       {/* Hero Header */}
       <Animated.View style={[styles.heroHeader, headerAnimatedStyle]}>
-        {/* Floating Login Button - Only show for guests */}
-        {!user && (
-          <Animated.View style={[styles.floatingLoginContainer, buttonAnimatedStyle]}>
-            <Animated.View style={[styles.floatingLoginButton, loginButtonAnimatedStyle]}>
-              <TouchableOpacity
-                style={styles.loginButtonTouchable}
-                onPress={handleLoginPress}
-                activeOpacity={1}
-              >
-                <LinearGradient
-                  colors={[
-                    'rgba(255, 255, 255, 0.2)',
-                    'rgba(255, 255, 255, 0.1)',
-                    'rgba(255, 255, 255, 0.15)'
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.loginButtonContent}
-                >
-                  <View style={styles.loginIconContainer}>
-                    <Ionicons name="log-in-outline" size={18} color="white" />
-                  </View>
-                  <ThemedText style={styles.floatingLoginText}>Login</ThemedText>
-                </LinearGradient>
-                <Animated.View style={[styles.loginButtonGlow, loginGlowAnimatedStyle]} />
-              </TouchableOpacity>
-            </Animated.View>
-          </Animated.View>
-        )}
 
         <View style={styles.heroContent}>
           <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
@@ -132,6 +78,7 @@ const HeroSection = ({
           </Animated.View>
         </View>
       </Animated.View>
+
     </>
   );
 };
@@ -143,69 +90,6 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     marginBottom: spacing.xl,
     justifyContent: "center",
     alignItems: "center",
-  },
-  floatingLoginContainer: {
-    position: "absolute",
-    top: spacing.xl || 20,
-    right: spacing.lg || 20,
-    zIndex: 10,
-  },
-  floatingLoginButton: {
-    position: "relative",
-    overflow: "hidden",
-    borderRadius: borderRadius.large || 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  loginButtonTouchable: {
-    flex: 1,
-  },
-  loginButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg || 20,
-    paddingVertical: spacing.md || 12,
-    borderRadius: borderRadius.large || 25,
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.4)",
-    backdropFilter: "blur(20px)",
-    minWidth: 100,
-    justifyContent: "center",
-  },
-  loginIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: spacing.sm || 8,
-  },
-  floatingLoginText: {
-    fontSize: 16,
-    color: "white",
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  loginButtonGlow: {
-    position: "absolute",
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    borderRadius: borderRadius.large || 27,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    shadowColor: "#fff",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 10,
   },
   logoContainer: {
     alignItems: "center",

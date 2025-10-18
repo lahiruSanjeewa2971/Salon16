@@ -1,23 +1,23 @@
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
-import Animated, { 
-  useSharedValue, 
-  withSpring, 
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import {
+  useAnimatedStyle,
+  useSharedValue,
   withDelay,
-  useAnimatedStyle 
+  withSpring
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '../../components/ThemedText';
-import { useTheme } from '../../contexts/ThemeContext';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
+import ServiceBookingBottomSheet from '../../components/ui/ServiceBookingBottomSheet';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // Import new booking components
-import BookingsHeader from '../../components/sections/admin/bookings/BookingsHeader';
 import BookingsCalendar from '../../components/sections/admin/bookings/BookingsCalendar';
+import BookingsHeader from '../../components/sections/admin/bookings/BookingsHeader';
 import TodaysBookings from '../../components/sections/admin/bookings/TodaysBookings';
 
 export default function AdminBookingsScreen() {
@@ -31,6 +31,8 @@ export default function AdminBookingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+  const [bottomSheetDate, setBottomSheetDate] = useState(null);
 
   // Mock data for bookings
   const today = new Date().toISOString().split('T')[0];
@@ -161,6 +163,17 @@ export default function AdminBookingsScreen() {
     // showSuccess(`Selected date: ${date}`);
   }, []);
 
+  const handleDayLongPress = useCallback((date) => {
+    setBottomSheetDate(date);
+    setIsBottomSheetVisible(true);
+    // showSuccess(`Opening booking sheet for ${date}`);
+  }, [showSuccess]);
+
+  const handleCloseBottomSheet = useCallback(() => {
+    setIsBottomSheetVisible(false);
+    setBottomSheetDate(null);
+  }, []);
+
   const handleBookingAction = (bookingId, action) => {
     showSuccess(`${action} booking ${bookingId}`);
   };
@@ -231,6 +244,7 @@ export default function AdminBookingsScreen() {
             <BookingsCalendar 
               animatedStyle={contentAnimatedStyle}
               onDateSelect={handleDateSelect}
+              onDayLongPress={handleDayLongPress}
               bookings={mockBookings}
               selectedDate={selectedDate}
             />
@@ -244,6 +258,14 @@ export default function AdminBookingsScreen() {
             />
           </ScrollView>
         </View>
+
+        {/* Service Booking Bottom Sheet */}
+        <ServiceBookingBottomSheet
+          visible={isBottomSheetVisible}
+          selectedDate={bottomSheetDate}
+          mode="day"
+          onClose={handleCloseBottomSheet}
+        />
       </LinearGradient>
     </SafeAreaView>
   );

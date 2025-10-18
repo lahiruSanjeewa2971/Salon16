@@ -28,6 +28,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function ServiceBookingBottomSheet({
   visible,
   service,
+  selectedDate,
+  mode = 'service', // 'service' or 'day'
   onClose,
 }) {
   const theme = useTheme();
@@ -179,7 +181,7 @@ export default function ServiceBookingBottomSheet({
       marginBottom: spacing.lg || 16,
     },
     serviceName: {
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
@@ -202,7 +204,7 @@ export default function ServiceBookingBottomSheet({
     },
   };
 
-  if (!service) return null;
+  if (!service && mode === 'service') return null;
 
   return (
     <Modal
@@ -273,14 +275,25 @@ export default function ServiceBookingBottomSheet({
                   {/* Service Header */}
                   <View style={styles.serviceHeader}>
                     <ThemedText style={styles.serviceName}>
-                      {service.name || 'Service'}
+                      {mode === 'service' 
+                        ? (service?.name || 'Service')
+                        : `${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          }) : 'Selected Date'}`
+                      }
                     </ThemedText>
                   </View>
 
                   {/* Placeholder Content */}
                   <View style={styles.placeholderContent}>
                     <ThemedText style={styles.placeholderText}>
-                      Service booking functionality will be implemented here.
+                      {mode === 'service' 
+                        ? `Service booking functionality will be implemented here.`
+                        : `Day booking functionality will be implemented here.`
+                      }
                     </ThemedText>
                   </View>
                 </View>
