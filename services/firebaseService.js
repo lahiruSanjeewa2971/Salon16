@@ -801,3 +801,205 @@ const getCustomerStatus = (bookings) => {
   if (daysSinceLastVisit <= 90) return 'active';
   return 'inactive';
 };
+
+// Salon Hours Service
+export const salonHoursService = {
+  // Get salon hours for a specific date
+  async getSalonHours(date) {
+    try {
+      const docRef = doc(db, 'salonHours', date);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+      }
+      
+      // Return default hours if no specific hours set
+      return {
+        id: date,
+        date: date,
+        openTime: '08:30',
+        closeTime: '21:00',
+        isClosed: false,
+        disableBookings: false,
+        isHoliday: false,
+        notes: '',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } catch (error) {
+      console.error('Error getting salon hours:', error);
+      throw error;
+    }
+  },
+
+  // Save salon hours for a specific date
+  async saveSalonHours(hoursData) {
+    try {
+      const { date, ...data } = hoursData;
+      const docRef = doc(db, 'salonHours', date);
+      
+      const salonHoursData = {
+        ...data,
+        date: date,
+        updatedAt: new Date(),
+        createdAt: data.createdAt || new Date()
+      };
+      
+      await setDoc(docRef, salonHoursData, { merge: true });
+      
+      console.log('Salon hours saved successfully:', salonHoursData);
+      return salonHoursData;
+    } catch (error) {
+      console.error('Error saving salon hours:', error);
+      throw error;
+    }
+  },
+
+  // Get salon hours for a date range
+  async getSalonHoursRange(startDate, endDate) {
+    try {
+      const q = query(
+        collection(db, 'salonHours'),
+        where('date', '>=', startDate),
+        where('date', '<=', endDate),
+        orderBy('date', 'asc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const hoursData = [];
+      
+      querySnapshot.forEach((doc) => {
+        hoursData.push({ id: doc.id, ...doc.data() });
+      });
+      
+      return hoursData;
+    } catch (error) {
+      console.error('Error getting salon hours range:', error);
+      throw error;
+    }
+  },
+
+  // Get default weekly schedule
+  async getDefaultSchedule() {
+    try {
+      const docRef = doc(db, 'salonHours', 'default');
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+      
+      // Return default weekly schedule
+      return {
+        monday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+        tuesday: { openTime: '08:30', closeTime: '21:00', isClosed: true }, // Weekly closure
+        wednesday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+        thursday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+        friday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+        saturday: { openTime: '09:00', closeTime: '20:00', isClosed: false },
+        sunday: { openTime: '10:00', closeTime: '18:00', isClosed: false }
+      };
+    } catch (error) {
+      console.error('Error getting default schedule:', error);
+      throw error;
+    }
+  },
+
+  // Update default weekly schedule
+  async updateDefaultSchedule(scheduleData) {
+    try {
+      const docRef = doc(db, 'salonHours', 'default');
+      await setDoc(docRef, {
+        ...scheduleData,
+        updatedAt: new Date()
+      }, { merge: true });
+      
+      console.log('Default schedule updated successfully');
+      return scheduleData;
+    } catch (error) {
+      console.error('Error updating default schedule:', error);
+      throw error;
+    }
+  },
+
+  // Check if salon is open on a specific date and time
+  async isSalonOpen(date, time = null) {
+    try {
+      const hoursData = await this.getSalonHours(date);
+      
+      // Check if salon is closed
+      if (hoursData.isClosed || hoursData.isHoliday) {
+        return { isOpen: false, reason: 'Salon is closed' };
+      }
+      
+      // Check if it's Tuesday (weekly closure)
+      const dayOfWeek = new Date(date).getDay();
+      if (dayOfWeek === 2) { // Tuesday
+        return { isOpen: false, reason: 'Tuesday is our weekly closure day' };
+      }
+      
+      // If no specific time provided, just check if salon is open
+      if (!time) {
+        return { isOpen: true, reason: 'Salon is open' };
+      }
+      
+      // Check if time is within operating hours
+      const openTime = hoursData.openTime;
+      const closeTime = hoursData.closeTime;
+      
+      if (time >= openTime && time <= closeTime) {
+        return { isOpen: true, reason: 'Salon is open' };
+      } else {
+        return { isOpen: false, reason: `Salon is closed. Hours: ${openTime} - ${closeTime}` };
+      }
+    } catch (error) {
+      console.error('Error checking salon hours:', error);
+      throw error;
+    }
+  },
+
+  // Get upcoming closures
+  async getUpcomingClosures(days = 30) {
+    try {
+      const startDate = new Date().toISOString().split('T')[0];
+      const endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      const hoursData = await this.getSalonHoursRange(startDate, endDate);
+      const closures = [];
+      
+      hoursData.forEach(hours => {
+        if (hours.isClosed || hours.isHoliday) {
+          closures.push({
+            date: hours.date,
+            reason: hours.isHoliday ? 'Holiday' : 'Salon Closed',
+            notes: hours.notes
+          });
+        }
+      });
+      
+      // Add Tuesdays as closures
+      const currentDate = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      
+      while (currentDate <= endDateObj) {
+        if (currentDate.getDay() === 2) { // Tuesday
+          const dateStr = currentDate.toISOString().split('T')[0];
+          if (!closures.find(c => c.date === dateStr)) {
+            closures.push({
+              date: dateStr,
+              reason: 'Weekly Closure',
+              notes: 'Tuesday is our weekly closure day'
+            });
+          }
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      return closures.sort((a, b) => new Date(a.date) - new Date(b.date));
+    } catch (error) {
+      console.error('Error getting upcoming closures:', error);
+      throw error;
+    }
+  }
+};
