@@ -51,11 +51,19 @@ service cloud.firestore {
       allow create: if isCustomer() && request.auth.uid == request.resource.data.customerId;
     }
     
-    // Reviews collection - Customers can access their own, admin can access all
-    match /reviews/{reviewId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(resource.data.userId) || isAdmin();
-      allow create: if isCustomer() && request.auth.uid == request.resource.data.userId;
-    }
-  }
-}
+           // Reviews collection - Customers can access their own, admin can access all
+           match /reviews/{reviewId} {
+             allow read: if isAuthenticated();
+             allow write: if isOwner(resource.data.userId) || isAdmin();
+             allow create: if isCustomer() && request.auth.uid == request.resource.data.userId;
+           }
+
+           // Salon Hours collection - Admin only access
+           match /salonHours/{hoursId} {
+             allow read: if isAdmin();
+             allow write: if isAdmin();
+             allow create: if isAdmin();
+             allow delete: if isAdmin();
+           }
+         }
+       }

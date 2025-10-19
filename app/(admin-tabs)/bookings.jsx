@@ -14,6 +14,7 @@ import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import ServiceBookingBottomSheet from '../../components/ui/ServiceBookingBottomSheet';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
+import { salonHoursService } from '../../services/firebaseService';
 
 // Import new booking components
 import BookingsCalendar from '../../components/sections/admin/bookings/BookingsCalendar';
@@ -33,6 +34,7 @@ export default function AdminBookingsScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
   const [bottomSheetDate, setBottomSheetDate] = useState(null);
+  const [salonHoursData, setSalonHoursData] = useState(null);
 
   // Mock data for bookings
   const today = new Date().toISOString().split('T')[0];
@@ -165,6 +167,8 @@ export default function AdminBookingsScreen() {
 
   const handleDayLongPress = useCallback((date) => {
     setBottomSheetDate(date);
+    // Load existing salon hours for this date
+    loadSalonHours(date);
     setIsBottomSheetVisible(true);
     // showSuccess(`Opening booking sheet for ${date}`);
   }, [showSuccess]);
@@ -172,7 +176,40 @@ export default function AdminBookingsScreen() {
   const handleCloseBottomSheet = useCallback(() => {
     setIsBottomSheetVisible(false);
     setBottomSheetDate(null);
+    setSalonHoursData(null);
   }, []);
+
+  // Load salon hours for a specific date
+  const loadSalonHours = useCallback(async (date) => {
+    try {
+      const hoursData = await salonHoursService.getSalonHours(date);
+      setSalonHoursData(hoursData);
+    } catch (error) {
+      console.error('Error loading salon hours:', error);
+      showError('Failed to load salon hours');
+      // Set default hours as fallback
+      setSalonHoursData({
+        openTime: '08:30',
+        closeTime: '21:00',
+        isClosed: false,
+        disableBookings: false,
+        isHoliday: false,
+        notes: ''
+      });
+    }
+  }, [showError]);
+
+  // Save salon hours
+  const handleSaveSalonHours = useCallback(async (hoursData) => {
+    try {
+      await salonHoursService.saveSalonHours(hoursData);
+      showSuccess('Salon hours saved successfully!');
+      setSalonHoursData(hoursData);
+    } catch (error) {
+      console.error('Error saving salon hours:', error);
+      showError('Failed to save salon hours');
+    }
+  }, [showSuccess, showError]);
 
   const handleBookingAction = (bookingId, action) => {
     showSuccess(`${action} booking ${bookingId}`);
@@ -263,8 +300,10 @@ export default function AdminBookingsScreen() {
         <ServiceBookingBottomSheet
           visible={isBottomSheetVisible}
           selectedDate={bottomSheetDate}
-          mode="day"
+          mode="salon-hours"
+          salonHours={salonHoursData}
           onClose={handleCloseBottomSheet}
+          onSave={handleSaveSalonHours}
         />
       </LinearGradient>
     </SafeAreaView>
