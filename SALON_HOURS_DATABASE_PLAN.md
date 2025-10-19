@@ -270,3 +270,434 @@ When customer attempts to book:
 8. **Reliability**: Robust error handling and fallbacks
 
 This comprehensive plan ensures that salon hours management becomes a seamless, efficient, and customer-friendly system that supports both regular operations and exceptional circumstances.
+
+---
+
+## 🚀 **Step-by-Step Implementation Guide**
+
+### **Phase 1: Database Setup & Initialization**
+
+#### **Step 1.1: Firebase Collections Setup**
+**Objective**: Create the foundational database structure for salon hours management.
+
+**Actions Required**:
+1. **Create `salonHours` Collection**:
+   - Document ID format: `YYYY-MM-DD` (e.g., "2024-01-15")
+   - Each document represents a specific day's salon hours
+   - Fields: `date`, `dayOfWeek`, `openTime`, `closeTime`, `isClosed`, `disableBookings`, `isHoliday`, `isTuesdayOverride`, `notes`, `createdAt`, `updatedAt`
+
+2. **Create `salonSettings` Collection**:
+   - Document ID: "default"
+   - Contains the weekly schedule template and global settings
+   - Fields: `weeklySchedule`, `defaultTuesdayClosed`, `holidayPolicy`, `createdAt`, `updatedAt`
+
+**Implementation Details**:
+- Use Firestore's automatic document creation when first accessed
+- Implement fallback logic for missing documents
+- Set up proper indexing for date-based queries
+
+#### **Step 1.2: Service Layer Implementation**
+**Objective**: Create robust service functions for database operations.
+
+**Core Functions to Implement**:
+1. **Salon Hours Service**:
+   - `getSalonHours(date)` - Retrieve specific day hours with fallback logic
+   - `saveSalonHours(hoursData)` - Save day-specific hours with validation
+   - `getSalonHoursRange(startDate, endDate)` - Bulk retrieval for date ranges
+   - `isSalonOpen(date, time)` - Comprehensive availability checking
+
+2. **Salon Settings Service**:
+   - `getSalonSettings()` - Retrieve global settings
+   - `updateSalonSettings(settingsData)` - Update global configuration
+   - `initializeDefaultSettings()` - Set up initial configuration
+
+**Implementation Strategy**:
+- Implement error handling for all database operations
+- Add logging for debugging and monitoring
+- Use proper data validation before saving
+- Implement caching for frequently accessed data
+
+#### **Step 1.3: Default Data Initialization**
+**Objective**: Ensure the system has proper default values for all scenarios.
+
+**Initialization Process**:
+1. **Default Weekly Schedule**:
+   - Monday-Friday: 8:30 AM - 9:00 PM (open)
+   - Tuesday: 8:30 AM - 9:00 PM (closed by default)
+   - Saturday: 9:00 AM - 8:00 PM (open)
+   - Sunday: 10:00 AM - 6:00 PM (open)
+
+2. **Global Settings**:
+   - `defaultTuesdayClosed: true` - Tuesday closure policy
+   - `holidayPolicy: 'closed'` - Default holiday behavior
+   - `createdAt` and `updatedAt` timestamps
+
+**Implementation Approach**:
+- Check if default settings exist on app startup
+- Create default settings if none exist
+- Provide admin interface to modify defaults
+- Ensure backward compatibility with existing data
+
+### **Phase 2: Admin Interface Integration**
+
+#### **Step 2.1: Bottom Sheet Enhancement**
+**Objective**: Integrate the database operations with the existing salon hours bottom sheet.
+
+**Integration Points**:
+1. **Data Loading**:
+   - Load existing salon hours when bottom sheet opens
+   - Apply day-specific logic (Tuesday closure, holidays)
+   - Display current status with appropriate visual indicators
+
+2. **Data Saving**:
+   - Validate input data before saving
+   - Handle Tuesday override scenarios
+   - Provide user feedback for successful saves
+   - Implement error handling for failed operations
+
+**Implementation Details**:
+- Use the existing `ServiceBookingBottomSheet` component
+- Integrate `salonHoursService` and `salonSettingsService`
+- Add loading states and error handling
+- Implement real-time validation feedback
+
+#### **Step 2.2: Calendar Integration**
+**Objective**: Provide visual representation of salon status in the admin calendar.
+
+**Calendar Features**:
+1. **Visual Indicators**:
+   - Color-coded days (green=open, red=closed, orange=restricted)
+   - Holiday markers and special closure indicators
+   - Tuesday closure highlighting
+
+2. **Quick Actions**:
+   - One-click closure/opening
+   - Bulk operations for multiple days
+   - Template application for holidays
+
+**Implementation Strategy**:
+- Enhance existing calendar component
+- Add status indicators and quick action buttons
+- Implement bulk operation interfaces
+- Provide confirmation dialogs for major changes
+
+#### **Step 2.3: Settings Management**
+**Objective**: Allow admins to manage global salon settings.
+
+**Settings Interface**:
+1. **Weekly Schedule Editor**:
+   - Modify default hours for each day
+   - Set default closure days
+   - Configure weekend hours
+
+2. **Holiday Management**:
+   - Add/remove holiday dates
+   - Set holiday policies (closed, limited, normal)
+   - Bulk holiday operations
+
+**Implementation Approach**:
+- Create dedicated settings screen
+- Use form validation for all inputs
+- Provide preview of changes before saving
+- Implement undo/redo functionality
+
+### **Phase 3: Customer Booking Integration**
+
+#### **Step 3.1: Availability Checking**
+**Objective**: Implement real-time availability checking for customer bookings.
+
+**Checking Logic**:
+1. **Date Validation**:
+   - Check if salon is open on requested date
+   - Verify operating hours for the day
+   - Handle special closures and holidays
+
+2. **Time Slot Generation**:
+   - Generate available time slots based on operating hours
+   - Consider existing bookings and service durations
+   - Provide alternative suggestions for unavailable times
+
+**Implementation Details**:
+- Create `validateBookingTime(date, time)` function
+- Implement `getAvailableSlots(date)` function
+- Add caching for performance optimization
+- Provide clear error messages for unavailable times
+
+#### **Step 3.2: Booking Prevention**
+**Objective**: Prevent customers from booking during closed periods.
+
+**Prevention Mechanisms**:
+1. **Frontend Validation**:
+   - Disable unavailable dates in date picker
+   - Gray out unavailable time slots
+   - Show clear messaging for closures
+
+2. **Backend Validation**:
+   - Server-side validation before booking confirmation
+   - Real-time checks during booking process
+   - Automatic rescheduling suggestions
+
+**Implementation Strategy**:
+- Integrate availability checking into booking flow
+- Add visual indicators for unavailable periods
+- Implement fallback suggestions
+- Provide clear communication about closures
+
+#### **Step 3.3: Customer Notifications**
+**Objective**: Keep customers informed about salon status and changes.
+
+**Notification Types**:
+1. **Proactive Notifications**:
+   - Advance notice of upcoming closures
+   - Holiday schedule announcements
+   - Special event notifications
+
+2. **Reactive Notifications**:
+   - Emergency closure alerts
+   - Booking cancellation notifications
+   - Rescheduling suggestions
+
+**Implementation Approach**:
+- Integrate with existing notification system
+- Use push notifications for urgent updates
+- Provide in-app notification center
+- Implement email notifications for major changes
+
+### **Phase 4: Advanced Features & Optimization**
+
+#### **Step 4.1: Performance Optimization**
+**Objective**: Ensure fast and efficient salon hours management.
+
+**Optimization Strategies**:
+1. **Caching Implementation**:
+   - Cache frequently accessed salon hours
+   - Implement cache invalidation on updates
+   - Use offline caching for critical data
+
+2. **Query Optimization**:
+   - Index database fields for fast queries
+   - Implement pagination for large date ranges
+   - Use batch operations for bulk updates
+
+**Implementation Details**:
+- Implement Redis or in-memory caching
+- Add database indexes for date and status fields
+- Use Firestore batch writes for multiple updates
+- Implement lazy loading for calendar views
+
+#### **Step 4.2: Analytics & Reporting**
+**Objective**: Provide insights into salon operations and customer behavior.
+
+**Analytics Features**:
+1. **Operational Metrics**:
+   - Salon utilization rates
+   - Closure impact analysis
+   - Peak hours identification
+
+2. **Customer Behavior**:
+   - Booking pattern analysis
+   - Popular time slot identification
+   - Customer preference tracking
+
+**Implementation Strategy**:
+- Integrate with existing analytics system
+- Create dashboard for operational insights
+- Implement automated reporting
+- Provide data export functionality
+
+#### **Step 4.3: Mobile App Integration**
+**Objective**: Ensure seamless experience across all platforms.
+
+**Mobile Features**:
+1. **Offline Support**:
+   - Cache salon hours for offline viewing
+   - Sync changes when connection restored
+   - Handle offline booking scenarios
+
+2. **Push Notifications**:
+   - Real-time closure notifications
+   - Booking reminders and updates
+   - Holiday and special event alerts
+
+**Implementation Approach**:
+- Use React Native's offline capabilities
+- Implement background sync
+- Add push notification handling
+- Ensure consistent UI across platforms
+
+### **Phase 5: Testing & Quality Assurance**
+
+#### **Step 5.1: Unit Testing**
+**Objective**: Ensure all service functions work correctly.
+
+**Testing Coverage**:
+1. **Service Functions**:
+   - Test all CRUD operations
+   - Validate business logic implementation
+   - Test error handling scenarios
+
+2. **Edge Cases**:
+   - Test Tuesday override scenarios
+   - Validate holiday handling
+   - Test concurrent update scenarios
+
+**Implementation Strategy**:
+- Use Jest for unit testing
+- Mock Firebase services for testing
+- Implement comprehensive test coverage
+- Add integration tests for critical flows
+
+#### **Step 5.2: Integration Testing**
+**Objective**: Ensure all components work together seamlessly.
+
+**Integration Scenarios**:
+1. **Admin Workflows**:
+   - Test salon hours management flow
+   - Validate settings update process
+   - Test bulk operations
+
+2. **Customer Workflows**:
+   - Test booking availability checking
+   - Validate closure handling
+   - Test notification delivery
+
+**Implementation Approach**:
+- Use Cypress for end-to-end testing
+- Test real Firebase integration
+- Validate cross-platform compatibility
+- Implement automated testing pipeline
+
+#### **Step 5.3: Performance Testing**
+**Objective**: Ensure system performs well under load.
+
+**Performance Metrics**:
+1. **Response Times**:
+   - Database query performance
+   - API response times
+   - UI rendering performance
+
+2. **Load Testing**:
+   - Concurrent user scenarios
+   - High-volume data operations
+   - Stress testing edge cases
+
+**Implementation Strategy**:
+- Use performance monitoring tools
+- Implement load testing scenarios
+- Monitor database performance
+- Optimize based on test results
+
+### **Phase 6: Deployment & Monitoring**
+
+#### **Step 6.1: Production Deployment**
+**Objective**: Deploy the salon hours system to production safely.
+
+**Deployment Process**:
+1. **Database Migration**:
+   - Backup existing data
+   - Create new collections
+   - Migrate existing salon hours data
+   - Validate data integrity
+
+2. **Application Deployment**:
+   - Deploy updated service layer
+   - Update admin interfaces
+   - Deploy customer-facing changes
+   - Monitor for issues
+
+**Implementation Strategy**:
+- Use blue-green deployment
+- Implement feature flags
+- Monitor deployment metrics
+- Have rollback plan ready
+
+#### **Step 6.2: Monitoring & Maintenance**
+**Objective**: Ensure system reliability and performance in production.
+
+**Monitoring Areas**:
+1. **System Health**:
+   - Database performance monitoring
+   - API response time tracking
+   - Error rate monitoring
+
+2. **Business Metrics**:
+   - Booking success rates
+   - Customer satisfaction scores
+   - Admin usage patterns
+
+**Implementation Approach**:
+- Set up comprehensive monitoring
+- Implement alerting for critical issues
+- Create maintenance procedures
+- Plan regular system updates
+
+---
+
+## 🎯 **Implementation Checklist**
+
+### **Phase 1: Database Setup**
+- [ ] Create `salonHours` collection structure
+- [ ] Create `salonSettings` collection structure
+- [ ] Implement `salonHoursService` functions
+- [ ] Implement `salonSettingsService` functions
+- [ ] Add default data initialization
+- [ ] Test database operations
+
+### **Phase 2: Admin Interface**
+- [ ] Integrate services with bottom sheet
+- [ ] Add calendar visual indicators
+- [ ] Implement settings management interface
+- [ ] Add bulk operation capabilities
+- [ ] Test admin workflows
+
+### **Phase 3: Customer Integration**
+- [ ] Implement availability checking
+- [ ] Add booking prevention logic
+- [ ] Create customer notification system
+- [ ] Test customer booking flows
+- [ ] Validate closure handling
+
+### **Phase 4: Advanced Features**
+- [ ] Implement caching system
+- [ ] Add analytics and reporting
+- [ ] Optimize performance
+- [ ] Test mobile integration
+- [ ] Validate offline capabilities
+
+### **Phase 5: Testing & QA**
+- [ ] Complete unit testing
+- [ ] Run integration tests
+- [ ] Perform performance testing
+- [ ] Validate edge cases
+- [ ] Test error scenarios
+
+### **Phase 6: Deployment**
+- [ ] Prepare production deployment
+- [ ] Execute database migration
+- [ ] Deploy application updates
+- [ ] Set up monitoring
+- [ ] Validate production functionality
+
+---
+
+## 📋 **Success Criteria**
+
+### **Technical Success**
+- All database operations complete in < 100ms
+- 99.9% system uptime
+- Zero data loss during operations
+- Successful handling of all edge cases
+
+### **Business Success**
+- 100% accurate salon status display
+- Reduced booking confusion
+- Improved admin efficiency
+- Positive customer feedback
+
+### **User Experience Success**
+- Intuitive admin interface
+- Clear customer communication
+- Seamless booking experience
+- Reliable notification delivery
+
+This comprehensive implementation guide ensures that the salon hours management system is built robustly, tested thoroughly, and deployed successfully while maintaining high standards of quality and user experience.

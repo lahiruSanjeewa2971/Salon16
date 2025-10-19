@@ -65,7 +65,7 @@ export default function AdminServicesScreen() {
       }
       setError(null);
       
-      const fetchedServices = await secureService.sharedOperations.getActiveServices();
+      const fetchedServices = await secureService.adminOperations.getAllServices();
       
       // Validate and normalize service data
       const validatedServices = fetchedServices.map(service => ({

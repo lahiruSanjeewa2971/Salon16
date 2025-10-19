@@ -17,6 +17,7 @@ import {
     orderBy,
     query,
     serverTimestamp,
+    setDoc,
     startAfter,
     updateDoc,
     where
@@ -322,6 +323,16 @@ export const serviceService = {
       return await firestoreService.query('services', [
         { field: 'isActive', operator: '==', value: true }
       ]);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get all services (active and inactive) - for admin use
+  getAllServices: async () => {
+    try {
+      // Simple query without any filters to get all services
+      return await firestoreService.query('services', []);
     } catch (error) {
       throw error;
     }
@@ -814,15 +825,23 @@ export const salonHoursService = {
         return { id: docSnap.id, ...docSnap.data() };
       }
       
-      // Return default hours if no specific hours set
+      // Get default schedule and apply day-specific logic
+      const defaultSchedule = await this.getDefaultSchedule();
+      const dayOfWeek = new Date(date).getDay();
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const daySchedule = defaultSchedule.weeklySchedule[dayNames[dayOfWeek]];
+      
+      // Return default hours with day-specific logic
       return {
         id: date,
         date: date,
-        openTime: '08:30',
-        closeTime: '21:00',
-        isClosed: false,
+        dayOfWeek: dayOfWeek,
+        openTime: daySchedule.openTime,
+        closeTime: daySchedule.closeTime,
+        isClosed: daySchedule.isClosed,
         disableBookings: false,
         isHoliday: false,
+        isTuesdayOverride: false,
         notes: '',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -839,9 +858,13 @@ export const salonHoursService = {
       const { date, ...data } = hoursData;
       const docRef = doc(db, 'salonHours', date);
       
+      // Calculate day of week
+      const dayOfWeek = new Date(date).getDay();
+      
       const salonHoursData = {
         ...data,
         date: date,
+        dayOfWeek: dayOfWeek,
         updatedAt: new Date(),
         createdAt: data.createdAt || new Date()
       };
@@ -883,22 +906,28 @@ export const salonHoursService = {
   // Get default weekly schedule
   async getDefaultSchedule() {
     try {
-      const docRef = doc(db, 'salonHours', 'default');
+      const docRef = doc(db, 'salonSettings', 'default');
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
         return docSnap.data();
       }
       
-      // Return default weekly schedule
+      // Return default weekly schedule if no settings exist
       return {
-        monday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
-        tuesday: { openTime: '08:30', closeTime: '21:00', isClosed: true }, // Weekly closure
-        wednesday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
-        thursday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
-        friday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
-        saturday: { openTime: '09:00', closeTime: '20:00', isClosed: false },
-        sunday: { openTime: '10:00', closeTime: '18:00', isClosed: false }
+        weeklySchedule: {
+          monday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          tuesday: { openTime: '08:30', closeTime: '21:00', isClosed: true }, // Weekly closure
+          wednesday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          thursday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          friday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          saturday: { openTime: '09:00', closeTime: '20:00', isClosed: false },
+          sunday: { openTime: '10:00', closeTime: '18:00', isClosed: false }
+        },
+        defaultTuesdayClosed: true,
+        holidayPolicy: 'closed',
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
     } catch (error) {
       console.error('Error getting default schedule:', error);
@@ -909,7 +938,7 @@ export const salonHoursService = {
   // Update default weekly schedule
   async updateDefaultSchedule(scheduleData) {
     try {
-      const docRef = doc(db, 'salonHours', 'default');
+      const docRef = doc(db, 'salonSettings', 'default');
       await setDoc(docRef, {
         ...scheduleData,
         updatedAt: new Date()
@@ -999,6 +1028,94 @@ export const salonHoursService = {
       return closures.sort((a, b) => new Date(a.date) - new Date(b.date));
     } catch (error) {
       console.error('Error getting upcoming closures:', error);
+      throw error;
+    }
+  }
+};
+
+// Salon Settings Service
+export const salonSettingsService = {
+  // Get salon settings
+  async getSalonSettings() {
+    try {
+      const docRef = doc(db, 'salonSettings', 'default');
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+      }
+      
+      // Return default settings if none exist
+      return {
+        id: 'default',
+        weeklySchedule: {
+          monday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          tuesday: { openTime: '08:30', closeTime: '21:00', isClosed: true },
+          wednesday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          thursday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          friday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+          saturday: { openTime: '09:00', closeTime: '20:00', isClosed: false },
+          sunday: { openTime: '10:00', closeTime: '18:00', isClosed: false }
+        },
+        defaultTuesdayClosed: true,
+        holidayPolicy: 'closed',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } catch (error) {
+      console.error('Error getting salon settings:', error);
+      throw error;
+    }
+  },
+
+  // Update salon settings
+  async updateSalonSettings(settingsData) {
+    try {
+      const docRef = doc(db, 'salonSettings', 'default');
+      await setDoc(docRef, {
+        ...settingsData,
+        updatedAt: new Date()
+      }, { merge: true });
+      
+      console.log('Salon settings updated successfully');
+      return settingsData;
+    } catch (error) {
+      console.error('Error updating salon settings:', error);
+      throw error;
+    }
+  },
+
+  // Initialize default salon settings
+  async initializeDefaultSettings() {
+    try {
+      const docRef = doc(db, 'salonSettings', 'default');
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        const defaultSettings = {
+          weeklySchedule: {
+            monday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+            tuesday: { openTime: '08:30', closeTime: '21:00', isClosed: true },
+            wednesday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+            thursday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+            friday: { openTime: '08:30', closeTime: '21:00', isClosed: false },
+            saturday: { openTime: '09:00', closeTime: '20:00', isClosed: false },
+            sunday: { openTime: '10:00', closeTime: '18:00', isClosed: false }
+          },
+          defaultTuesdayClosed: true,
+          holidayPolicy: 'closed',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        await setDoc(docRef, defaultSettings);
+        console.log('Default salon settings initialized');
+        return defaultSettings;
+      }
+      
+      return docSnap.data();
+    } catch (error) {
+      console.error('Error initializing default settings:', error);
       throw error;
     }
   }

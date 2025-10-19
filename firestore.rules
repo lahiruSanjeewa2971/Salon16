@@ -58,12 +58,20 @@ service cloud.firestore {
              allow create: if isCustomer() && request.auth.uid == request.resource.data.userId;
            }
 
-           // Salon Hours collection - Admin only access
-           match /salonHours/{hoursId} {
-             allow read: if isAdmin();
-             allow write: if isAdmin();
-             allow create: if isAdmin();
-             allow delete: if isAdmin();
-           }
-         }
-       }
+    // Salon Hours collection - Public read access for booking availability, admin-only write operations
+    match /salonHours/{hoursId} {
+      allow read: if true; // Allow public read access for customers to check availability
+      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Salon Settings collection - Public read access for default schedule, admin-only write operations
+    match /salonSettings/{settingsId} {
+      allow read: if true; // Allow public read access for default schedule
+      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

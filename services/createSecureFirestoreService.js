@@ -84,6 +84,22 @@ export const createSecureFirestoreService = (userFromContext) => {
         }
       },
 
+      getAllServices: async () => {
+        try {
+          console.log('🔒 SecureService: Validating admin role for getAllServices');
+          await roleValidationService.validateAdminOperation('getAllServices', userFromContext);
+          
+          console.log('✅ SecureService: Admin role validated, fetching all services');
+          const result = await serviceService.getAllServices();
+          
+          console.log('✅ SecureService: All services fetched successfully:', result.length);
+          return result;
+        } catch (error) {
+          console.error('❌ SecureService: Error in getAllServices:', error);
+          throw error;
+        }
+      },
+
       // Category Operations
       createCategory: async (categoryData) => {
         try {
