@@ -879,9 +879,11 @@ export const salonHoursService = {
     }
   },
 
-  // Get salon hours for a date range
+  // Get salon hours for a date range (for calendar display)
   async getSalonHoursRange(startDate, endDate) {
     try {
+      console.log(`🔍 SalonHoursService: Fetching salon hours from ${startDate} to ${endDate}`);
+      
       const q = query(
         collection(db, 'salonHours'),
         where('date', '>=', startDate),
@@ -896,9 +898,83 @@ export const salonHoursService = {
         hoursData.push({ id: doc.id, ...doc.data() });
       });
       
+      console.log(`📊 SalonHoursService: Found ${hoursData.length} salon hours records in range`);
       return hoursData;
     } catch (error) {
-      console.error('Error getting salon hours range:', error);
+      console.error('❌ SalonHoursService: Error getting salon hours range:', error);
+      throw error;
+    }
+  },
+
+  // Get salon status for calendar display (with fallback to defaults)
+  async getSalonStatusForCalendar(startDate, endDate) {
+    try {
+      console.log(`🔍 SalonHoursService: Getting salon status for calendar from ${startDate} to ${endDate}`);
+      
+      // Get specific salon hours for the date range
+      const specificHours = await this.getSalonHoursRange(startDate, endDate);
+      
+      // Get default schedule for fallback
+      const defaultSchedule = await this.getDefaultSchedule();
+      
+      // Create a map of specific hours for quick lookup
+      const specificHoursMap = {};
+      specificHours.forEach(hours => {
+        specificHoursMap[hours.date] = hours;
+      });
+      
+      // Generate status for each day in the range
+      const calendarStatus = {};
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        const dateString = date.toISOString().split('T')[0];
+        const dayOfWeek = date.getDay();
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayName = dayNames[dayOfWeek];
+        
+        // Check if we have specific hours for this date
+        if (specificHoursMap[dateString]) {
+          const specificHours = specificHoursMap[dateString];
+          calendarStatus[dateString] = {
+            date: dateString,
+            dayOfWeek: dayOfWeek,
+            dayName: dayName,
+            openTime: specificHours.openTime,
+            closeTime: specificHours.closeTime,
+            isClosed: specificHours.isClosed,
+            disableBookings: specificHours.disableBookings,
+            isHoliday: specificHours.isHoliday,
+            isTuesdayOverride: specificHours.isTuesdayOverride,
+            notes: specificHours.notes,
+            isSpecific: true // Flag to indicate this is specific data, not default
+          };
+        } else {
+          // Use default schedule with day-specific logic
+          const defaultDaySchedule = defaultSchedule.weeklySchedule[dayName];
+          const isTuesday = dayOfWeek === 2;
+          
+          calendarStatus[dateString] = {
+            date: dateString,
+            dayOfWeek: dayOfWeek,
+            dayName: dayName,
+            openTime: defaultDaySchedule.openTime,
+            closeTime: defaultDaySchedule.closeTime,
+            isClosed: defaultDaySchedule.isClosed || isTuesday, // Tuesday is closed by default
+            disableBookings: false,
+            isHoliday: false,
+            isTuesdayOverride: false,
+            notes: '',
+            isSpecific: false // Flag to indicate this is default data
+          };
+        }
+      }
+      
+      console.log(`📊 SalonHoursService: Generated calendar status for ${Object.keys(calendarStatus).length} days`);
+      return calendarStatus;
+    } catch (error) {
+      console.error('❌ SalonHoursService: Error getting salon status for calendar:', error);
       throw error;
     }
   },

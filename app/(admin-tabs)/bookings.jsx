@@ -145,14 +145,21 @@ export default function AdminBookingsScreen() {
     transform: [{ translateY: slideUpAnim.value }],
   }));
 
+  // Calendar refresh callback
+  const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
+
   // Handlers
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    // Simulate refresh
+    
+    // Trigger calendar refresh
+    setCalendarRefreshTrigger(prev => prev + 1);
+    
+    // Shorter delay for better responsiveness
     setTimeout(() => {
       setRefreshing(false);
-      showSuccess('Bookings refreshed');
-    }, 1000);
+      showSuccess('Bookings and salon hours refreshed');
+    }, 500);
   }, [showSuccess]);
 
   const handleSearch = () => {
@@ -205,6 +212,9 @@ export default function AdminBookingsScreen() {
       await salonHoursService.saveSalonHours(hoursData);
       showSuccess('Salon hours saved successfully!');
       setSalonHoursData(hoursData);
+      
+      // Trigger calendar refresh to show updated salon status
+      setCalendarRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('Error saving salon hours:', error);
       showError('Failed to save salon hours');
@@ -284,6 +294,7 @@ export default function AdminBookingsScreen() {
               onDayLongPress={handleDayLongPress}
               bookings={mockBookings}
               selectedDate={selectedDate}
+              refreshTrigger={calendarRefreshTrigger}
             />
 
             {/* Today's Bookings */}
