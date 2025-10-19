@@ -24,6 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { ThemedText } from '../ThemedText';
+import { salonHoursService, salonSettingsService } from '../../services/firebaseService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -56,7 +57,9 @@ export default function ServiceBookingBottomSheet({
   const [isEditing, setIsEditing] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(null); // 'open' | 'close' | null
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [tempTime, setTempTime] = useState('08:30');
+  const [error, setError] = useState(null);
 
   // Animation values
   const translateY = useSharedValue(SCREEN_HEIGHT);
@@ -99,34 +102,88 @@ export default function ServiceBookingBottomSheet({
     }
   };
 
-  // Initialize salon hours when component mounts or salonHours prop changes
+  // Load salon hours data when bottom sheet opens
   useEffect(() => {
-    if (mode === 'salon-hours') {
-      // Always initialize with day-specific logic
-      const dayOfWeek = selectedDate ? new Date(selectedDate).getDay() : new Date().getDay();
+    if (mode === 'salon-hours' && visible && selectedDate) {
+      loadSalonHours();
+    }
+  }, [mode, visible, selectedDate]);
+
+  // Clear state when bottom sheet closes
+  useEffect(() => {
+    if (!visible) {
+      clearState();
+    }
+  }, [visible]);
+
+  // Load salon hours with proper fallback logic
+  const loadSalonHours = async () => {
+    if (!selectedDate) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`Loading salon hours for: ${selectedDate}`);
+      
+      // Get salon hours for the specific date
+      const hoursData = await salonHoursService.getSalonHours(selectedDate);
+      
+      // Apply day-specific logic
+      const dayOfWeek = new Date(selectedDate).getDay();
       const isSelectedTuesday = dayOfWeek === 2;
       
-      if (salonHours) {
-        // Use existing salon hours data but override with day-specific logic
-        setSalonHoursState({
-          ...salonHours,
-          isClosed: isSelectedTuesday, // Force Tuesday closure
-        });
-      } else {
-        // Initialize with default values and day-specific logic
-        setSalonHoursState({
-          openTime: '08:30',
-          closeTime: '21:00',
-          isClosed: isSelectedTuesday, // Tuesday is closed by default
-          disableBookings: false,
-          isHoliday: false,
-          notes: ''
-        });
-      }
+      // Set state with proper day-specific logic
+      setSalonHoursState({
+        openTime: hoursData.openTime || '08:30',
+        closeTime: hoursData.closeTime || '21:00',
+        isClosed: hoursData.isClosed !== undefined ? hoursData.isClosed : isSelectedTuesday,
+        disableBookings: hoursData.disableBookings || false,
+        isHoliday: hoursData.isHoliday || false,
+        notes: hoursData.notes || ''
+      });
       
       console.log(`Bottom sheet opened for ${isSelectedTuesday ? 'Tuesday' : 'Regular day'}`);
+      console.log('Loaded salon hours:', hoursData);
+      
+    } catch (error) {
+      console.error('Error loading salon hours:', error);
+      setError('Failed to load salon hours');
+      
+      // Fallback to default values
+      const dayOfWeek = new Date(selectedDate).getDay();
+      const isSelectedTuesday = dayOfWeek === 2;
+      
+      setSalonHoursState({
+        openTime: '08:30',
+        closeTime: '21:00',
+        isClosed: isSelectedTuesday,
+        disableBookings: false,
+        isHoliday: false,
+        notes: ''
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, [mode, salonHours, selectedDate]);
+  };
+
+  // Clear all state when bottom sheet closes
+  const clearState = () => {
+    setSalonHoursState({
+      openTime: '08:30',
+      closeTime: '21:00',
+      isClosed: false,
+      disableBookings: false,
+      isHoliday: false,
+      notes: ''
+    });
+    setIsEditing(false);
+    setShowTimePicker(null);
+    setIsSaving(false);
+    setIsLoading(false);
+    setError(null);
+    setTempTime('08:30');
+  };
 
   // Handle salon hours changes
   const handleSalonHoursChange = (field, value) => {
@@ -158,19 +215,40 @@ export default function ServiceBookingBottomSheet({
     setIsEditing(true);
   };
 
-  // Handle save
+  // Handle save with proper validation and error handling
   const handleSave = async () => {
-    if (!onSave) return;
+    if (!onSave || !selectedDate) return;
     
     setIsSaving(true);
+    setError(null);
+    
     try {
-      await onSave({
+      // Validate data before saving
+      if (salonHoursState.openTime >= salonHoursState.closeTime) {
+        setError('Open time must be before close time');
+        return;
+      }
+      
+      console.log('Saving salon hours:', salonHoursState);
+      
+      // Prepare data for saving
+      const saveData = {
         ...salonHoursState,
         date: selectedDate
-      });
+      };
+      
+      // Save to database
+      await salonHoursService.saveSalonHours(saveData);
+      
+      // Call parent callback
+      await onSave(saveData);
+      
+      console.log('Salon hours saved successfully');
       setIsEditing(false);
+      
     } catch (error) {
       console.error('Error saving salon hours:', error);
+      setError('Failed to save salon hours. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -632,6 +710,31 @@ export default function ServiceBookingBottomSheet({
     timePickerConfirmTextDisabled: {
       color: 'rgba(255, 255, 255, 0.5)',
     },
+    // Loading and Error States
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: spacing.xl || 20,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: 'rgba(255, 255, 255, 0.8)',
+      textAlign: 'center',
+    },
+    errorContainer: {
+      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+      padding: spacing.md || 12,
+      borderRadius: borderRadius.md || 8,
+      margin: spacing.md || 12,
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+    },
+    errorText: {
+      fontSize: 14,
+      color: '#FCA5A5',
+      textAlign: 'center',
+    },
   };
 
   if (!service && mode === 'service') return null;
@@ -719,17 +822,34 @@ export default function ServiceBookingBottomSheet({
 
                   {/* Content based on mode */}
                   {mode === 'salon-hours' ? (
-                    <ScrollView 
-                      style={styles.scrollContent}
-                      showsVerticalScrollIndicator={false}
-                      contentContainerStyle={styles.scrollContentContainer}
-                      bounces={true}
-                      scrollEventThrottle={16}
-                      nestedScrollEnabled={true}
-                      alwaysBounceVertical={false}
-                      keyboardShouldPersistTaps="handled"
-                      contentInsetAdjustmentBehavior="automatic"
-                    >
+                    <>
+                      {/* Loading State */}
+                      {isLoading && (
+                        <View style={styles.loadingContainer}>
+                          <ThemedText style={styles.loadingText}>Loading salon hours...</ThemedText>
+                        </View>
+                      )}
+                      
+                      {/* Error State */}
+                      {error && (
+                        <View style={styles.errorContainer}>
+                          <ThemedText style={styles.errorText}>{error}</ThemedText>
+                        </View>
+                      )}
+                      
+                      {/* Main Content */}
+                      {!isLoading && (
+                        <ScrollView 
+                          style={styles.scrollContent}
+                          showsVerticalScrollIndicator={false}
+                          contentContainerStyle={styles.scrollContentContainer}
+                          bounces={true}
+                          scrollEventThrottle={16}
+                          nestedScrollEnabled={true}
+                          alwaysBounceVertical={false}
+                          keyboardShouldPersistTaps="handled"
+                          contentInsetAdjustmentBehavior="automatic"
+                        >
                       {/* Salon Status Section */}
                       <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -864,21 +984,23 @@ export default function ServiceBookingBottomSheet({
 
                       {/* Save Button */}
                       <TouchableOpacity 
-                        style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                        style={[styles.saveButton, (isSaving || !isEditing) && styles.saveButtonDisabled]}
                         onPress={handleSave}
-                        disabled={isSaving}
+                        disabled={isSaving || !isEditing}
                       >
                         <LinearGradient
-                          colors={isEditing ? [colors.status?.success || '#10B981', colors.status?.success || '#10B981'] : ['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                          colors={isEditing && !isSaving ? [colors.status?.success || '#10B981', colors.status?.success || '#10B981'] : ['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
                           style={styles.saveButtonGradient}
                         >
-                          <Ionicons name="save" size={20} color="white" />
+                          <Ionicons name={isSaving ? "hourglass" : "save"} size={20} color="white" />
                           <ThemedText style={styles.saveButtonText}>
-                            {isSaving ? 'Saving...' : 'Save Changes'}
+                            {isSaving ? 'Saving...' : isEditing ? 'Save Changes' : 'No Changes'}
                           </ThemedText>
                         </LinearGradient>
                       </TouchableOpacity>
-                    </ScrollView>
+                        </ScrollView>
+                      )}
+                    </>
                   ) : (
                     <View style={styles.placeholderContent}>
                       <ThemedText style={styles.placeholderText}>
