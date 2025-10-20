@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import {
   useAnimatedStyle,
@@ -35,6 +35,7 @@ export default function AdminBookingsScreen() {
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
   const [bottomSheetDate, setBottomSheetDate] = useState(null);
   const [salonHoursData, setSalonHoursData] = useState(null);
+  const [selectedDateSalonStatus, setSelectedDateSalonStatus] = useState(null);
 
   // Mock data for bookings
   const today = new Date().toISOString().split('T')[0];
@@ -148,6 +149,35 @@ export default function AdminBookingsScreen() {
   // Calendar refresh callback
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
+  // Load initial salon status for today
+  useEffect(() => {
+    const loadInitialSalonStatus = async () => {
+      try {
+        const salonStatus = await salonHoursService.getSalonHours(selectedDate);
+        setSelectedDateSalonStatus(salonStatus);
+      } catch (error) {
+        console.error('Error loading initial salon status:', error);
+        // Set default status on error
+        const dayOfWeek = new Date(selectedDate).getDay();
+        const isTuesday = dayOfWeek === 2;
+        setSelectedDateSalonStatus({
+          date: selectedDate,
+          dayOfWeek: dayOfWeek,
+          openTime: '08:30',
+          closeTime: '21:00',
+          isClosed: isTuesday,
+          disableBookings: false,
+          isHoliday: false,
+          isTuesdayOverride: false,
+          notes: '',
+          isSpecific: false
+        });
+      }
+    };
+    
+    loadInitialSalonStatus();
+  }, []); // Only run on mount
+
   // Handlers
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -166,10 +196,31 @@ export default function AdminBookingsScreen() {
     showSuccess('Search functionality coming soon');
   };
 
-  const handleDateSelect = useCallback((date) => {
+  const handleDateSelect = useCallback(async (date) => {
     setSelectedDate(date);
-    // Remove toast to prevent UI disruption
-    // showSuccess(`Selected date: ${date}`);
+    
+    // Load salon status for the selected date
+    try {
+      const salonStatus = await salonHoursService.getSalonHours(date);
+      setSelectedDateSalonStatus(salonStatus);
+    } catch (error) {
+      console.error('Error loading salon status for selected date:', error);
+      // Set default status on error
+      const dayOfWeek = new Date(date).getDay();
+      const isTuesday = dayOfWeek === 2;
+      setSelectedDateSalonStatus({
+        date: date,
+        dayOfWeek: dayOfWeek,
+        openTime: '08:30',
+        closeTime: '21:00',
+        isClosed: isTuesday,
+        disableBookings: false,
+        isHoliday: false,
+        isTuesdayOverride: false,
+        notes: '',
+        isSpecific: false
+      });
+    }
   }, []);
 
   const handleDayLongPress = useCallback((date) => {
@@ -303,6 +354,7 @@ export default function AdminBookingsScreen() {
               bookings={todaysBookings}
               onBookingAction={handleBookingAction}
               selectedDate={selectedDate}
+              salonStatus={selectedDateSalonStatus}
             />
           </ScrollView>
         </View>
