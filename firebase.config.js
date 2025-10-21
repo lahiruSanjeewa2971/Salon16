@@ -6,12 +6,12 @@ import { Platform } from 'react-native';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBCMkeZWqgb20dRaFIN6phPvKrTlMNcHJE",
-  authDomain: "salon16.firebaseapp.com",
-  projectId: "salon16",
-  storageBucket: "salon16.firebasestorage.app",
-  messagingSenderId: "958917048495",
-  appId: "1:958917048495:android:81dc8a28cf9ead58d3bc5a"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyBCMkeZWqgb20dRaFIN6phPvKrTlMNcHJE",
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "salon16.firebaseapp.com",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "salon16",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "salon16.firebasestorage.app",
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "958917048495",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:958917048495:android:81dc8a28cf9ead58d3bc5a"
 };
 
 // Initialize Firebase
