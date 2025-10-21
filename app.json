@@ -22,7 +22,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/images/icon-192x192.png",
       "name": "Salon16 - Beauty Salon Management",
       "shortName": "Salon16",
       "description": "Professional salon management app",

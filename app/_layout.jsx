@@ -13,6 +13,18 @@ import { ThemeProvider } from '../contexts/ThemeContext';
 import { useColorScheme } from '../hooks/useColorScheme';
 import { setupErrorHandling } from '../utils/errorLogger';
 
+// PWA Service Worker Registration
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('✅ Service Worker registered:', registration);
+    } catch (error) {
+      console.error('❌ Service Worker registration failed:', error);
+    }
+  });
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
