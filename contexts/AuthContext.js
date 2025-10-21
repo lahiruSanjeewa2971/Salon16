@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
 import { tokenService } from '../services/tokenService';
@@ -25,59 +25,7 @@ const AuthContext = createContext({
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialAuthState);
 
-  // Initialize authentication state on app start
-  useEffect(() => {
-    console.log('AuthContext: Starting authentication initialization...');
-    initializeAuth();
-    
-    // Set up Firebase auth state listener
-    const unsubscribe = authService.setupAuthStateListener((authState) => {
-      console.log('AuthContext: Auth state changed:', {
-        isAuthenticated: authState.isAuthenticated,
-        hasUser: !!authState.user,
-        userRole: authState.user?.role
-      });
-      
-      if (authState.isAuthenticated && authState.user) {
-        // Use existing tokens or create basic token structure
-        const tokens = state.tokens.accessToken ? state.tokens : {
-          accessToken: 'firebase-auth-token',
-          refreshToken: 'firebase-refresh-token',
-          expiresAt: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
-        };
-        
-        dispatch(authActions.registerSuccess(authState.user, tokens));
-        console.log('AuthContext: User authenticated via Firebase auth state listener');
-      } else {
-        dispatch(authActions.clearUser());
-        console.log('AuthContext: User cleared via Firebase auth state listener');
-      }
-    });
-    
-    return () => {
-      console.log('AuthContext: Cleaning up auth state listener');
-      unsubscribe();
-    };
-  }, [initializeAuth]);
-
-  // Setup token auto-refresh
-  useEffect(() => {
-    if (state.isAuthenticated && state.tokens.refreshToken) {
-      const cleanup = tokenService.setupAutoRefresh(
-        (newTokens) => {
-          console.log('AuthContext: Token refreshed automatically');
-          dispatch(authActions.tokenRefreshSuccess(newTokens));
-        },
-        () => {
-          console.log('AuthContext: Token expired, signing out');
-          dispatch(authActions.clearUser());
-        }
-      );
-
-      return cleanup;
-    }
-  }, [state.isAuthenticated, state.tokens.refreshToken, dispatch]);
-
+  
   /**
    * Initialize authentication state with session validation
    */
@@ -149,6 +97,59 @@ export const AuthProvider = ({ children }) => {
       console.log('AuthContext: Authentication initialization completed, loading cleared');
     }
   }, []);
+
+  // Initialize authentication state on app start
+  useEffect(() => {
+    console.log('AuthContext: Starting authentication initialization...');
+    initializeAuth();
+    
+    // Set up Firebase auth state listener
+    const unsubscribe = authService.setupAuthStateListener((authState) => {
+      console.log('AuthContext: Auth state changed:', {
+        isAuthenticated: authState.isAuthenticated,
+        hasUser: !!authState.user,
+        userRole: authState.user?.role
+      });
+      
+      if (authState.isAuthenticated && authState.user) {
+        // Use existing tokens or create basic token structure
+        const tokens = state.tokens.accessToken ? state.tokens : {
+          accessToken: 'firebase-auth-token',
+          refreshToken: 'firebase-refresh-token',
+          expiresAt: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
+        };
+        
+        dispatch(authActions.registerSuccess(authState.user, tokens));
+        console.log('AuthContext: User authenticated via Firebase auth state listener');
+      } else {
+        dispatch(authActions.clearUser());
+        console.log('AuthContext: User cleared via Firebase auth state listener');
+      }
+    });
+    
+    return () => {
+      console.log('AuthContext: Cleaning up auth state listener');
+      unsubscribe();
+    };
+  }, [initializeAuth]);
+
+  // Setup token auto-refresh
+  useEffect(() => {
+    if (state.isAuthenticated && state.tokens.refreshToken) {
+      const cleanup = tokenService.setupAutoRefresh(
+        (newTokens) => {
+          console.log('AuthContext: Token refreshed automatically');
+          dispatch(authActions.tokenRefreshSuccess(newTokens));
+        },
+        () => {
+          console.log('AuthContext: Token expired, signing out');
+          dispatch(authActions.clearUser());
+        }
+      );
+
+      return cleanup;
+    }
+  }, [state.isAuthenticated, state.tokens.refreshToken, dispatch]);
 
   /**
    * Validate session with expiry timestamp
