@@ -9,6 +9,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,7 +25,7 @@ import { serviceService } from "../../services/firebaseService";
 import AllServicesGrid from "../../components/sections/AllServicesGrid";
 import FeaturedServices from "../../components/sections/FeaturedServices";
 import HeroSection from "../../components/sections/HeroSection";
-import LocationSection from "../../components/sections/LocationSection";
+// Platform-specific imports will be loaded dynamically
 import TodaysAvailability from "../../components/sections/TodaysAvailability";
 import WeekViewSection from "../../components/sections/WeekViewSection";
 
@@ -50,6 +51,7 @@ export default function CustomerHomeScreen() {
   const borderRadius = theme?.borderRadius || {};
   const shadows = theme?.shadows || {};
 
+  const [LocationSectionNative, setLocationSectionNative] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapRegion, setMapRegion] = useState(SALON_COORDINATES);
@@ -57,6 +59,20 @@ export default function CustomerHomeScreen() {
   const [services, setServices] = useState([]);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Dynamic import for native LocationSection to avoid web bundling issues
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      import("../../components/sections/LocationSection").then((module) => {
+        setLocationSectionNative(() => module.default);
+      });
+    } else {
+      // For web, we'll use the web-specific LocationSection
+      import("../../components/sections/LocationSection.web").then((module) => {
+        setLocationSectionNative(() => module.default);
+      });
+    }
+  }, []);
 
 
   // Fetch services from Firestore
@@ -429,20 +445,26 @@ export default function CustomerHomeScreen() {
           isToastShowing={isToastShowing}
         />
 
-        {/* Location Section */}
-        <LocationSection
-          mapRegion={mapRegion}
-          salonCoordinates={SALON_COORDINATES}
-          colors={colors}
-          spacing={spacing}
-          borderRadius={borderRadius}
-          shadows={shadows}
-          onMapRegionChange={setMapRegion}
-          onResetMapLocation={handleResetMapLocation}
-          onGetDirections={handleGetDirections}
-          onCallSalon={handleCallSalon}
-          promotionsAnim={promotionsAnim}
-        />
+        {/* Location Section - platform specific */}
+        {LocationSectionNative ? (
+          <LocationSectionNative
+            mapRegion={mapRegion}
+            salonCoordinates={SALON_COORDINATES}
+            colors={colors}
+            spacing={spacing}
+            borderRadius={borderRadius}
+            shadows={shadows}
+            onMapRegionChange={setMapRegion}
+            onResetMapLocation={handleResetMapLocation}
+            onGetDirections={handleGetDirections}
+            onCallSalon={handleCallSalon}
+            promotionsAnim={promotionsAnim}
+          />
+        ) : (
+          <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}>
+            <ThemedText style={{ color: 'white' }}>Loading map...</ThemedText>
+          </View>
+        )}
       </ScrollView>
 
       {/* Floating Action Button - Login (Fixed to Screen) */}

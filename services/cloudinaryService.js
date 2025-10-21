@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import cloudinaryConfig from '../config/cloudinary.config';
@@ -180,6 +181,40 @@ export const cloudinaryService = {
   // Pick image from gallery
   pickImageFromGallery: async (options = {}) => {
     try {
+      if (Platform.OS === 'web') {
+        // Web implementation using HTML file input
+        return new Promise((resolve, reject) => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async (event) => {
+            try {
+              const file = event.target.files[0];
+              if (!file) {
+                resolve(null);
+                return;
+              }
+              
+              // Convert file to URI for web
+              const uri = URL.createObjectURL(file);
+              resolve({
+                uri,
+                width: 0, // Will be determined after loading
+                height: 0,
+                type: file.type,
+                fileName: file.name,
+                fileSize: file.size,
+              });
+            } catch (error) {
+              reject(error);
+            }
+          };
+          input.onerror = reject;
+          input.click();
+        });
+      }
+
+      // Native implementation
       // Request permission
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
@@ -209,6 +244,13 @@ export const cloudinaryService = {
   // Take photo with camera
   takePhoto: async (options = {}) => {
     try {
+      if (Platform.OS === 'web') {
+        // Web implementation - fallback to file picker since camera access is limited
+        console.warn('Camera not available on web, falling back to file picker');
+        return await cloudinaryService.pickImageFromGallery(options);
+      }
+
+      // Native implementation
       // Request permission
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
