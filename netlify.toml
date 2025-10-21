@@ -1,5 +1,5 @@
 [build]
-  command = "npx expo export --platform web"
+  command = "npx expo export --platform web && node scripts/inject-manifest.js"
   publish = "dist"
 
 [[redirects]]
