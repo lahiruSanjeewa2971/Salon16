@@ -1,5 +1,5 @@
 [build]
-  command = "npx expo export --platform web && ./post-build.sh"
+  command = "npx expo export --platform web"
   publish = "dist"
 
 [[redirects]]
