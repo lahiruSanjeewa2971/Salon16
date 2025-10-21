@@ -12,17 +12,28 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { useColorScheme } from '../hooks/useColorScheme';
 import { setupErrorHandling } from '../utils/errorLogger';
+import { Platform } from 'react-native';
 
-// PWA Service Worker Registration
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('✅ Service Worker registered:', registration);
-    } catch (error) {
-      console.error('❌ Service Worker registration failed:', error);
-    }
-  });
+// PWA Service Worker Registration - Web Only
+if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  // Use setTimeout to ensure DOM is ready
+  setTimeout(() => {
+    window.addEventListener('load', async () => {
+      try {
+        console.log('🔧 Attempting to register service worker...');
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('✅ Service Worker registered successfully:', registration);
+        
+        // Check if service worker is controlling the page
+        if (registration.active) {
+          console.log('✅ Service Worker is active and controlling the page');
+        }
+      } catch (error) {
+        console.error('❌ Service Worker registration failed:', error);
+        console.log('🔍 Available service worker files:', await navigator.serviceWorker.getRegistrations());
+      }
+    });
+  }, 100);
 }
 
 export default function RootLayout() {
