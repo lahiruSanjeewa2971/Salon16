@@ -154,7 +154,8 @@ export default function BookingsCalendar({
             isTuesdayOverride: status.isTuesdayOverride,
             dayName: status.dayName,
             indicator: statusIndicator,
-            isSpecific: status.isSpecific
+            isSpecific: status.isSpecific,
+            hasBookings: false // Will be updated by booking loop
           }
         };
       }
@@ -167,7 +168,7 @@ export default function BookingsCalendar({
         marked[bookingDate] = {
           ...marked[bookingDate], // Preserve salon status
           marked: true,
-          dotColor: colors?.success || '#10B981',
+          // Don't override dotColor - keep salon status color
           selected: selectedDate === bookingDate,
           selectedColor: colors?.primary || '#8B5CF6',
           // Add booking indicator
@@ -178,6 +179,11 @@ export default function BookingsCalendar({
               // Add booking indicator
               position: 'relative',
             }
+          },
+          // Update salon status to indicate bookings
+          salonStatus: {
+            ...marked[bookingDate]?.salonStatus,
+            hasBookings: true
           }
         };
       }
