@@ -16,21 +16,65 @@ import { Platform } from 'react-native';
 
 // PWA Service Worker Registration - Web Only
 if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  // Use setTimeout to ensure DOM is ready
+  // Create inline service worker
+  const serviceWorkerCode = `
+    const CACHE_NAME = 'salon16-v3';
+    const urlsToCache = ['/', '/manifest.json'];
+    
+    self.addEventListener('install', (event) => {
+      console.log('SW: Installing...');
+      event.waitUntil(
+        caches.open(CACHE_NAME)
+          .then((cache) => cache.addAll(urlsToCache))
+          .then(() => self.skipWaiting())
+      );
+    });
+    
+    self.addEventListener('activate', (event) => {
+      console.log('SW: Activating...');
+      event.waitUntil(
+        caches.keys().then((cacheNames) => {
+          return Promise.all(
+            cacheNames.map((cacheName) => {
+              if (cacheName !== CACHE_NAME) {
+                return caches.delete(cacheName);
+              }
+            })
+          );
+        }).then(() => self.clients.claim())
+      );
+    });
+    
+    self.addEventListener('fetch', (event) => {
+      event.respondWith(
+        caches.match(event.request)
+          .then((response) => response || fetch(event.request))
+      );
+    });
+  `;
+
+  // Register inline service worker
   setTimeout(() => {
     window.addEventListener('load', async () => {
       try {
-        console.log('🔧 Attempting to register service worker...');
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('✅ Service Worker registered successfully:', registration);
+        console.log('🔧 Creating and registering inline service worker...');
+        
+        // Create blob URL for service worker
+        const blob = new Blob([serviceWorkerCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        
+        const registration = await navigator.serviceWorker.register(swUrl);
+        console.log('✅ Inline Service Worker registered successfully:', registration);
+        
+        // Clean up blob URL
+        URL.revokeObjectURL(swUrl);
         
         // Check if service worker is controlling the page
         if (registration.active) {
           console.log('✅ Service Worker is active and controlling the page');
         }
       } catch (error) {
-        console.error('❌ Service Worker registration failed:', error);
-        console.log('🔍 Available service worker files:', await navigator.serviceWorker.getRegistrations());
+        console.error('❌ Inline Service Worker registration failed:', error);
       }
     });
   }, 100);
