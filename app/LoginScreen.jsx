@@ -315,13 +315,13 @@ export default function LoginScreen() {
       marginBottom: responsive.spacing.lg,
     },
     logoCircle: {
-      width: responsive.isSmallScreen ? responsive.responsive.width(18) : responsive.responsive.width(22),
-      height: responsive.isSmallScreen ? responsive.responsive.width(18) : responsive.responsive.width(22),
-      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(9) : responsive.responsive.width(11),
+      width: responsive.isSmallScreen ? responsive.responsive.width(22) : responsive.responsive.width(26),
+      height: responsive.isSmallScreen ? responsive.responsive.width(22) : responsive.responsive.width(26),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(11) : responsive.responsive.width(13),
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: responsive.spacing.md,
+      marginBottom: responsive.spacing.lg,
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -338,20 +338,21 @@ export default function LoginScreen() {
       }),
     },
     title: {
-      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.4 : 2.8),
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.8 : 3.2),
       fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
-      marginBottom: responsive.spacing.sm,
+      marginBottom: responsive.spacing.md,
       textShadowColor: 'rgba(0, 0, 0, 0.3)',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
     },
     subtitle: {
-      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.4 : 1.6),
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.6 : 1.8),
       color: 'rgba(255, 255, 255, 0.8)',
       textAlign: 'center',
-      fontWeight: '300',
+      fontWeight: '400',
+      lineHeight: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.2 : 2.4),
     },
     formContainer: {
       width: '100%',
@@ -381,10 +382,10 @@ export default function LoginScreen() {
       marginBottom: responsive.spacing.lg,
     },
     inputLabel: {
-      fontSize: responsive.responsive.fontSize(1.4),
+      fontSize: responsive.responsive.fontSize(1.6),
       fontWeight: '600',
       color: 'white',
-      marginBottom: responsive.spacing.sm,
+      marginBottom: responsive.spacing.md,
     },
     inputWrapper: {
       position: 'relative',
@@ -392,12 +393,13 @@ export default function LoginScreen() {
     textInput: {
       backgroundColor: Platform.OS === 'web' ? 'white' : 'rgba(255, 255, 255, 0.9)',
       borderRadius: Platform.OS === 'ios' ? responsive.responsive.width(2.5) : responsive.responsive.width(2),
-      paddingHorizontal: responsive.spacing.md,
-      paddingVertical: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
-      fontSize: responsive.responsive.fontSize(1.6),
+      paddingHorizontal: responsive.spacing.lg,
+      paddingVertical: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      fontSize: responsive.responsive.fontSize(1.8),
       color: Platform.OS === 'web' ? 'black' : colors.text,
       borderWidth: 1,
       borderColor: Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)',
+      minHeight: responsive.responsive.height(6),
     },
     passwordInput: {
       paddingRight: responsive.responsive.width(12),
@@ -417,7 +419,7 @@ export default function LoginScreen() {
       marginTop: responsive.spacing.sm,
     },
     forgotPasswordText: {
-      fontSize: responsive.responsive.fontSize(1.4),
+      fontSize: responsive.responsive.fontSize(1.6),
       color: 'rgba(255, 255, 255, 0.8)',
       textDecorationLine: 'underline',
     },
@@ -427,7 +429,8 @@ export default function LoginScreen() {
     },
     loginButton: {
       backgroundColor: 'white',
-      marginBottom: responsive.spacing.md,
+      marginBottom: responsive.spacing.lg,
+      minHeight: responsive.responsive.height(6.5),
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -446,7 +449,7 @@ export default function LoginScreen() {
     loginButtonText: {
       color: colors.primary,
       fontWeight: 'bold',
-      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.6 : 1.8),
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.8 : 2.0),
     },
     registerContainer: {
       flexDirection: 'row',
@@ -455,14 +458,14 @@ export default function LoginScreen() {
       marginTop: responsive.spacing.lg,
     },
     registerText: {
-      fontSize: responsive.responsive.fontSize(1.4),
+      fontSize: responsive.responsive.fontSize(1.6),
       color: 'rgba(255, 255, 255, 0.8)',
     },
     registerLink: {
       marginLeft: responsive.spacing.xs,
     },
     registerLinkText: {
-      fontSize: responsive.responsive.fontSize(1.4),
+      fontSize: responsive.responsive.fontSize(1.6),
       color: 'white',
       fontWeight: '600',
       textDecorationLine: 'underline',
@@ -480,7 +483,7 @@ export default function LoginScreen() {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     guestButtonText: {
-      fontSize: responsive.responsive.fontSize(1.4),
+      fontSize: responsive.responsive.fontSize(1.6),
       color: 'rgba(255, 255, 255, 0.9)',
       fontWeight: '500',
     },
@@ -497,14 +500,14 @@ export default function LoginScreen() {
     },
     backButtonText: {
       color: 'white',
-      fontSize: responsive.responsive.fontSize(1.6),
+      fontSize: responsive.responsive.fontSize(1.8),
       marginLeft: responsive.spacing.xs,
     },
     inputError: {
       borderColor: 'rgba(255, 0, 0, 0.5)',
     },
     errorText: {
-      fontSize: responsive.responsive.fontSize(1.2),
+      fontSize: responsive.responsive.fontSize(1.4),
       color: 'rgba(255, 0, 0, 0.8)',
       marginTop: responsive.spacing.xs,
     },
@@ -557,7 +560,7 @@ export default function LoginScreen() {
           <Animated.View style={[styles.header, contentAnimatedStyle]}>
             <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
               <View style={styles.logoCircle}>
-                <Ionicons name="cut" size={responsive.isSmallScreen ? responsive.responsive.width(8) : responsive.responsive.width(10)} color="white" />
+                <Ionicons name="cut" size={responsive.isSmallScreen ? responsive.responsive.width(10) : responsive.responsive.width(12)} color="white" />
               </View>
               
               <ThemedText style={styles.title}>
