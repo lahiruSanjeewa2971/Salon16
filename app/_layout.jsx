@@ -12,7 +12,8 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { useColorScheme } from '../hooks/useColorScheme';
 import { setupErrorHandling } from '../utils/errorLogger';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
 
 // PWA Service Worker Registration - Web Only
 if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -97,7 +98,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.rootContainer}>
       <ThemeProvider>
         <AuthProvider>
           <AlertProvider>
@@ -125,3 +126,21 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+// Responsive root container styles
+const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    ...Platform.select({
+      web: {
+        width: '100vw',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+        position: 'relative',
+      },
+      default: {
+        flex: 1,
+      },
+    }),
+  },
+});

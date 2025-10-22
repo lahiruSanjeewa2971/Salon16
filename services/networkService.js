@@ -20,21 +20,34 @@ class NetworkService {
       
       // Subscribe to network state changes
       this.unsubscribe = NetInfo.addEventListener(state => {
-        const wasConnected = this.isConnected;
-        this.isConnected = state.isConnected && state.isInternetReachable;
-        
-        // Notify listeners if connection status changed
-        if (wasConnected !== this.isConnected) {
-          console.log('NetworkService: Connection status changed:', this.isConnected ? 'Online' : 'Offline');
+        try {
+          const wasConnected = this.isConnected;
+          this.isConnected = state.isConnected && state.isInternetReachable;
+          
+          // Notify listeners if connection status changed
+          if (wasConnected !== this.isConnected) {
+            console.log('NetworkService: Connection status changed:', this.isConnected ? 'Online' : 'Offline');
+            this.notifyListeners();
+          }
+        } catch (error) {
+          console.error('NetworkService: Error in network state listener:', error);
+          // Default to offline on error
+          this.isConnected = false;
           this.notifyListeners();
         }
       });
 
       // Get initial network state
       NetInfo.fetch().then(state => {
-        this.isConnected = state.isConnected && state.isInternetReachable;
-        console.log('NetworkService: Initial connection status:', this.isConnected ? 'Online' : 'Offline');
-        this.notifyListeners();
+        try {
+          this.isConnected = state.isConnected && state.isInternetReachable;
+          console.log('NetworkService: Initial connection status:', this.isConnected ? 'Online' : 'Offline');
+          this.notifyListeners();
+        } catch (error) {
+          console.error('NetworkService: Error processing initial network state:', error);
+          this.isConnected = false;
+          this.notifyListeners();
+        }
       }).catch(error => {
         console.error('NetworkService: Failed to fetch initial network state', error);
         // Default to online if fetch fails

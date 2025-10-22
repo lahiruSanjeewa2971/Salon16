@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -27,6 +29,7 @@ import { useAlertHelpers } from '../components/ui/AlertSystem';
 import { useToastHelpers } from '../components/ui/ToastSystem';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth, useAuthActions, useAuthError, useAuthLoading } from '../hooks/useAuth';
+import { useResponsive } from '../hooks/useResponsive';
 
 const { height } = Dimensions.get('window');
 
@@ -35,6 +38,7 @@ const isSmallScreen = height < 700;
 
 export default function RegisterScreen() {
   const { colors, spacing } = useTheme();
+  const responsive = useResponsive();
   const router = useRouter();
 
   // Auth hooks
@@ -42,6 +46,49 @@ export default function RegisterScreen() {
   const { register } = useAuthActions();
   const { error: authError, clearError } = useAuthError();
   const { isRegistering } = useAuthLoading();
+
+  // Smart scrolling state
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const scrollViewRef = useRef(null);
+  const inputRefs = useRef({});
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+
+  // Auto-scroll to focused input
+  const scrollToInput = (inputName) => {
+    if (isKeyboardVisible && scrollViewRef.current && inputRefs.current[inputName]) {
+      setTimeout(() => {
+        inputRefs.current[inputName]?.measureLayout(
+          scrollViewRef.current.getInnerViewNode(),
+          (x, y, width, height) => {
+            scrollViewRef.current?.scrollTo({
+              y: y - 100, // Offset to show input clearly
+              animated: true,
+            });
+          },
+          () => {}
+        );
+      }, 100);
+    }
+  };
+
+  // Handle input focus
+  const handleInputFocus = (inputName) => {
+    scrollToInput(inputName);
+  };
 
   // Alert and toast hooks
   const { showSuccess, showError, showInfo } = useAlertHelpers();
@@ -228,15 +275,15 @@ export default function RegisterScreen() {
   // Create responsive styles using theme values
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      backgroundColor: colors.background,
+      ...responsive.containerStyles.fullScreen,
+      backgroundColor: colors.primary, // Fallback to gradient start color
     },
     gradient: {
       position: 'absolute',
       left: 0,
       right: 0,
       top: 0,
-      height: height,
+      height: '100%', // Covers viewport exactly
     },
     decorativeCircle1: {
       position: 'absolute',
@@ -255,6 +302,12 @@ export default function RegisterScreen() {
       height: isSmallScreen ? 160 : 240,
       borderRadius: isSmallScreen ? 80 : 120,
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    keyboardAvoidingView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: 20,
     },
     scrollContainer: {
       flex: 1,
@@ -460,6 +513,7 @@ export default function RegisterScreen() {
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
+        locations={[0, 0.6, 1]}
       />
 
       {/* Decorative Background Elements */}
@@ -474,11 +528,22 @@ export default function RegisterScreen() {
         </View>
       </TouchableOpacity>
 
-      <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { flexGrow: isKeyboardVisible ? 0 : 1 }
+          ]}
+          showsVerticalScrollIndicator={isKeyboardVisible}
+          scrollEnabled={isKeyboardVisible}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.mainContent}>
           {/* Header */}
           <Animated.View style={[styles.header, contentAnimatedStyle]}>
@@ -505,11 +570,13 @@ export default function RegisterScreen() {
                 <ThemedText style={styles.inputLabel}>First Name</ThemedText>
                 <View style={styles.inputWrapper}>
                   <TextInput
+                    ref={(ref) => (inputRefs.current.firstName = ref)}
                     style={styles.textInput}
                     placeholder="First name"
                     placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                     value={formData.firstName}
                     onChangeText={(value) => handleInputChange('firstName', value)}
+                    onFocus={() => handleInputFocus('firstName')}
                     autoCapitalize="words"
                     autoCorrect={false}
                   />
@@ -523,11 +590,13 @@ export default function RegisterScreen() {
                 <ThemedText style={styles.inputLabel}>Last Name</ThemedText>
                 <View style={styles.inputWrapper}>
                   <TextInput
+                    ref={(ref) => (inputRefs.current.lastName = ref)}
                     style={styles.textInput}
                     placeholder="Last name"
                     placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                     value={formData.lastName}
                     onChangeText={(value) => handleInputChange('lastName', value)}
+                    onFocus={() => handleInputFocus('lastName')}
                     autoCapitalize="words"
                     autoCorrect={false}
                   />
@@ -543,11 +612,13 @@ export default function RegisterScreen() {
               <ThemedText style={styles.inputLabel}>Email Address</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                  ref={(ref) => (inputRefs.current.email = ref)}
                   style={styles.textInput}
                   placeholder="Enter your email"
                   placeholderTextColor="rgba(0, 0, 0, 0.5)"
                   value={formData.email}
                   onChangeText={(value) => handleInputChange('email', value)}
+                  onFocus={() => handleInputFocus('email')}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -563,11 +634,13 @@ export default function RegisterScreen() {
               <ThemedText style={styles.inputLabel}>Phone Number</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                  ref={(ref) => (inputRefs.current.phone = ref)}
                   style={styles.textInput}
                   placeholder="Enter your phone"
                   placeholderTextColor="rgba(0, 0, 0, 0.5)"
                   value={formData.phone}
                   onChangeText={(value) => handleInputChange('phone', value)}
+                  onFocus={() => handleInputFocus('phone')}
                   keyboardType="phone-pad"
                   autoCorrect={false}
                 />
@@ -582,11 +655,13 @@ export default function RegisterScreen() {
               <ThemedText style={styles.inputLabel}>Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                  ref={(ref) => (inputRefs.current.password = ref)}
                   style={[styles.textInput, styles.passwordInput]}
                   placeholder="Create a password"
                   placeholderTextColor="rgba(0, 0, 0, 0.5)"
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
+                  onFocus={() => handleInputFocus('password')}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -612,11 +687,13 @@ export default function RegisterScreen() {
               <ThemedText style={styles.inputLabel}>Confirm Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                  ref={(ref) => (inputRefs.current.confirmPassword = ref)}
                   style={[styles.textInput, styles.passwordInput]}
                   placeholder="Confirm your password"
                   placeholderTextColor="rgba(0, 0, 0, 0.5)"
                   value={formData.confirmPassword}
                   onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                  onFocus={() => handleInputFocus('confirmPassword')}
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -666,7 +743,8 @@ export default function RegisterScreen() {
             </View>
           </Animated.View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
