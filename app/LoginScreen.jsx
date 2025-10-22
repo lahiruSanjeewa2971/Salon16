@@ -1,23 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
-    Dimensions,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withSpring,
-    withTiming
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 
 import { useRouter } from 'expo-router';
@@ -26,7 +28,9 @@ import { ThemedText } from '../components/ThemedText';
 import { useAlertHelpers } from '../components/ui/AlertSystem';
 import { useToastHelpers } from '../components/ui/ToastSystem';
 import { useTheme } from '../contexts/ThemeContext';
+// import { useAuth } from '../hooks/auth/useAuth';
 import { useAuth, useAuthActions, useAuthError, useAuthLoading } from '../hooks/useAuth';
+import { useResponsive } from '../hooks/useResponsive';
 
 const { height } = Dimensions.get('window');
 
@@ -35,6 +39,7 @@ const isSmallScreen = height < 700;
 
 export default function LoginScreen() {
   const { colors, spacing, borderRadius } = useTheme();
+  const responsive = useResponsive();
   const router = useRouter();
 
   // Auth hooks
@@ -42,6 +47,49 @@ export default function LoginScreen() {
   const { login } = useAuthActions();
   const { error: authError, clearError } = useAuthError();
   const { isLoggingIn } = useAuthLoading();
+
+  // Smart scrolling state
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const scrollViewRef = useRef(null);
+  const inputRefs = useRef({});
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+
+  // Auto-scroll to focused input
+  const scrollToInput = (inputName) => {
+    if (isKeyboardVisible && scrollViewRef.current && inputRefs.current[inputName]) {
+      setTimeout(() => {
+        inputRefs.current[inputName]?.measureLayout(
+          scrollViewRef.current.getInnerViewNode(),
+          (x, y, width, height) => {
+            scrollViewRef.current?.scrollTo({
+              y: y - 100, // Offset to show input clearly
+              animated: true,
+            });
+          },
+          () => {}
+        );
+      }, 100);
+    }
+  };
+
+  // Handle input focus
+  const handleInputFocus = (inputName) => {
+    scrollToInput(inputName);
+  };
 
   // Alert and toast hooks
   const { showSuccess, showError, showInfo } = useAlertHelpers();
@@ -213,33 +261,39 @@ export default function LoginScreen() {
   // Create responsive styles using theme values
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      backgroundColor: colors.background,
+      ...responsive.containerStyles.fullScreen,
+      backgroundColor: colors.primary, // Fallback to gradient start color
     },
     gradient: {
       position: 'absolute',
       left: 0,
       right: 0,
       top: 0,
-      height: height,
+      height: '100%', // Covers viewport exactly
     },
     decorativeCircle1: {
       position: 'absolute',
-      top: isSmallScreen ? -40 : -60,
-      right: isSmallScreen ? -40 : -60,
-      width: isSmallScreen ? 120 : 160,
-      height: isSmallScreen ? 120 : 160,
-      borderRadius: isSmallScreen ? 60 : 80,
+      top: responsive.isSmallScreen ? responsive.responsive.height(-5) : responsive.responsive.height(-7),
+      right: responsive.isSmallScreen ? responsive.responsive.height(-5) : responsive.responsive.height(-7),
+      width: responsive.isSmallScreen ? responsive.responsive.width(30) : responsive.responsive.width(40),
+      height: responsive.isSmallScreen ? responsive.responsive.width(30) : responsive.responsive.width(40),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(15) : responsive.responsive.width(20),
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
     },
     decorativeCircle2: {
       position: 'absolute',
-      bottom: isSmallScreen ? -80 : -120,
-      left: isSmallScreen ? -80 : -120,
-      width: isSmallScreen ? 160 : 240,
-      height: isSmallScreen ? 160 : 240,
-      borderRadius: isSmallScreen ? 80 : 120,
+      bottom: responsive.isSmallScreen ? responsive.responsive.height(-10) : responsive.responsive.height(-15),
+      left: responsive.isSmallScreen ? responsive.responsive.height(-10) : responsive.responsive.height(-15),
+      width: responsive.isSmallScreen ? responsive.responsive.width(40) : responsive.responsive.width(60),
+      height: responsive.isSmallScreen ? responsive.responsive.width(40) : responsive.responsive.width(60),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(20) : responsive.responsive.width(30),
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    keyboardAvoidingView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: 20,
     },
     scrollContainer: {
       flex: 1,
@@ -248,26 +302,26 @@ export default function LoginScreen() {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: isSmallScreen ? spacing.lg : spacing.xl,
-      paddingTop: isSmallScreen ? spacing.lg : 0,
-      paddingBottom: isSmallScreen ? spacing.lg : 0,
+      paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.lg : 0,
+      paddingBottom: responsive.isSmallScreen ? responsive.spacing.lg : 0,
     },
     header: {
       alignItems: 'center',
-      marginBottom: isSmallScreen ? spacing.xl : spacing.xxl,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
     },
     logoContainer: {
       alignItems: 'center',
-      marginBottom: spacing.lg,
+      marginBottom: responsive.spacing.lg,
     },
     logoCircle: {
-      width: isSmallScreen ? 70 : 90,
-      height: isSmallScreen ? 70 : 90,
-      borderRadius: isSmallScreen ? 35 : 45,
+      width: responsive.isSmallScreen ? responsive.responsive.width(18) : responsive.responsive.width(22),
+      height: responsive.isSmallScreen ? responsive.responsive.width(18) : responsive.responsive.width(22),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(9) : responsive.responsive.width(11),
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: spacing.md,
+      marginBottom: responsive.spacing.md,
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -284,17 +338,17 @@ export default function LoginScreen() {
       }),
     },
     title: {
-      fontSize: isSmallScreen ? 24 : 28,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.4 : 2.8),
       fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
-      marginBottom: spacing.sm,
+      marginBottom: responsive.spacing.sm,
       textShadowColor: 'rgba(0, 0, 0, 0.3)',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
     },
     subtitle: {
-      fontSize: isSmallScreen ? 14 : 16,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.4 : 1.6),
       color: 'rgba(255, 255, 255, 0.8)',
       textAlign: 'center',
       fontWeight: '300',
@@ -302,8 +356,8 @@ export default function LoginScreen() {
     formContainer: {
       width: '100%',
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      borderRadius: 16,
-      padding: isSmallScreen ? spacing.lg : spacing.xl,
+      borderRadius: responsive.responsive.width(4),
+      padding: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.2)',
       ...Platform.select({
@@ -324,56 +378,56 @@ export default function LoginScreen() {
       }),
     },
     inputContainer: {
-      marginBottom: spacing.lg,
+      marginBottom: responsive.spacing.lg,
     },
     inputLabel: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.4),
       fontWeight: '600',
       color: 'white',
-      marginBottom: spacing.sm,
+      marginBottom: responsive.spacing.sm,
     },
     inputWrapper: {
       position: 'relative',
     },
     textInput: {
       backgroundColor: Platform.OS === 'web' ? 'white' : 'rgba(255, 255, 255, 0.9)',
-      borderRadius: Platform.OS === 'ios' ? 10 : 8,
-      paddingHorizontal: spacing.md,
-      paddingVertical: isSmallScreen ? spacing.sm : spacing.md,
-      fontSize: 16,
+      borderRadius: Platform.OS === 'ios' ? responsive.responsive.width(2.5) : responsive.responsive.width(2),
+      paddingHorizontal: responsive.spacing.md,
+      paddingVertical: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
+      fontSize: responsive.responsive.fontSize(1.6),
       color: Platform.OS === 'web' ? 'black' : colors.text,
       borderWidth: 1,
       borderColor: Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)',
     },
     passwordInput: {
-      paddingRight: 50,
+      paddingRight: responsive.responsive.width(12),
     },
     passwordToggle: {
       position: 'absolute',
-      right: spacing.md,
+      right: responsive.spacing.md,
       top: 0,
       bottom: 0,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: responsive.spacing.sm,
+      paddingVertical: responsive.spacing.sm,
     },
     forgotPassword: {
       alignSelf: 'flex-end',
-      marginTop: spacing.sm,
+      marginTop: responsive.spacing.sm,
     },
     forgotPasswordText: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.4),
       color: 'rgba(255, 255, 255, 0.8)',
       textDecorationLine: 'underline',
     },
     buttonContainer: {
       width: '100%',
-      marginTop: spacing.lg,
+      marginTop: responsive.spacing.lg,
     },
     loginButton: {
       backgroundColor: 'white',
-      marginBottom: spacing.md,
+      marginBottom: responsive.spacing.md,
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -392,50 +446,50 @@ export default function LoginScreen() {
     loginButtonText: {
       color: colors.primary,
       fontWeight: 'bold',
-      fontSize: isSmallScreen ? 16 : 18,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.6 : 1.8),
     },
     registerContainer: {
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: spacing.lg,
+      marginTop: responsive.spacing.lg,
     },
     registerText: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.4),
       color: 'rgba(255, 255, 255, 0.8)',
     },
     registerLink: {
-      marginLeft: spacing.xs,
+      marginLeft: responsive.spacing.xs,
     },
     registerLinkText: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.4),
       color: 'white',
       fontWeight: '600',
       textDecorationLine: 'underline',
     },
     guestContainer: {
       alignItems: 'center',
-      marginTop: spacing.md,
+      marginTop: responsive.spacing.md,
     },
     guestButton: {
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      borderRadius: borderRadius.medium,
+      paddingVertical: responsive.spacing.sm,
+      paddingHorizontal: responsive.spacing.lg,
+      borderRadius: responsive.responsive.width(2),
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.3)',
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     guestButtonText: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.4),
       color: 'rgba(255, 255, 255, 0.9)',
       fontWeight: '500',
     },
     backButton: {
       position: 'absolute',
-      top: isSmallScreen ? 40 : 50,
-      left: spacing.lg,
+      top: responsive.isSmallScreen ? responsive.responsive.height(5) : responsive.responsive.height(6),
+      left: responsive.spacing.lg,
       zIndex: 1,
-      padding: spacing.sm,
+      padding: responsive.spacing.sm,
     },
     backButtonContent: {
       flexDirection: 'row',
@@ -443,16 +497,16 @@ export default function LoginScreen() {
     },
     backButtonText: {
       color: 'white',
-      fontSize: 16,
-      marginLeft: spacing.xs,
+      fontSize: responsive.responsive.fontSize(1.6),
+      marginLeft: responsive.spacing.xs,
     },
     inputError: {
       borderColor: 'rgba(255, 0, 0, 0.5)',
     },
     errorText: {
-      fontSize: 12,
+      fontSize: responsive.responsive.fontSize(1.2),
       color: 'rgba(255, 0, 0, 0.8)',
-      marginTop: spacing.xs,
+      marginTop: responsive.spacing.xs,
     },
     // Error styles removed - using toast notifications instead
   });
@@ -467,6 +521,7 @@ export default function LoginScreen() {
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
+        locations={[0, 0.6, 1]}
       />
 
       {/* Decorative Background Elements */}
@@ -476,22 +531,33 @@ export default function LoginScreen() {
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <View style={styles.backButtonContent}>
-          <Ionicons name="arrow-back" size={20} color="white" />
+          <Ionicons name="arrow-back" size={responsive.responsive.width(5)} color="white" />
           <ThemedText style={styles.backButtonText}>Back</ThemedText>
         </View>
       </TouchableOpacity>
 
-      <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { flexGrow: isKeyboardVisible ? 0 : 1 }
+          ]}
+          showsVerticalScrollIndicator={isKeyboardVisible}
+          scrollEnabled={isKeyboardVisible}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.mainContent}>
           {/* Header */}
           <Animated.View style={[styles.header, contentAnimatedStyle]}>
             <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
               <View style={styles.logoCircle}>
-                <Ionicons name="cut" size={isSmallScreen ? 35 : 45} color="white" />
+                <Ionicons name="cut" size={responsive.isSmallScreen ? responsive.responsive.width(8) : responsive.responsive.width(10)} color="white" />
               </View>
               
               <ThemedText style={styles.title}>
@@ -511,11 +577,13 @@ export default function LoginScreen() {
               <ThemedText style={styles.inputLabel}>Email Address</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                  ref={(ref) => (inputRefs.current.email = ref)}
                   style={[styles.textInput, errors.email && styles.inputError]}
                   placeholder="Enter your email"
                   placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   value={formData.email}
                   onChangeText={(value) => handleInputChange('email', value)}
+                  onFocus={() => handleInputFocus('email')}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -531,11 +599,13 @@ export default function LoginScreen() {
               <ThemedText style={styles.inputLabel}>Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                  ref={(ref) => (inputRefs.current.password = ref)}
                   style={[styles.textInput, styles.passwordInput, errors.password && styles.inputError]}
                   placeholder="Enter your password"
                   placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
+                  onFocus={() => handleInputFocus('password')}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -546,7 +616,7 @@ export default function LoginScreen() {
                 >
                   <Ionicons
                     name={showPassword ? "eye-off" : "eye"}
-                    size={20}
+                    size={responsive.responsive.width(5)}
                     color={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   />
                 </TouchableOpacity>
@@ -601,7 +671,8 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

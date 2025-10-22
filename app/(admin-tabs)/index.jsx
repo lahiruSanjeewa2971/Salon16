@@ -137,9 +137,9 @@ export default function AdminDashboardScreen() {
   useEffect(() => {
     console.log('Setting up real-time subscription for all categories (admin)...');
     const unsubscribe = secureService.adminOperations.subscribeToCategories(async (updatedCategories) => {
-      console.log('Real-time categories update received:', updatedCategories.length);
-      
       try {
+        console.log('Real-time categories update received:', updatedCategories.length);
+        
         // Fetch services to count per category
         const services = await secureService.sharedOperations.getActiveServices();
         
@@ -168,14 +168,20 @@ export default function AdminDashboardScreen() {
       } catch (error) {
         console.error('Error calculating service counts in real-time update:', error);
         // Fallback to categories without service counts
-        const validatedCategories = updatedCategories.map(category => ({
-          ...category,
-          createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
-          updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
-          serviceCount: 0,
-          isActive: category.isActive !== undefined ? category.isActive : true,
-        }));
-        setCategories(validatedCategories);
+        try {
+          const validatedCategories = updatedCategories.map(category => ({
+            ...category,
+            createdAt: category.createdAt?.toDate ? category.createdAt.toDate() : new Date(category.createdAt || new Date()),
+            updatedAt: category.updatedAt?.toDate ? category.updatedAt.toDate() : new Date(category.updatedAt || new Date()),
+            serviceCount: 0,
+            isActive: category.isActive !== undefined ? category.isActive : true,
+          }));
+          setCategories(validatedCategories);
+        } catch (fallbackError) {
+          console.error('Error in fallback category processing:', fallbackError);
+          // Set empty array as last resort
+          setCategories([]);
+        }
       }
     });
 

@@ -185,11 +185,21 @@ export const firestoreService = {
       });
       
       return onSnapshot(q, (querySnapshot) => {
-        const results = [];
-        querySnapshot.forEach((doc) => {
-          results.push({ id: doc.id, ...doc.data() });
-        });
-        callback(results);
+        try {
+          const results = [];
+          querySnapshot.forEach((doc) => {
+            results.push({ id: doc.id, ...doc.data() });
+          });
+          callback(results);
+        } catch (error) {
+          console.error('Error processing real-time listener data:', error);
+          // Call callback with empty array to prevent crashes
+          callback([]);
+        }
+      }, (error) => {
+        console.error('Real-time listener error:', error);
+        // Call callback with empty array on error
+        callback([]);
       });
     } catch (error) {
       throw error;

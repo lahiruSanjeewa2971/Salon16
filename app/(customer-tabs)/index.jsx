@@ -19,6 +19,7 @@ import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import { useToastHelpers } from "../../components/ui/ToastSystem";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useResponsive } from '../../hooks/useResponsive';
 import { serviceService } from "../../services/firebaseService";
 
 // Section Components
@@ -41,6 +42,7 @@ const SALON_COORDINATES = {
 
 export default function CustomerHomeScreen() {
   const theme = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   const router = useRouter();
   const { showInfo, showWarning, showSuccess, showError } = useToastHelpers();
@@ -151,8 +153,8 @@ export default function CustomerHomeScreen() {
     const safeBorderRadius = borderRadius || {};
     const safeShadows = shadows || {};
     
-    return createStyles(safeColors, safeSpacing, safeBorderRadius, safeShadows);
-  }, [colors, spacing, borderRadius, shadows]);
+    return createStyles(safeColors, safeSpacing, safeBorderRadius, safeShadows, responsive);
+  }, [colors, spacing, borderRadius, shadows, responsive]);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -497,9 +499,9 @@ export default function CustomerHomeScreen() {
   );
 }
 
-const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.create({
+const createStyles = (colors, spacing, borderRadius, shadows, responsive) => StyleSheet.create({
   container: {
-    flex: 1,
+    ...responsive.containerStyles.fullScreen,
     backgroundColor: colors.primary || '#6C2A52',
   },
   gradient: {
@@ -507,7 +509,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     left: 0,
     right: 0,
     top: 0,
-    height: height,
+    height: responsive.height,
   },
   // Fixed Decorative Background Elements
   decorativeCircle1: {
