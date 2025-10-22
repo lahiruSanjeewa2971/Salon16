@@ -305,6 +305,11 @@ export default function RegisterScreen() {
     },
     keyboardAvoidingView: {
       flex: 1,
+      ...Platform.select({
+        web: {
+          touchAction: 'manipulation', // Prevent double-tap zoom
+        },
+      }),
     },
     scrollContent: {
       paddingBottom: 20,
@@ -413,12 +418,20 @@ export default function RegisterScreen() {
       borderRadius: Platform.OS === 'ios' ? 10 : 8,
       paddingHorizontal: spacing.md,
       paddingVertical: isSmallScreen ? spacing.sm : spacing.md,
-      fontSize: 16,
+      fontSize: Platform.OS === 'web' ? 16 : 16, // Prevent zoom on web
       color: Platform.OS === 'web' ? 'black' : colors.text,
       borderWidth: 1,
       borderColor: Platform.OS === 'web' 
         ? (errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.2)')
         : (errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)'),
+      minHeight: 50,
+      ...Platform.select({
+        web: {
+          transform: 'translateZ(0)', // Hardware acceleration
+          WebkitAppearance: 'none', // Remove webkit styling
+          MozAppearance: 'textfield', // Remove Firefox styling
+        },
+      }),
     },
     passwordInput: {
       paddingRight: 50,
@@ -530,8 +543,8 @@ export default function RegisterScreen() {
 
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? 'height' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : Platform.OS === 'web' ? 0 : 20}
       >
         <ScrollView 
           ref={scrollViewRef}

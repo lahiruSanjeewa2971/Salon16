@@ -22,6 +22,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
+      "template": "./web/index.html",
       "favicon": "./assets/images/icon-192x192.png",
       "name": "Salon16 - Beauty Salon Management",
       "shortName": "Salon16",

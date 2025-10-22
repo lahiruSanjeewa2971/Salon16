@@ -291,6 +291,11 @@ export default function LoginScreen() {
     },
     keyboardAvoidingView: {
       flex: 1,
+      ...Platform.select({
+        web: {
+          touchAction: 'manipulation', // Prevent double-tap zoom
+        },
+      }),
     },
     scrollContent: {
       paddingBottom: 20,
@@ -395,11 +400,18 @@ export default function LoginScreen() {
       borderRadius: Platform.OS === 'ios' ? responsive.responsive.width(2.5) : responsive.responsive.width(2),
       paddingHorizontal: responsive.spacing.lg,
       paddingVertical: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
-      fontSize: responsive.responsive.fontSize(1.8),
+      fontSize: Platform.OS === 'web' ? 16 : responsive.responsive.fontSize(1.8), // Prevent zoom on web
       color: Platform.OS === 'web' ? 'black' : colors.text,
       borderWidth: 1,
       borderColor: Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)',
       minHeight: responsive.responsive.height(6),
+      ...Platform.select({
+        web: {
+          transform: 'translateZ(0)', // Hardware acceleration
+          WebkitAppearance: 'none', // Remove webkit styling
+          MozAppearance: 'textfield', // Remove Firefox styling
+        },
+      }),
     },
     passwordInput: {
       paddingRight: responsive.responsive.width(12),
@@ -541,8 +553,8 @@ export default function LoginScreen() {
 
       <KeyboardAvoidingView 
         style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? 'height' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : Platform.OS === 'web' ? 0 : 20}
       >
         <ScrollView 
           ref={scrollViewRef}
@@ -590,6 +602,12 @@ export default function LoginScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  {...Platform.select({
+                    web: {
+                      inputMode: 'email',
+                      autoComplete: 'email',
+                    },
+                  })}
                 />
               </View>
               {errors.email && (
@@ -612,6 +630,12 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  {...Platform.select({
+                    web: {
+                      inputMode: 'text',
+                      autoComplete: 'current-password',
+                    },
+                  })}
                 />
                 <TouchableOpacity
                   style={styles.passwordToggle}
