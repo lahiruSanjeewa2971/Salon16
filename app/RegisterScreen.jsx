@@ -356,14 +356,16 @@ export default function RegisterScreen() {
       position: 'relative',
     },
     textInput: {
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backgroundColor: Platform.OS === 'web' ? 'white' : 'rgba(255, 255, 255, 0.9)',
       borderRadius: Platform.OS === 'ios' ? 10 : 8,
       paddingHorizontal: spacing.md,
       paddingVertical: isSmallScreen ? spacing.sm : spacing.md,
       fontSize: 16,
-      color: colors.text,
+      color: Platform.OS === 'web' ? 'black' : colors.text,
       borderWidth: 1,
-      borderColor: errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)',
+      borderColor: Platform.OS === 'web' 
+        ? (errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.2)')
+        : (errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)'),
     },
     passwordInput: {
       paddingRight: 50,
@@ -505,7 +507,7 @@ export default function RegisterScreen() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="First name"
-                    placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                    placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                     value={formData.firstName}
                     onChangeText={(value) => handleInputChange('firstName', value)}
                     autoCapitalize="words"
@@ -523,7 +525,7 @@ export default function RegisterScreen() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="Last name"
-                    placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                    placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                     value={formData.lastName}
                     onChangeText={(value) => handleInputChange('lastName', value)}
                     autoCapitalize="words"
@@ -596,7 +598,7 @@ export default function RegisterScreen() {
                   <Ionicons
                     name={showPassword ? "eye-off" : "eye"}
                     size={20}
-                    color="rgba(0, 0, 0, 0.5)"
+                    color={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   />
                 </TouchableOpacity>
               </View>
@@ -626,7 +628,7 @@ export default function RegisterScreen() {
                   <Ionicons
                     name={showConfirmPassword ? "eye-off" : "eye"}
                     size={20}
-                    color="rgba(0, 0, 0, 0.5)"
+                    color={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   />
                 </TouchableOpacity>
               </View>
