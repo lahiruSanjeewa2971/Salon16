@@ -23,15 +23,16 @@ import { ThemedButton } from '../components/themed/ThemedButton';
 import { ThemedText } from '../components/ThemedText';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 
 const { height } = Dimensions.get('window');
 
 // Responsive breakpoints
 const isSmallScreen = height < 700;
-const isMediumScreen = height >= 700 && height < 800;
 
 export default function WelcomeScreen() {
   const { colors, spacing, borderRadius } = useTheme();
+  const responsive = useResponsive();
   const { continueAsGuest } = useAuth();
   const router = useRouter();
 
@@ -112,126 +113,161 @@ export default function WelcomeScreen() {
   // Create responsive styles using theme values
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      backgroundColor: colors.background,
+      ...responsive.containerStyles.fullScreen,
+      backgroundColor: colors.primary, // Fallback to gradient start color
     },
     gradient: {
       position: 'absolute',
       left: 0,
       right: 0,
       top: 0,
-      height: height,
+      height: '100%', // Covers viewport exactly
     },
     decorativeCircle1: {
       position: 'absolute',
-      top: isSmallScreen ? -30 : -50,
-      right: isSmallScreen ? -30 : -50,
-      width: isSmallScreen ? 150 : 200,
-      height: isSmallScreen ? 150 : 200,
-      borderRadius: isSmallScreen ? 75 : 100,
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      top: responsive.isSmallScreen ? responsive.responsive.height(-8) : responsive.responsive.height(-10),
+      right: responsive.isSmallScreen ? responsive.responsive.height(-8) : responsive.responsive.height(-10),
+      width: responsive.isSmallScreen ? responsive.responsive.width(45) : responsive.responsive.width(55),
+      height: responsive.isSmallScreen ? responsive.responsive.width(45) : responsive.responsive.width(55),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(22.5) : responsive.responsive.width(27.5),
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
     },
     decorativeCircle2: {
       position: 'absolute',
-      bottom: isSmallScreen ? -60 : -100,
-      left: isSmallScreen ? -60 : -100,
-      width: isSmallScreen ? 200 : 300,
-      height: isSmallScreen ? 200 : 300,
-      borderRadius: isSmallScreen ? 100 : 150,
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      bottom: responsive.isSmallScreen ? responsive.responsive.height(-15) : responsive.responsive.height(-20),
+      left: responsive.isSmallScreen ? responsive.responsive.height(-15) : responsive.responsive.height(-20),
+      width: responsive.isSmallScreen ? responsive.responsive.width(65) : responsive.responsive.width(80),
+      height: responsive.isSmallScreen ? responsive.responsive.width(65) : responsive.responsive.width(80),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(32.5) : responsive.responsive.width(40),
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    decorativeCircle3: {
+      position: 'absolute',
+      top: responsive.isSmallScreen ? responsive.responsive.height(15) : responsive.responsive.height(20),
+      left: responsive.isSmallScreen ? responsive.responsive.height(-12) : responsive.responsive.height(-15),
+      width: responsive.isSmallScreen ? responsive.responsive.width(35) : responsive.responsive.width(45),
+      height: responsive.isSmallScreen ? responsive.responsive.width(35) : responsive.responsive.width(45),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(17.5) : responsive.responsive.width(22.5),
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    decorativeCircle4: {
+      position: 'absolute',
+      bottom: responsive.isSmallScreen ? responsive.responsive.height(20) : responsive.responsive.height(25),
+      right: responsive.isSmallScreen ? responsive.responsive.height(-8) : responsive.responsive.height(-10),
+      width: responsive.isSmallScreen ? responsive.responsive.width(25) : responsive.responsive.width(35),
+      height: responsive.isSmallScreen ? responsive.responsive.width(25) : responsive.responsive.width(35),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(12.5) : responsive.responsive.width(17.5),
+      backgroundColor: 'rgba(255, 255, 255, 0.04)',
     },
     mainContent: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: isSmallScreen ? spacing.lg : spacing.xl,
-      paddingTop: isSmallScreen ? spacing.lg : 0,
-      paddingBottom: isSmallScreen ? spacing.lg : 0,
+      paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
+      paddingBottom: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
+      minHeight: '100%',
     },
     logoContainer: {
       alignItems: 'center',
-      marginBottom: isSmallScreen ? spacing.lg : spacing.xxl,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
     },
     logoCircle: {
-      width: isSmallScreen ? 80 : isMediumScreen ? 100 : 120,
-      height: isSmallScreen ? 80 : isMediumScreen ? 100 : 120,
-      borderRadius: isSmallScreen ? 40 : isMediumScreen ? 50 : 60,
+      width: responsive.isSmallScreen ? responsive.responsive.width(22) : responsive.responsive.width(26),
+      height: responsive.isSmallScreen ? responsive.responsive.width(22) : responsive.responsive.width(26),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(11) : responsive.responsive.width(13),
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: isSmallScreen ? spacing.md : spacing.lg,
+      marginBottom: responsive.spacing.lg,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+        },
+        android: {
+          elevation: 6,
+        },
+        web: {
+          boxShadow: '0 6px 12px rgba(0, 0, 0, 0.3)',
+        },
+      }),
+    },
+    title: {
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 3.2 : 3.6),
+      fontWeight: 'bold',
+      color: 'white',
+      textAlign: 'center',
+      marginBottom: responsive.spacing.md,
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
+    subtitle: {
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.8 : 2.0),
+      color: 'rgba(255, 255, 255, 0.9)',
+      textAlign: 'center',
+      fontWeight: '400',
+      lineHeight: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.4 : 2.6),
+    },
+    cardsContainer: {
+      width: '100%',
+      flex: 1,
+      justifyContent: 'center',
+    },
+    bottomSection: {
+      width: '100%',
+      alignItems: 'center',
+    },
+    featureCard: {
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      borderRadius: responsive.responsive.width(4),
+      padding: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
       ...Platform.select({
         ios: {
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.3,
+          shadowOpacity: 0.2,
           shadowRadius: 16,
+          backdropFilter: 'blur(10px)',
         },
         android: {
           elevation: 8,
         },
         web: {
-          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
+          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+          backdropFilter: 'blur(10px)',
         },
       }),
-    },
-    title: {
-      fontSize: isSmallScreen ? 28 : isMediumScreen ? 30 : 32,
-      fontWeight: 'bold',
-      color: 'white',
-      textAlign: 'center',
-      marginBottom: spacing.sm,
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 2,
-      lineHeight: isSmallScreen ? 32 : isMediumScreen ? 35 : 38,
-      paddingVertical: 4,
-    },
-    subtitle: {
-      fontSize: isSmallScreen ? 16 : 18,
-      color: 'rgba(255, 255, 255, 0.9)',
-      textAlign: 'center',
-      fontWeight: '300',
-    },
-    contentContainer: {
-      width: '100%',
-      alignItems: 'center',
-    },
-    cardsContainer: {
-      width: '100%',
-      marginBottom: isSmallScreen ? spacing.lg : spacing.xxl,
-    },
-    featureCard: {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      borderRadius: borderRadius.card.large,
-      padding: isSmallScreen ? spacing.md : spacing.lg,
-      marginBottom: isSmallScreen ? spacing.sm : spacing.md,
-      backdropFilter: 'blur(10px)',
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     cardHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: spacing.sm,
+      marginBottom: responsive.spacing.md,
     },
     cardTitle: {
-      fontSize: isSmallScreen ? 16 : 18,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.8 : 2.0),
       fontWeight: '600',
       color: 'white',
-      marginLeft: spacing.sm,
+      marginLeft: responsive.spacing.md,
     },
     cardDescription: {
-      fontSize: isSmallScreen ? 13 : 14,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.5 : 1.6),
       color: 'rgba(255, 255, 255, 0.8)',
-      lineHeight: isSmallScreen ? 18 : 20,
+      lineHeight: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.0 : 2.2),
     },
     buttonsContainer: {
       width: '100%',
     },
     primaryButton: {
       backgroundColor: 'white',
-      marginBottom: spacing.md,
+      marginBottom: responsive.spacing.lg,
+      minHeight: responsive.responsive.height(6.5),
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -250,7 +286,7 @@ export default function WelcomeScreen() {
     primaryButtonText: {
       color: colors.primary,
       fontWeight: 'bold',
-      fontSize: isSmallScreen ? 16 : 18,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.0 : 2.2),
     },
     secondaryButton: {
       borderColor: 'white',
@@ -259,19 +295,18 @@ export default function WelcomeScreen() {
     secondaryButtonText: {
       color: 'white',
       fontWeight: '600',
-      fontSize: isSmallScreen ? 14 : 16,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.8 : 2.0),
     },
     bottomIndicator: {
-      position: 'absolute',
-      bottom: isSmallScreen ? 10 : 20,
       flexDirection: 'row',
       alignItems: 'center',
+      marginTop: responsive.spacing.lg,
     },
     indicatorDot: {
-      width: isSmallScreen ? 6 : 8,
-      height: isSmallScreen ? 6 : 8,
-      borderRadius: isSmallScreen ? 3 : 4,
-      marginHorizontal: 4,
+      width: responsive.isSmallScreen ? responsive.responsive.width(1.5) : responsive.responsive.width(2),
+      height: responsive.isSmallScreen ? responsive.responsive.width(1.5) : responsive.responsive.width(2),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(0.75) : responsive.responsive.width(1),
+      marginHorizontal: responsive.spacing.xs,
     },
     indicatorDotActive: {
       backgroundColor: 'white',
@@ -296,15 +331,17 @@ export default function WelcomeScreen() {
       {/* Decorative Background Elements */}
       <Animated.View style={[styles.decorativeCircle1, decorativeAnimatedStyle]} />
       <Animated.View style={[styles.decorativeCircle2, decorativeAnimatedStyle]} />
+      <Animated.View style={[styles.decorativeCircle3, decorativeAnimatedStyle]} />
+      <Animated.View style={[styles.decorativeCircle4, decorativeAnimatedStyle]} />
 
       {/* Floating Elements */}
       <FloatingElements />
 
       <View style={styles.mainContent}>
-        {/* Logo Section */}
+        {/* Top Section - Logo */}
         <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
           <View style={styles.logoCircle}>
-            <Ionicons name="cut" size={60} color="white" />
+            <Ionicons name="cut" size={responsive.isSmallScreen ? responsive.responsive.width(10) : responsive.responsive.width(12)} color="white" />
           </View>
           
           <ThemedText style={styles.title}>
@@ -316,48 +353,47 @@ export default function WelcomeScreen() {
           </ThemedText>
         </Animated.View>
 
-        {/* Main Content */}
-        <Animated.View style={[styles.contentContainer, contentAnimatedStyle]}>
-          {/* Feature Cards */}
-          <Animated.View style={[styles.cardsContainer, cardAnimatedStyle]}>
-            <View style={styles.featureCard}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="calendar" size={24} color="white" />
-                <ThemedText style={styles.cardTitle}>
-                  Easy Booking
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.cardDescription}>
-                Book your appointments with just a few taps
+        {/* Middle Section - Feature Cards */}
+        <Animated.View style={[styles.cardsContainer, cardAnimatedStyle]}>
+          <View style={styles.featureCard}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="calendar" size={responsive.responsive.width(6)} color="white" />
+              <ThemedText style={styles.cardTitle}>
+                Easy Booking
               </ThemedText>
             </View>
+            <ThemedText style={styles.cardDescription}>
+              Book your appointments with just a few taps
+            </ThemedText>
+          </View>
 
-            <View style={styles.featureCard}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="star" size={24} color="white" />
-                <ThemedText style={styles.cardTitle}>
-                  Premium Services
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.cardDescription}>
-                Professional beauty treatments and styling
+          <View style={styles.featureCard}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="star" size={responsive.responsive.width(6)} color="white" />
+              <ThemedText style={styles.cardTitle}>
+                Premium Services
               </ThemedText>
             </View>
+            <ThemedText style={styles.cardDescription}>
+              Professional beauty treatments and styling
+            </ThemedText>
+          </View>
 
-            <View style={styles.featureCard}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="time" size={24} color="white" />
-                <ThemedText style={styles.cardTitle}>
-                  Real-time Updates
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.cardDescription}>
-                Get instant notifications about your bookings
+          <View style={styles.featureCard}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="time" size={responsive.responsive.width(6)} color="white" />
+              <ThemedText style={styles.cardTitle}>
+                Real-time Updates
               </ThemedText>
             </View>
-          </Animated.View>
+            <ThemedText style={styles.cardDescription}>
+              Get instant notifications about your bookings
+            </ThemedText>
+          </View>
+        </Animated.View>
 
-          {/* Action Buttons */}
+        {/* Bottom Section - Buttons and Indicators */}
+        <View style={styles.bottomSection}>
           <Animated.View style={[styles.buttonsContainer, buttonAnimatedStyle]}>
             <ThemedButton
               title="Get Started"
@@ -377,14 +413,13 @@ export default function WelcomeScreen() {
               textStyle={styles.secondaryButtonText}
             />
           </Animated.View>
-        </Animated.View>
 
-        {/* Bottom Decorative Element */}
-        <Animated.View style={[styles.bottomIndicator, contentAnimatedStyle]}>
-          <View style={[styles.indicatorDot, styles.indicatorDotInactive]} />
-          <View style={[styles.indicatorDot, styles.indicatorDotActive]} />
-          <View style={[styles.indicatorDot, styles.indicatorDotInactive]} />
-        </Animated.View>
+          <Animated.View style={[styles.bottomIndicator, contentAnimatedStyle]}>
+            <View style={[styles.indicatorDot, styles.indicatorDotInactive]} />
+            <View style={[styles.indicatorDot, styles.indicatorDotActive]} />
+            <View style={[styles.indicatorDot, styles.indicatorDotInactive]} />
+          </Animated.View>
+        </View>
       </View>
     </SafeAreaView>
   );
