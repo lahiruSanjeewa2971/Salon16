@@ -489,7 +489,7 @@ export default function CustomerHomeScreen() {
                 activeOpacity={0.8}
                 hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
               >
-                <Ionicons name="log-in" size={24} color="white" />
+                <Ionicons name="log-in" size={responsive.isSmallScreen ? responsive.responsive.width(5.5) : responsive.responsive.width(6)} color="white" />
               </TouchableOpacity>
             </LinearGradient>
           </Animated.View>
@@ -514,11 +514,11 @@ const createStyles = (colors, spacing, borderRadius, shadows, responsive) => Sty
   // Fixed Decorative Background Elements
   decorativeCircle1: {
     position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    top: responsive.isSmallScreen ? responsive.responsive.height(-5) : responsive.responsive.height(-7),
+    right: responsive.isSmallScreen ? responsive.responsive.height(-5) : responsive.responsive.height(-7),
+    width: responsive.isSmallScreen ? responsive.responsive.width(50) : responsive.responsive.width(60),
+    height: responsive.isSmallScreen ? responsive.responsive.width(50) : responsive.responsive.width(60),
+    borderRadius: responsive.isSmallScreen ? responsive.responsive.width(25) : responsive.responsive.width(30),
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     zIndex: 1,
     pointerEvents: 'none', // Prevent touch event blocking
@@ -526,21 +526,21 @@ const createStyles = (colors, spacing, borderRadius, shadows, responsive) => Sty
   decorativeCircle2: {
     position: 'absolute',
     bottom: 0,
-    left: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
+    left: responsive.isSmallScreen ? responsive.responsive.height(-15) : responsive.responsive.height(-20),
+    width: responsive.isSmallScreen ? responsive.responsive.width(75) : responsive.responsive.width(90),
+    height: responsive.isSmallScreen ? responsive.responsive.width(75) : responsive.responsive.width(90),
+    borderRadius: responsive.isSmallScreen ? responsive.responsive.width(37.5) : responsive.responsive.width(45),
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     zIndex: 1,
     pointerEvents: 'none', // Prevent touch event blocking
   },
   decorativeCircle3: {
     position: 'absolute',
-    top: 300,
-    right: -80,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    top: responsive.isSmallScreen ? responsive.responsive.height(35) : responsive.responsive.height(40),
+    right: responsive.isSmallScreen ? responsive.responsive.height(-12) : responsive.responsive.height(-15),
+    width: responsive.isSmallScreen ? responsive.responsive.width(40) : responsive.responsive.width(50),
+    height: responsive.isSmallScreen ? responsive.responsive.width(40) : responsive.responsive.width(50),
+    borderRadius: responsive.isSmallScreen ? responsive.responsive.width(20) : responsive.responsive.width(25),
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     zIndex: 1,
     pointerEvents: 'none', // Prevent touch event blocking
@@ -556,26 +556,26 @@ const createStyles = (colors, spacing, borderRadius, shadows, responsive) => Sty
   // Floating Action Button Styles
   fabContainer: {
     position: 'absolute',
-    bottom: 100, // Above bottom navigation
-    right: spacing.lg || 20,
+    bottom: responsive.isSmallScreen ? responsive.responsive.height(12) : responsive.responsive.height(13),
+    right: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
     zIndex: 1000,
   },
   floatingActionButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: responsive.isSmallScreen ? responsive.responsive.width(14) : responsive.responsive.width(16),
+    height: responsive.isSmallScreen ? responsive.responsive.width(14) : responsive.responsive.width(16),
+    borderRadius: responsive.isSmallScreen ? responsive.responsive.width(7) : responsive.responsive.width(8),
     shadowColor: colors.primary || '#6C2A52',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: responsive.isSmallScreen ? 4 : 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowRadius: responsive.isSmallScreen ? 8 : 12,
     elevation: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   fabTouchable: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: responsive.isSmallScreen ? responsive.responsive.width(14) : responsive.responsive.width(16),
+    height: responsive.isSmallScreen ? responsive.responsive.width(14) : responsive.responsive.width(16),
+    borderRadius: responsive.isSmallScreen ? responsive.responsive.width(7) : responsive.responsive.width(8),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,

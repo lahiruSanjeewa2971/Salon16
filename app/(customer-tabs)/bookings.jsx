@@ -15,6 +15,7 @@ import { ThemedText } from '../../components/ThemedText';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useResponsive } from '../../hooks/useResponsive';
 import BookingsSkeletonLoader from '../../components/ui/BookingsSkeletonLoader';
 
 // Section Components
@@ -106,6 +107,7 @@ const mockBookings = [
 
 export default function CustomerBookingsScreen() {
   const { colors, spacing, borderRadius, shadows } = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   const router = useRouter();
   const { showInfo, showSuccess, showWarning } = useToastHelpers();
@@ -223,7 +225,7 @@ export default function CustomerBookingsScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary || '#6C2A52',
     },
     gradient: {
@@ -240,8 +242,8 @@ export default function CustomerBookingsScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
-      paddingTop: spacing.sm,
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
       minHeight: '100%',
     },
   });

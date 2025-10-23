@@ -14,6 +14,7 @@ import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import ServiceBookingBottomSheet from '../../components/ui/ServiceBookingBottomSheet';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { salonHoursService } from '../../services/firebaseService';
 
 // Import new booking components
@@ -23,6 +24,7 @@ import TodaysBookings from '../../components/sections/admin/bookings/TodaysBooki
 
 export default function AdminBookingsScreen() {
   const theme = useTheme();
+  const responsive = useResponsive();
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -278,7 +280,7 @@ export default function AdminBookingsScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary,
     },
     background: {
@@ -286,13 +288,13 @@ export default function AdminBookingsScreen() {
     },
     content: {
       flex: 1,
-      paddingTop: spacing.xl,
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
     },
     scrollView: {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
     },
   });
 

@@ -11,6 +11,7 @@ import {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 
@@ -26,6 +27,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminDashboardScreen() {
   const theme = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   
   // Create secure service with user context
@@ -341,7 +343,7 @@ export default function AdminDashboardScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary,
     },
     gradient: {
@@ -358,8 +360,8 @@ export default function AdminDashboardScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
-      paddingTop: spacing.sm,
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
     },
   });
 

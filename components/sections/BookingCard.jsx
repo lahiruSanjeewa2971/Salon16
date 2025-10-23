@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../ThemedText';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const BookingCard = ({
   booking,
@@ -22,6 +23,8 @@ const BookingCard = ({
   fadeAnim,
   slideUpAnim,
 }) => {
+  const responsive = useResponsive();
+  
   // Press animation
   const pressAnim = useSharedValue(1);
 
@@ -124,11 +127,11 @@ const BookingCard = ({
       marginRight: spacing.md,
     },
     serviceName: {
-      fontSize: 20,
+      fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.8) : responsive.responsive.fontSize(2.0),
       fontWeight: '700',
       color: '#1F2937',
       marginBottom: spacing.xs,
-      lineHeight: 24,
+      lineHeight: responsive.isSmallScreen ? responsive.responsive.fontSize(2.2) : responsive.responsive.fontSize(2.4),
     },
     bookingId: {
       fontSize: 13,

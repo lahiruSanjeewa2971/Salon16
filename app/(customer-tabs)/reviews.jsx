@@ -14,10 +14,12 @@ import { ThemedText } from '../../components/ThemedText';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useResponsive } from '../../hooks/useResponsive';
 import BookingsSkeletonLoader from '../../components/ui/BookingsSkeletonLoader';
 
 export default function CustomerReviewsScreen() {
   const { colors, spacing } = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   const router = useRouter();
   const { showInfo } = useToastHelpers();
@@ -54,7 +56,7 @@ export default function CustomerReviewsScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary || '#6C2A52',
     },
     gradient: {
@@ -68,40 +70,40 @@ export default function CustomerReviewsScreen() {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
     },
     title: {
-      fontSize: 32,
+      fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(2.8) : responsive.responsive.fontSize(3.2),
       fontWeight: 'bold',
       color: 'white',
-      marginTop: spacing.xl,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.lg,
+      marginTop: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
+      paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      paddingVertical: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
       textAlign: 'center',
       textShadowColor: 'rgba(0, 0, 0, 0.3)',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
     },
     subtitle: {
-      fontSize: 18,
+      fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.6) : responsive.responsive.fontSize(1.8),
       color: 'rgba(255, 255, 255, 0.9)',
       textAlign: 'center',
-      lineHeight: 26,
+      lineHeight: responsive.isSmallScreen ? responsive.responsive.fontSize(2.2) : responsive.responsive.fontSize(2.6),
       fontWeight: '300',
     },
     iconContainer: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
+      width: responsive.isSmallScreen ? responsive.responsive.width(30) : responsive.responsive.width(35),
+      height: responsive.isSmallScreen ? responsive.responsive.width(30) : responsive.responsive.width(35),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(15) : responsive.responsive.width(17.5),
       backgroundColor: 'rgba(255, 255, 255, 0.2)',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: spacing.xl,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 16,
-      elevation: 8,
+      shadowOffset: { width: 0, height: responsive.isSmallScreen ? 8 : 12 },
+      shadowOpacity: 0.4,
+      shadowRadius: responsive.isSmallScreen ? 12 : 20,
+      elevation: responsive.isSmallScreen ? 8 : 12,
     },
   });
 
@@ -134,7 +136,7 @@ export default function CustomerReviewsScreen() {
         
         <View style={styles.content}>
           <Animated.View style={[styles.iconContainer, contentAnimatedStyle]}>
-            <Ionicons name="star-outline" size={60} color="white" />
+            <Ionicons name="star-outline" size={responsive.isSmallScreen ? responsive.responsive.width(15) : responsive.responsive.width(18)} color="white" />
           </Animated.View>
           
           <Animated.View style={contentAnimatedStyle}>
