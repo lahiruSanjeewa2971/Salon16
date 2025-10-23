@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -186,7 +187,7 @@ export default function CustomerProfileScreen() {
     },
     content: {
       paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.xxl,
+      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
     },
     // Header Section
     headerSection: {

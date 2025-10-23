@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, router } from 'expo-router';
@@ -358,7 +358,7 @@ export default function AdminDashboardScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: spacing.xxxl,
+      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
       paddingTop: spacing.sm,
     },
   });

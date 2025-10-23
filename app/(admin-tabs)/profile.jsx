@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
-  StatusBar
+  StatusBar,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -165,7 +166,7 @@ export default function AdminProfileScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: spacing.xxxl,
+      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
     },
     // Clean Header
     header: {

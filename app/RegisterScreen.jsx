@@ -111,17 +111,10 @@ export default function RegisterScreen() {
   const fadeAnim = useSharedValue(0);
   const slideUpAnim = useSharedValue(50);
   const scaleAnim = useSharedValue(0.9);
-  const logoScaleAnim = useSharedValue(0);
 
   useEffect(() => {
     // Start animations sequence
     const startAnimations = () => {
-      // Logo animation
-      logoScaleAnim.value = withSpring(1, {
-        damping: 15,
-        stiffness: 150,
-      });
-
       // Fade in main content
       fadeAnim.value = withDelay(200, withTiming(1, { duration: 600 }));
       slideUpAnim.value = withDelay(200, withSpring(0, { damping: 15 }));
@@ -131,13 +124,9 @@ export default function RegisterScreen() {
     };
 
     startAnimations();
-  }, [fadeAnim, logoScaleAnim, scaleAnim, slideUpAnim]);
+  }, [fadeAnim, scaleAnim, slideUpAnim]);
 
   // Animated styles
-  const logoAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: logoScaleAnim.value }],
-  }));
-
   const contentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
     transform: [{ translateY: slideUpAnim.value }],
@@ -319,45 +308,19 @@ export default function RegisterScreen() {
     },
     mainContent: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: isSmallScreen ? spacing.lg : spacing.xl,
-      paddingTop: isSmallScreen ? spacing.lg : 0,
-      paddingBottom: isSmallScreen ? spacing.lg : 0,
+      paddingTop: isSmallScreen ? spacing.xl : spacing.xxl,
+      paddingBottom: isSmallScreen ? spacing.lg : spacing.xl,
     },
     header: {
       alignItems: 'center',
-      marginBottom: isSmallScreen ? spacing.lg : spacing.xl,
-    },
-    logoContainer: {
-      alignItems: 'center',
-      marginBottom: spacing.lg,
-    },
-    logoCircle: {
-      width: isSmallScreen ? 70 : 90,
-      height: isSmallScreen ? 70 : 90,
-      borderRadius: isSmallScreen ? 35 : 45,
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: spacing.md,
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.3,
-          shadowRadius: 12,
-        },
-        android: {
-          elevation: 6,
-        },
-        web: {
-          boxShadow: '0 6px 12px rgba(0, 0, 0, 0.3)',
-        },
-      }),
+      marginBottom: isSmallScreen ? spacing.md : spacing.lg,
+      paddingTop: isSmallScreen ? spacing.md : spacing.lg,
     },
     title: {
-      fontSize: isSmallScreen ? 24 : 28,
+      fontSize: isSmallScreen ? 28 : 32,
       fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
@@ -365,20 +328,24 @@ export default function RegisterScreen() {
       textShadowColor: 'rgba(0, 0, 0, 0.3)',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
+      lineHeight: isSmallScreen ? 32 : 36,
     },
     subtitle: {
-      fontSize: isSmallScreen ? 14 : 16,
-      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: isSmallScreen ? 16 : 18,
+      color: 'rgba(255, 255, 255, 0.9)',
       textAlign: 'center',
       fontWeight: '300',
+      lineHeight: isSmallScreen ? 22 : 24,
     },
     formContainer: {
       width: '100%',
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
       borderRadius: 16,
-      padding: isSmallScreen ? spacing.lg : spacing.xl,
+      padding: isSmallScreen ? spacing.md : spacing.lg,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.2)',
+      flex: 1,
+      justifyContent: 'center',
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -401,7 +368,7 @@ export default function RegisterScreen() {
       gap: spacing.md,
     },
     inputContainer: {
-      marginBottom: spacing.lg,
+      marginBottom: isSmallScreen ? spacing.md : spacing.lg,
       flex: 1,
     },
     inputLabel: {
@@ -453,7 +420,8 @@ export default function RegisterScreen() {
     },
     buttonContainer: {
       width: '100%',
-      marginTop: spacing.lg,
+      marginTop: isSmallScreen ? spacing.md : spacing.lg,
+      marginBottom: isSmallScreen ? spacing.sm : spacing.md,
     },
     registerButton: {
       backgroundColor: 'white',
@@ -482,7 +450,8 @@ export default function RegisterScreen() {
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: spacing.lg,
+      marginTop: isSmallScreen ? spacing.sm : spacing.md,
+      paddingBottom: isSmallScreen ? spacing.sm : spacing.md,
     },
     loginText: {
       fontSize: 14,
@@ -530,8 +499,8 @@ export default function RegisterScreen() {
       />
 
       {/* Decorative Background Elements */}
-      <Animated.View style={[styles.decorativeCircle1, logoAnimatedStyle]} />
-      <Animated.View style={[styles.decorativeCircle2, logoAnimatedStyle]} />
+      <Animated.View style={[styles.decorativeCircle1, contentAnimatedStyle]} />
+      <Animated.View style={[styles.decorativeCircle2, contentAnimatedStyle]} />
 
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -560,19 +529,13 @@ export default function RegisterScreen() {
         <View style={styles.mainContent}>
           {/* Header */}
           <Animated.View style={[styles.header, contentAnimatedStyle]}>
-            <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-              <View style={styles.logoCircle}>
-                <Ionicons name="person-add" size={isSmallScreen ? 35 : 45} color="white" />
-              </View>
-              
-              <ThemedText style={styles.title}>
-                Create Account
-              </ThemedText>
-              
-              <ThemedText style={styles.subtitle}>
-                Join Salon 16 and start booking
-              </ThemedText>
-            </Animated.View>
+            <ThemedText style={styles.title}>
+              Create Account
+            </ThemedText>
+            
+            <ThemedText style={styles.subtitle}>
+              Join Salon 16 and start booking
+            </ThemedText>
           </Animated.View>
 
           {/* Registration Form */}
