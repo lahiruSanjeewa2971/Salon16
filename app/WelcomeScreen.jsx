@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import {
   Dimensions,
   Platform,
@@ -21,8 +21,8 @@ import { useRouter } from 'expo-router';
 import { FloatingElements } from '../components/animations/FloatingElements';
 import { ThemedButton } from '../components/themed/ThemedButton';
 import { ThemedText } from '../components/ThemedText';
-import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useResponsive } from '../hooks/useResponsive';
 
 const { height } = Dimensions.get('window');
@@ -166,7 +166,6 @@ export default function WelcomeScreen() {
       paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
       paddingTop: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
       paddingBottom: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
-      minHeight: '100%',
     },
     logoContainer: {
       alignItems: 'center',
@@ -220,6 +219,7 @@ export default function WelcomeScreen() {
     bottomSection: {
       width: '100%',
       alignItems: 'center',
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
     },
     featureCard: {
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -330,7 +330,7 @@ export default function WelcomeScreen() {
 
       {/* Decorative Background Elements */}
       <Animated.View style={[styles.decorativeCircle1, decorativeAnimatedStyle]} />
-      <Animated.View style={[styles.decorativeCircle2, decorativeAnimatedStyle]} />
+      {/* <Animated.View style={[styles.decorativeCircle2, decorativeAnimatedStyle]} /> */}
       <Animated.View style={[styles.decorativeCircle3, decorativeAnimatedStyle]} />
       <Animated.View style={[styles.decorativeCircle4, decorativeAnimatedStyle]} />
 
