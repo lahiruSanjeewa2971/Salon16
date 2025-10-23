@@ -6,7 +6,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
+  Platform
 } from 'react-native';
 import {
   useAnimatedStyle,
@@ -347,7 +348,7 @@ export default function AdminServicesScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: spacing.xxxl,
+      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
       paddingTop: spacing.sm,
     },
     errorContainer: {

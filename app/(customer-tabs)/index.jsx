@@ -4,12 +4,12 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
-  Platform,
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -525,7 +525,7 @@ const createStyles = (colors, spacing, borderRadius, shadows, responsive) => Sty
   },
   decorativeCircle2: {
     position: 'absolute',
-    bottom: -100,
+    bottom: 0,
     left: -100,
     width: 300,
     height: 300,

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -489,7 +489,7 @@ export default function AdminCustomersScreen() {
               )}
             </View>
           )}
-          contentContainerStyle={{ paddingBottom: spacing.xl || 20 }}
+          contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 80 }}
         />
 
         {/* Scroll to Top Button */}

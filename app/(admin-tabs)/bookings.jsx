@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StatusBar, StyleSheet, View, Platform } from 'react-native';
 import {
   useAnimatedStyle,
   useSharedValue,
@@ -292,7 +292,7 @@ export default function AdminBookingsScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: spacing.xl * 2, // Double padding for bottom spacing
+      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
     },
   });
 
