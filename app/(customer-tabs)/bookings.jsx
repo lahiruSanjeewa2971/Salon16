@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useMemo, useState, useCallback } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -240,7 +240,7 @@ export default function CustomerBookingsScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: spacing.xxxl,
+      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
       paddingTop: spacing.sm,
       minHeight: '100%',
     },
