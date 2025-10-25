@@ -30,8 +30,13 @@ export default function CustomerTabLayout() {
           paddingTop: 10,
           height: Platform.OS === 'ios' ? 90 : 70,
           position: 'absolute',
-          elevation: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 1000, // HIGHEST elevation to prevent touch interference
           shadowOpacity: 0,
+          zIndex: 1000, // HIGHEST z-index to ensure tab bar is above all content
+          pointerEvents: 'box-none', // Allow touches to pass through to children
         },
         tabBarBackground: () => (
           <LinearGradient
