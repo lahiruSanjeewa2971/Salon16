@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Keyboard,
@@ -249,6 +249,11 @@ export default function LoginScreen() {
     router.push('/(customer-tabs)');
   };
 
+  const handleGoogleSignIn = () => {
+    console.log('Google Sign-In button clicked from LoginScreen');
+    // TODO: Implement Google Sign-In functionality
+  };
+
   const handleBack = () => {
     router.back();
   };
@@ -441,7 +446,7 @@ export default function LoginScreen() {
     },
     loginButton: {
       backgroundColor: 'white',
-      marginBottom: responsive.spacing.lg,
+      marginBottom: responsive.spacing.sm,
       minHeight: responsive.responsive.height(6.5),
       ...Platform.select({
         ios: {
@@ -498,6 +503,40 @@ export default function LoginScreen() {
       fontSize: responsive.responsive.fontSize(1.6),
       color: 'rgba(255, 255, 255, 0.9)',
       fontWeight: '500',
+    },
+    googleSignInButton: {
+      backgroundColor: 'white',
+      marginBottom: responsive.spacing.md,
+      width: '100%',
+      minHeight: 52, // Match ThemedButton large size
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: borderRadius.button.large, // Match theme border radius
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 8,
+        },
+        web: {
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+        },
+      }),
+    },
+    googleSignInButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    googleButtonText: {
+      color: '#3c4043',
+      fontWeight: '600',
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.6 : 1.8),
+      marginLeft: responsive.spacing.sm,
     },
     backButton: {
       position: 'absolute',
@@ -672,6 +711,22 @@ export default function LoginScreen() {
                 disabled={isLoggingIn}
                 loading={isLoggingIn}
               />
+            </View>
+
+            {/* Google Sign-In Button */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                onPress={handleGoogleSignIn}
+                style={styles.googleSignInButton}
+                activeOpacity={0.8}
+              >
+                <View style={styles.googleSignInButtonContent}>
+                  <Ionicons name="logo-google" size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)} color="#4285F4" />
+                  <ThemedText style={styles.googleButtonText}>
+                    Continue with Google
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
             </View>
 
             {/* Auth Error Display - Removed, using toast notifications instead */}

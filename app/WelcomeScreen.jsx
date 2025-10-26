@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
+  TouchableOpacity,
   View
 } from 'react-native';
 import Animated, {
@@ -107,6 +108,11 @@ export default function WelcomeScreen() {
       // Still navigate even if clearing fails
       router.push('/(customer-tabs)');
     }
+  };
+
+  const handleGoogleSignIn = () => {
+    console.log('Google Sign-In button clicked');
+    // TODO: Implement Google Sign-In functionality
   };
 
   // Create responsive styles using theme values
@@ -261,6 +267,41 @@ export default function WelcomeScreen() {
       fontWeight: '600',
       fontSize: isSmallScreen ? 14 : 16,
     },
+    googleSignInButton: {
+      backgroundColor: 'white',
+      marginBottom: spacing.md,
+      width: '100%',
+      minHeight: 52, // Match ThemedButton large size
+      // paddingVertical: spacing.button.large.vertical, // Match theme spacing
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: borderRadius.button.large, // Match theme border radius
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 8,
+        },
+        web: {
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+        },
+      }),
+    },
+    googleSignInButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    googleButtonText: {
+      color: '#3c4043',
+      fontWeight: '600',
+      fontSize: isSmallScreen ? 16 : 18,
+      marginLeft: spacing.sm,
+    },
     bottomIndicator: {
       position: 'absolute',
       bottom: isSmallScreen ? 10 : 20,
@@ -367,6 +408,20 @@ export default function WelcomeScreen() {
               style={styles.primaryButton}
               textStyle={styles.primaryButtonText}
             />
+
+            {/* Google Sign-In Button */}
+            <TouchableOpacity
+              onPress={handleGoogleSignIn}
+              style={styles.googleSignInButton}
+              activeOpacity={0.8}
+            >
+              <View style={styles.googleSignInButtonContent}>
+                <Ionicons name="logo-google" size={isSmallScreen ? 22 : 24} color="#4285F4" />
+                <ThemedText style={styles.googleButtonText}>
+                  Continue with Google
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
 
             <ThemedButton
               title="Continue as Guest"
