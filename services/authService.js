@@ -116,7 +116,7 @@ class AuthService {
         displayName: user.displayName || `${additionalData.firstName} ${additionalData.lastName}`,
         firstName: additionalData.firstName || '',
         lastName: additionalData.lastName || '',
-        phone: additionalData.phone || '',
+        phone: additionalData.phone || null, // Phone is optional
         profileImage: user.photoURL || '',
         role: 'customer', // Default role for new registrations
         isEmailVerified: user.emailVerified,

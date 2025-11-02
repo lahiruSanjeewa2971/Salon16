@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import {
   Dimensions,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -32,12 +31,10 @@ import { useAuth, useAuthActions, useAuthError, useAuthLoading } from '../hooks/
 import { useResponsive } from '../hooks/useResponsive';
 
 const { height } = Dimensions.get('window');
-
-// Responsive breakpoints
 const isSmallScreen = height < 700;
 
 export default function RegisterScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, borderRadius } = useTheme();
   const responsive = useResponsive();
   const router = useRouter();
 
@@ -51,8 +48,10 @@ export default function RegisterScreen() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollViewRef = useRef(null);
   const inputRefs = useRef({});
+  const inputContainerRefs = useRef({});
+  const scrollContentRef = useRef(null);
 
-  // Keyboard listeners
+  // Keyboard listeners - only track state, don't move anything
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setIsKeyboardVisible(true);
@@ -69,23 +68,36 @@ export default function RegisterScreen() {
 
   // Auto-scroll to focused input
   const scrollToInput = (inputName) => {
-    if (isKeyboardVisible && scrollViewRef.current && inputRefs.current[inputName]) {
+    if (!isKeyboardVisible) return; // Only scroll when keyboard is visible
+    
+    const containerRef = inputContainerRefs.current[inputName];
+    const contentRef = scrollContentRef.current;
+    
+    if (scrollViewRef.current && containerRef && contentRef) {
       setTimeout(() => {
-        inputRefs.current[inputName]?.measureLayout(
-          scrollViewRef.current.getInnerViewNode(),
-          (x, y, width, height) => {
-            scrollViewRef.current?.scrollTo({
-              y: y - 100, // Offset to show input clearly
-              animated: true,
+        try {
+          // Measure both the container and scroll content to get relative position
+          containerRef.measure((cx, cy, cwidth, cheight, cpageX, cpageY) => {
+            contentRef.measure((sx, sy, swidth, sheight, spageX, spageY) => {
+              // Calculate relative Y position within scroll content
+              const relativeY = cpageY - spageY;
+              
+              // Scroll to show the input with some padding above it
+              if (scrollViewRef.current) {
+                scrollViewRef.current.scrollTo({
+                  y: Math.max(0, relativeY - 120),
+                  animated: true,
+                });
+              }
             });
-          },
-          () => {}
-        );
-      }, 100);
+          });
+        } catch (error) {
+          console.log('Scroll measurement error:', error);
+        }
+      }, 150);
     }
   };
 
-  // Handle input focus
   const handleInputFocus = (inputName) => {
     scrollToInput(inputName);
   };
@@ -99,7 +111,6 @@ export default function RegisterScreen() {
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
     password: '',
     confirmPassword: '',
   });
@@ -113,20 +124,15 @@ export default function RegisterScreen() {
   const scaleAnim = useSharedValue(0.9);
 
   useEffect(() => {
-    // Start animations sequence
     const startAnimations = () => {
-      // Fade in main content
       fadeAnim.value = withDelay(200, withTiming(1, { duration: 600 }));
       slideUpAnim.value = withDelay(200, withSpring(0, { damping: 15 }));
-
-      // Scale animation for form
       scaleAnim.value = withDelay(400, withSpring(1, { damping: 12 }));
     };
 
     startAnimations();
   }, [fadeAnim, scaleAnim, slideUpAnim]);
 
-  // Animated styles
   const contentAnimatedStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
     transform: [{ translateY: slideUpAnim.value }],
@@ -138,11 +144,9 @@ export default function RegisterScreen() {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-    // Clear auth error when user starts typing
     if (authError) {
       clearError();
     }
@@ -151,17 +155,14 @@ export default function RegisterScreen() {
   const validateForm = () => {
     const newErrors = {};
 
-    // First name validation
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
     }
 
-    // Last name validation
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Last name is required';
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
@@ -169,19 +170,12 @@ export default function RegisterScreen() {
       newErrors.email = 'Please enter a valid email';
     }
 
-    // Phone validation
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    }
-
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
-    // Confirm password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
@@ -190,7 +184,6 @@ export default function RegisterScreen() {
 
     setErrors(newErrors);
     
-    // Show toast for validation errors
     if (Object.keys(newErrors).length > 0) {
       const errorCount = Object.keys(newErrors).length;
       const errorFields = Object.keys(newErrors).join(', ');
@@ -211,27 +204,27 @@ export default function RegisterScreen() {
     }
 
     try {
-      // Debug: Check current auth state
       debugAuthState();
       
-      // Call auth service to register user
-      const result = await register(formData);
+      const registrationData = {
+        ...formData,
+        phone: null,
+      };
+      const result = await register(registrationData);
       
       if (result.success) {
-        // Show success alert with email verification info
         showSuccess(
           'Registration Successful!',
           'Your account has been created. Please check your email for verification instructions.',
           {
             confirmText: 'Go to Login',
             onConfirm: () => router.replace('/LoginScreen'),
-            duration: 5000, // 5 seconds instead of default 3 seconds
+            duration: 5000,
           }
         );
       } else {
         console.error('Registration failed:', result.error);
         
-        // Show error toast with better messaging
         const errorMessage = result.error || 'Please try again with valid information.';
         const isEmailExistsError = errorMessage.includes('already exists') || errorMessage.includes('already in use');
         
@@ -261,44 +254,36 @@ export default function RegisterScreen() {
     router.push('/LoginScreen');
   };
 
-  // Create responsive styles using theme values
+  // Styles matching LoginScreen pattern
   const styles = StyleSheet.create({
     container: {
       ...responsive.containerStyles.fullScreen,
-      backgroundColor: colors.primary, // Fallback to gradient start color
+      backgroundColor: colors.primary,
     },
     gradient: {
       position: 'absolute',
       left: 0,
       right: 0,
       top: 0,
-      height: '100%', // Covers viewport exactly
+      height: '100%',
     },
     decorativeCircle1: {
       position: 'absolute',
-      top: isSmallScreen ? -40 : -60,
-      right: isSmallScreen ? -40 : -60,
-      width: isSmallScreen ? 120 : 160,
-      height: isSmallScreen ? 120 : 160,
-      borderRadius: isSmallScreen ? 60 : 80,
+      top: responsive.isSmallScreen ? responsive.responsive.height(-5) : responsive.responsive.height(-7),
+      right: responsive.isSmallScreen ? responsive.responsive.height(-5) : responsive.responsive.height(-7),
+      width: responsive.isSmallScreen ? responsive.responsive.width(30) : responsive.responsive.width(40),
+      height: responsive.isSmallScreen ? responsive.responsive.width(30) : responsive.responsive.width(40),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(15) : responsive.responsive.width(20),
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
     },
     decorativeCircle2: {
       position: 'absolute',
-      bottom: isSmallScreen ? -80 : -120,
-      left: isSmallScreen ? -80 : -120,
-      width: isSmallScreen ? 160 : 240,
-      height: isSmallScreen ? 160 : 240,
-      borderRadius: isSmallScreen ? 80 : 120,
+      bottom: responsive.isSmallScreen ? responsive.responsive.height(-10) : responsive.responsive.height(-15),
+      left: responsive.isSmallScreen ? responsive.responsive.height(-10) : responsive.responsive.height(-15),
+      width: responsive.isSmallScreen ? responsive.responsive.width(40) : responsive.responsive.width(60),
+      height: responsive.isSmallScreen ? responsive.responsive.width(40) : responsive.responsive.width(60),
+      borderRadius: responsive.isSmallScreen ? responsive.responsive.width(20) : responsive.responsive.width(30),
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    keyboardAvoidingView: {
-      flex: 1,
-      ...Platform.select({
-        web: {
-          touchAction: 'manipulation', // Prevent double-tap zoom
-        },
-      }),
     },
     scrollContent: {
       paddingBottom: 20,
@@ -307,45 +292,42 @@ export default function RegisterScreen() {
       flex: 1,
     },
     mainContent: {
-      flex: 1,
-      justifyContent: 'space-between',
+      minHeight: Dimensions.get('window').height - 100, // Fixed minimum height to prevent layout shifts
+      width: '100%',
       alignItems: 'center',
-      paddingHorizontal: isSmallScreen ? spacing.lg : spacing.xl,
-      paddingTop: isSmallScreen ? spacing.xl : spacing.xxl,
-      paddingBottom: isSmallScreen ? spacing.lg : spacing.xl,
+      justifyContent: 'center', // Always centered - no conditional changes
+      paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
+      paddingTop: responsive.isSmallScreen ? responsive.responsive.height(12) : responsive.responsive.height(15), // Move content down
+      paddingBottom: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
     },
     header: {
       alignItems: 'center',
-      marginBottom: isSmallScreen ? spacing.md : spacing.lg,
-      paddingTop: isSmallScreen ? spacing.md : spacing.lg,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
     },
     title: {
-      fontSize: isSmallScreen ? 28 : 32,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.8 : 3.2),
       fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
-      marginBottom: spacing.sm,
+      marginBottom: responsive.spacing.md,
       textShadowColor: 'rgba(0, 0, 0, 0.3)',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
-      lineHeight: isSmallScreen ? 32 : 36,
     },
     subtitle: {
-      fontSize: isSmallScreen ? 16 : 18,
-      color: 'rgba(255, 255, 255, 0.9)',
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.6 : 1.8),
+      color: 'rgba(255, 255, 255, 0.8)',
       textAlign: 'center',
-      fontWeight: '300',
-      lineHeight: isSmallScreen ? 22 : 24,
+      fontWeight: '400',
+      lineHeight: responsive.responsive.fontSize(responsive.isSmallScreen ? 2.2 : 2.4),
     },
     formContainer: {
       width: '100%',
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      borderRadius: 16,
-      padding: isSmallScreen ? spacing.md : spacing.lg,
+      borderRadius: responsive.responsive.width(4),
+      padding: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.2)',
-      flex: 1,
-      justifyContent: 'center',
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -365,67 +347,75 @@ export default function RegisterScreen() {
     },
     inputRow: {
       flexDirection: 'row',
-      gap: spacing.md,
+      gap: responsive.spacing.md,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
     },
     inputContainer: {
-      marginBottom: isSmallScreen ? spacing.md : spacing.lg,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
       flex: 1,
     },
     inputLabel: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.6),
       fontWeight: '600',
       color: 'white',
-      marginBottom: spacing.sm,
+      marginBottom: responsive.spacing.sm,
     },
     inputWrapper: {
       position: 'relative',
     },
     textInput: {
       backgroundColor: Platform.OS === 'web' ? 'white' : 'rgba(255, 255, 255, 0.9)',
-      borderRadius: Platform.OS === 'ios' ? 10 : 8,
-      paddingHorizontal: spacing.md,
-      paddingVertical: isSmallScreen ? spacing.sm : spacing.md,
-      fontSize: Platform.OS === 'web' ? 16 : 16, // Prevent zoom on web
+      borderRadius: Platform.OS === 'ios' ? responsive.responsive.width(2.5) : responsive.responsive.width(2),
+      paddingHorizontal: responsive.spacing.lg,
+      paddingVertical: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
+      fontSize: Platform.OS === 'web' ? 16 : responsive.responsive.fontSize(1.8),
       color: Platform.OS === 'web' ? 'black' : colors.text,
       borderWidth: 1,
-      borderColor: Platform.OS === 'web' 
-        ? (errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.2)')
-        : (errors.firstName || errors.lastName || errors.email || errors.phone || errors.password || errors.confirmPassword ? 'rgba(255, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)'),
-      minHeight: 50,
+      borderColor: Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)',
+      minHeight: responsive.responsive.height(5.5),
+      includeFontPadding: false,
+      textAlignVertical: 'center',
       ...Platform.select({
+        android: {
+          paddingTop: 0,
+          paddingBottom: 0,
+        },
         web: {
-          transform: 'translateZ(0)', // Hardware acceleration
-          WebkitAppearance: 'none', // Remove webkit styling
-          MozAppearance: 'textfield', // Remove Firefox styling
+          transform: 'translateZ(0)',
+          WebkitAppearance: 'none',
+          MozAppearance: 'textfield',
         },
       }),
     },
     passwordInput: {
-      paddingRight: 50,
+      paddingRight: responsive.responsive.width(12),
     },
     passwordToggle: {
       position: 'absolute',
-      right: spacing.md,
+      right: responsive.spacing.md,
       top: 0,
       bottom: 0,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: responsive.spacing.sm,
+      paddingVertical: responsive.spacing.sm,
+    },
+    inputError: {
+      borderColor: 'rgba(255, 0, 0, 0.5)',
     },
     errorText: {
-      fontSize: 12,
+      fontSize: responsive.responsive.fontSize(1.4),
       color: 'rgba(255, 0, 0, 0.8)',
-      marginTop: spacing.xs,
+      marginTop: responsive.spacing.xs,
     },
     buttonContainer: {
       width: '100%',
-      marginTop: isSmallScreen ? spacing.md : spacing.lg,
-      marginBottom: isSmallScreen ? spacing.sm : spacing.md,
+      marginTop: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
     },
     registerButton: {
       backgroundColor: 'white',
-      marginBottom: spacing.md,
+      marginBottom: responsive.spacing.sm,
+      minHeight: responsive.responsive.height(6.5),
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -444,35 +434,34 @@ export default function RegisterScreen() {
     registerButtonText: {
       color: colors.primary,
       fontWeight: 'bold',
-      fontSize: isSmallScreen ? 16 : 18,
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.8 : 2.0),
     },
     loginContainer: {
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: isSmallScreen ? spacing.sm : spacing.md,
-      paddingBottom: isSmallScreen ? spacing.sm : spacing.md,
+      marginTop: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      paddingBottom: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
     },
     loginText: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.6),
       color: 'rgba(255, 255, 255, 0.8)',
     },
     loginLink: {
-      marginLeft: spacing.xs,
+      marginLeft: responsive.spacing.xs,
     },
     loginLinkText: {
-      fontSize: 14,
+      fontSize: responsive.responsive.fontSize(1.6),
       color: 'white',
       fontWeight: '600',
       textDecorationLine: 'underline',
     },
-    // Error styles removed - using toast notifications instead
     backButton: {
       position: 'absolute',
-      top: isSmallScreen ? 40 : 50,
-      left: spacing.lg,
+      top: responsive.isSmallScreen ? responsive.responsive.height(5) : responsive.responsive.height(6),
+      left: responsive.spacing.lg,
       zIndex: 1,
-      padding: spacing.sm,
+      padding: responsive.spacing.sm,
     },
     backButtonContent: {
       flexDirection: 'row',
@@ -480,8 +469,8 @@ export default function RegisterScreen() {
     },
     backButtonText: {
       color: 'white',
-      fontSize: 16,
-      marginLeft: spacing.xs,
+      fontSize: responsive.responsive.fontSize(1.8),
+      marginLeft: responsive.spacing.xs,
     },
   });
 
@@ -505,28 +494,32 @@ export default function RegisterScreen() {
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <View style={styles.backButtonContent}>
-          <Ionicons name="arrow-back" size={20} color="white" />
+          <Ionicons name="arrow-back" size={responsive.responsive.width(5)} color="white" />
           <ThemedText style={styles.backButtonText}>Back</ThemedText>
         </View>
       </TouchableOpacity>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? 'height' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : Platform.OS === 'web' ? 0 : 20}
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={isKeyboardVisible} // Only allow scrolling when keyboard is visible
+        bounces={false} // Prevent bounce that causes jumping
+        {...Platform.select({
+          ios: {
+            contentInsetAdjustmentBehavior: 'never', // Prevent iOS auto-adjustment
+          },
+          web: {
+            touchAction: 'manipulation',
+          },
+        })}
       >
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.scrollContainer}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { flexGrow: isKeyboardVisible ? 0 : 1 }
-          ]}
-          showsVerticalScrollIndicator={isKeyboardVisible}
-          scrollEnabled={isKeyboardVisible}
-          keyboardShouldPersistTaps="handled"
+        <View 
+          ref={scrollContentRef}
+          style={styles.mainContent}
         >
-        <View style={styles.mainContent}>
           {/* Header */}
           <Animated.View style={[styles.header, contentAnimatedStyle]}>
             <ThemedText style={styles.title}>
@@ -542,12 +535,15 @@ export default function RegisterScreen() {
           <Animated.View style={[styles.formContainer, formAnimatedStyle]}>
             {/* Name Row */}
             <View style={styles.inputRow}>
-              <View style={styles.inputContainer}>
+              <View 
+                ref={(ref) => (inputContainerRefs.current.firstName = ref)}
+                style={styles.inputContainer}
+              >
                 <ThemedText style={styles.inputLabel}>First Name</ThemedText>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     ref={(ref) => (inputRefs.current.firstName = ref)}
-                    style={styles.textInput}
+                    style={[styles.textInput, errors.firstName && styles.inputError]}
                     placeholder="First name"
                     placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                     value={formData.firstName}
@@ -562,12 +558,15 @@ export default function RegisterScreen() {
                 )}
               </View>
 
-              <View style={styles.inputContainer}>
+              <View 
+                ref={(ref) => (inputContainerRefs.current.lastName = ref)}
+                style={styles.inputContainer}
+              >
                 <ThemedText style={styles.inputLabel}>Last Name</ThemedText>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     ref={(ref) => (inputRefs.current.lastName = ref)}
-                    style={styles.textInput}
+                    style={[styles.textInput, errors.lastName && styles.inputError]}
                     placeholder="Last name"
                     placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                     value={formData.lastName}
@@ -584,14 +583,17 @@ export default function RegisterScreen() {
             </View>
 
             {/* Email Input */}
-            <View style={styles.inputContainer}>
+            <View 
+              ref={(ref) => (inputContainerRefs.current.email = ref)}
+              style={styles.inputContainer}
+            >
               <ThemedText style={styles.inputLabel}>Email Address</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
                   ref={(ref) => (inputRefs.current.email = ref)}
-                  style={styles.textInput}
+                  style={[styles.textInput, errors.email && styles.inputError]}
                   placeholder="Enter your email"
-                  placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                  placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   value={formData.email}
                   onChangeText={(value) => handleInputChange('email', value)}
                   onFocus={() => handleInputFocus('email')}
@@ -605,36 +607,18 @@ export default function RegisterScreen() {
               )}
             </View>
 
-            {/* Phone Input */}
-            <View style={styles.inputContainer}>
-              <ThemedText style={styles.inputLabel}>Phone Number</ThemedText>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  ref={(ref) => (inputRefs.current.phone = ref)}
-                  style={styles.textInput}
-                  placeholder="Enter your phone"
-                  placeholderTextColor="rgba(0, 0, 0, 0.5)"
-                  value={formData.phone}
-                  onChangeText={(value) => handleInputChange('phone', value)}
-                  onFocus={() => handleInputFocus('phone')}
-                  keyboardType="phone-pad"
-                  autoCorrect={false}
-                />
-              </View>
-              {errors.phone && (
-                <ThemedText style={styles.errorText}>{errors.phone}</ThemedText>
-              )}
-            </View>
-
             {/* Password Input */}
-            <View style={styles.inputContainer}>
+            <View 
+              ref={(ref) => (inputContainerRefs.current.password = ref)}
+              style={styles.inputContainer}
+            >
               <ThemedText style={styles.inputLabel}>Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
                   ref={(ref) => (inputRefs.current.password = ref)}
-                  style={[styles.textInput, styles.passwordInput]}
+                  style={[styles.textInput, styles.passwordInput, errors.password && styles.inputError]}
                   placeholder="Create a password"
-                  placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                  placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
                   onFocus={() => handleInputFocus('password')}
@@ -648,7 +632,7 @@ export default function RegisterScreen() {
                 >
                   <Ionicons
                     name={showPassword ? "eye-off" : "eye"}
-                    size={20}
+                    size={responsive.responsive.width(5)}
                     color={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   />
                 </TouchableOpacity>
@@ -659,14 +643,17 @@ export default function RegisterScreen() {
             </View>
 
             {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
+            <View 
+              ref={(ref) => (inputContainerRefs.current.confirmPassword = ref)}
+              style={styles.inputContainer}
+            >
               <ThemedText style={styles.inputLabel}>Confirm Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
                   ref={(ref) => (inputRefs.current.confirmPassword = ref)}
-                  style={[styles.textInput, styles.passwordInput]}
+                  style={[styles.textInput, styles.passwordInput, errors.confirmPassword && styles.inputError]}
                   placeholder="Confirm your password"
-                  placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                  placeholderTextColor={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   value={formData.confirmPassword}
                   onChangeText={(value) => handleInputChange('confirmPassword', value)}
                   onFocus={() => handleInputFocus('confirmPassword')}
@@ -680,7 +667,7 @@ export default function RegisterScreen() {
                 >
                   <Ionicons
                     name={showConfirmPassword ? "eye-off" : "eye"}
-                    size={20}
+                    size={responsive.responsive.width(5)}
                     color={Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
                   />
                 </TouchableOpacity>
@@ -704,8 +691,6 @@ export default function RegisterScreen() {
               />
             </View>
 
-            {/* Auth Error Display - Removed, using toast notifications instead */}
-
             {/* Login Link */}
             <View style={styles.loginContainer}>
               <ThemedText style={styles.loginText}>
@@ -719,8 +704,7 @@ export default function RegisterScreen() {
             </View>
           </Animated.View>
         </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
