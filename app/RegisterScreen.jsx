@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Keyboard,
@@ -415,7 +415,7 @@ export default function RegisterScreen() {
     registerButton: {
       backgroundColor: 'white',
       marginBottom: responsive.spacing.sm,
-      minHeight: responsive.responsive.height(6.5),
+      minHeight: responsive.responsive.height(5.5),
       ...Platform.select({
         ios: {
           shadowColor: '#000',

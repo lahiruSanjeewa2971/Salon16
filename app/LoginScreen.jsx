@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -52,8 +51,10 @@ export default function LoginScreen() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollViewRef = useRef(null);
   const inputRefs = useRef({});
+  const inputContainerRefs = useRef({});
+  const scrollContentRef = useRef(null);
 
-  // Keyboard listeners
+  // Keyboard listeners - only track state, don't move anything
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setIsKeyboardVisible(true);
@@ -70,19 +71,33 @@ export default function LoginScreen() {
 
   // Auto-scroll to focused input
   const scrollToInput = (inputName) => {
-    if (isKeyboardVisible && scrollViewRef.current && inputRefs.current[inputName]) {
+    if (!isKeyboardVisible) return; // Only scroll when keyboard is visible
+    
+    const containerRef = inputContainerRefs.current[inputName];
+    const contentRef = scrollContentRef.current;
+    
+    if (scrollViewRef.current && containerRef && contentRef) {
       setTimeout(() => {
-        inputRefs.current[inputName]?.measureLayout(
-          scrollViewRef.current.getInnerViewNode(),
-          (x, y, width, height) => {
-            scrollViewRef.current?.scrollTo({
-              y: y - 100, // Offset to show input clearly
-              animated: true,
+        try {
+          // Measure both the container and scroll content to get relative position
+          containerRef.measure((cx, cy, cwidth, cheight, cpageX, cpageY) => {
+            contentRef.measure((sx, sy, swidth, sheight, spageX, spageY) => {
+              // Calculate relative Y position within scroll content
+              const relativeY = cpageY - spageY;
+              
+              // Scroll to show the input with some padding above it
+              if (scrollViewRef.current) {
+                scrollViewRef.current.scrollTo({
+                  y: Math.max(0, relativeY - 120),
+                  animated: true,
+                });
+              }
             });
-          },
-          () => {}
-        );
-      }, 100);
+          });
+        } catch (error) {
+          console.log('Scroll measurement error:', error);
+        }
+      }, 150);
     }
   };
 
@@ -294,14 +309,6 @@ export default function LoginScreen() {
       borderRadius: responsive.isSmallScreen ? responsive.responsive.width(20) : responsive.responsive.width(30),
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
-    keyboardAvoidingView: {
-      flex: 1,
-      ...Platform.select({
-        web: {
-          touchAction: 'manipulation', // Prevent double-tap zoom
-        },
-      }),
-    },
     scrollContent: {
       paddingBottom: 20,
     },
@@ -309,20 +316,21 @@ export default function LoginScreen() {
       flex: 1,
     },
     mainContent: {
-      flex: 1,
-      justifyContent: 'center',
+      minHeight: Dimensions.get('window').height - 100, // Fixed minimum height to prevent layout shifts
+      width: '100%',
       alignItems: 'center',
+      justifyContent: 'center', // Always centered - no conditional changes
       paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
-      paddingTop: responsive.isSmallScreen ? responsive.spacing.lg : 0,
-      paddingBottom: responsive.isSmallScreen ? responsive.spacing.lg : 0,
+      paddingTop: responsive.isSmallScreen ? responsive.responsive.height(12) : responsive.responsive.height(15), // Move content down
+      paddingBottom: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
     },
     header: {
       alignItems: 'center',
-      marginBottom: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.lg,
     },
     logoContainer: {
       alignItems: 'center',
-      marginBottom: responsive.spacing.lg,
+      // marginBottom: responsive.spacing.lg,
     },
     logoCircle: {
       width: responsive.isSmallScreen ? responsive.responsive.width(22) : responsive.responsive.width(26),
@@ -409,7 +417,7 @@ export default function LoginScreen() {
       color: Platform.OS === 'web' ? 'black' : colors.text,
       borderWidth: 1,
       borderColor: Platform.OS === 'web' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)',
-      minHeight: responsive.responsive.height(6),
+      minHeight: responsive.responsive.height(5),
       ...Platform.select({
         web: {
           transform: 'translateZ(0)', // Hardware acceleration
@@ -447,7 +455,7 @@ export default function LoginScreen() {
     loginButton: {
       backgroundColor: 'white',
       marginBottom: responsive.spacing.sm,
-      minHeight: responsive.responsive.height(6.5),
+      minHeight: responsive.responsive.height(5.5),
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -508,7 +516,8 @@ export default function LoginScreen() {
       backgroundColor: 'white',
       marginBottom: responsive.spacing.md,
       width: '100%',
-      minHeight: 52, // Match ThemedButton large size
+      // minHeight: 52, // Match ThemedButton large size
+      minHeight: responsive.responsive.height(5.5),
       justifyContent: 'center',
       alignItems: 'center',
       borderRadius: borderRadius.button.large, // Match theme border radius
@@ -590,23 +599,27 @@ export default function LoginScreen() {
         </View>
       </TouchableOpacity>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? 'height' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : Platform.OS === 'web' ? 0 : 20}
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={isKeyboardVisible} // Only allow scrolling when keyboard is visible
+        bounces={false} // Prevent bounce that causes jumping
+        {...Platform.select({
+          ios: {
+            contentInsetAdjustmentBehavior: 'never', // Prevent iOS auto-adjustment
+          },
+          web: {
+            touchAction: 'manipulation',
+          },
+        })}
       >
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.scrollContainer}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { flexGrow: isKeyboardVisible ? 0 : 1 }
-          ]}
-          showsVerticalScrollIndicator={isKeyboardVisible}
-          scrollEnabled={isKeyboardVisible}
-          keyboardShouldPersistTaps="handled"
+        <View 
+          ref={scrollContentRef}
+          style={styles.mainContent}
         >
-        <View style={styles.mainContent}>
           {/* Header */}
           <Animated.View style={[styles.header, contentAnimatedStyle]}>
             <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
@@ -627,7 +640,10 @@ export default function LoginScreen() {
           {/* Login Form */}
           <Animated.View style={[styles.formContainer, formAnimatedStyle]}>
             {/* Email Input */}
-            <View style={styles.inputContainer}>
+            <View 
+              ref={(ref) => (inputContainerRefs.current.email = ref)}
+              style={styles.inputContainer}
+            >
               <ThemedText style={styles.inputLabel}>Email Address</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
@@ -655,7 +671,10 @@ export default function LoginScreen() {
             </View>
 
             {/* Password Input */}
-            <View style={styles.inputContainer}>
+            <View 
+              ref={(ref) => (inputContainerRefs.current.password = ref)}
+              style={styles.inputContainer}
+            >
               <ThemedText style={styles.inputLabel}>Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
@@ -753,8 +772,7 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
         </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
