@@ -42,10 +42,10 @@ export default function LoginScreen() {
   const router = useRouter();
 
   // Auth hooks
-  const { isAuthenticated, debugAuthState } = useAuth();
+  const { isAuthenticated, debugAuthState, googleSignIn } = useAuth();
   const { login } = useAuthActions();
   const { error: authError, clearError } = useAuthError();
-  const { isLoggingIn } = useAuthLoading();
+  const { isLoggingIn, isGoogleSigningIn } = useAuthLoading();
 
   // Smart scrolling state
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -264,9 +264,57 @@ export default function LoginScreen() {
     router.push('/(customer-tabs)');
   };
 
-  const handleGoogleSignIn = () => {
-    console.log('Google Sign-In button clicked from LoginScreen');
-    // TODO: Implement Google Sign-In functionality
+  const handleGoogleSignIn = async () => {
+    try {
+      console.log('LoginScreen: Google Sign-In button clicked');
+      
+      // Sign in with Google but don't create document if user doesn't exist
+      const result = await googleSignIn({ createDocumentIfNotExists: false });
+      
+      if (result.success) {
+        // Account exists - login successful, navigate based on role
+        showSuccessToast(
+          'Login Successful!',
+          `Welcome back, ${result.user.firstName || result.user.displayName || 'User'}!`,
+          { duration: 3000 }
+        );
+        
+        // Navigate based on user role
+        if (result.user.role === 'admin') {
+          router.replace('/(admin-tabs)');
+        } else {
+          router.replace('/(customer-tabs)');
+        }
+      } else {
+        // Handle specific error messages
+        const errorMessage = result.error || 'Google sign-in failed. Please try again.';
+        
+        // Check if it's an account doesn't exist error
+        if (errorMessage.includes('Account does not exist')) {
+          showErrorToast(
+            'Account Not Found',
+            'No account found with this Google email. Please register first.',
+            { duration: 4000 }
+          );
+          setTimeout(() => {
+            router.push('/RegisterScreen');
+          }, 1500);
+        } else {
+          showErrorToast(
+            'Sign-In Failed',
+            errorMessage,
+            { duration: 5000 }
+          );
+        }
+      }
+    } catch (error) {
+      console.error('LoginScreen: Google sign-in error', error);
+      showErrorToast(
+        'Sign-In Error',
+        error.message || 'Something went wrong. Please try again.',
+        { duration: 5000 }
+      );
+    }
   };
 
   const handleBack = () => {
@@ -712,11 +760,11 @@ export default function LoginScreen() {
             </View>
 
             {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
+            {/* <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
               <ThemedText style={styles.forgotPasswordText}>
                 Forgot Password?
               </ThemedText>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {/* Login Button */}
             <View style={styles.buttonContainer}>
@@ -738,11 +786,12 @@ export default function LoginScreen() {
                 onPress={handleGoogleSignIn}
                 style={styles.googleSignInButton}
                 activeOpacity={0.8}
+                disabled={isGoogleSigningIn}
               >
                 <View style={styles.googleSignInButtonContent}>
-                  <Ionicons name="logo-google" size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)} color="#4285F4" />
+                  {!isGoogleSigningIn && <Ionicons name="logo-google" size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)} color="#4285F4" />}
                   <ThemedText style={styles.googleButtonText}>
-                    Continue with Google
+                    {isGoogleSigningIn ? 'Signing in...' : 'Continue with Google'}
                   </ThemedText>
                 </View>
               </TouchableOpacity>

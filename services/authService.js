@@ -2,14 +2,18 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   EmailAuthProvider,
+  GoogleAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
   sendEmailVerification,
   sendPasswordResetEmail,
+  signInWithCredential,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   updateProfile
 } from 'firebase/auth';
+import { Platform } from 'react-native';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase.config';
 import { storageService } from './storageService';
@@ -659,6 +663,173 @@ class AuthService {
     // Password length validation
     if (password.length < 6) {
       throw new Error('Password must be at least 6 characters');
+    }
+  }
+
+  /**
+   * Sign in with Google OAuth
+   * @param {Object} options - Sign-in options
+   * @param {boolean} options.createDocumentIfNotExists - Create Firestore document if user doesn't exist (default: true)
+   * @returns {Promise<Object>} - Sign-in result with user data and tokens
+   */
+  async signInWithGoogle(options = {}) {
+    try {
+      console.log('AuthService: Starting Google OAuth sign-in');
+      const { createDocumentIfNotExists = true } = options;
+
+      // Create Google Auth Provider
+      const provider = new GoogleAuthProvider();
+      
+      // Request additional scopes if needed
+      provider.addScope('profile');
+      provider.addScope('email');
+
+      // Sign in with Google
+      let userCredential;
+      
+      // Platform-specific implementation
+      if (Platform.OS === 'web') {
+        // Web platform - use signInWithPopup
+        console.log('AuthService: Using web Google sign-in (popup)');
+        userCredential = await signInWithPopup(this.auth, provider);
+      } else {
+        // Native platforms (Android/iOS) - use credential-based sign-in
+        // Note: For native, you'll need to use @react-native-google-signin/google-signin
+        // For now, we'll throw an error for native platforms
+        throw new Error('Google sign-in for native platforms requires additional setup with @react-native-google-signin/google-signin. Currently only web is supported.');
+      }
+
+      const user = userCredential.user;
+      console.log('AuthService: Google authentication successful');
+      console.log('AuthService: User details:', { 
+        uid: user.uid, 
+        email: user.email, 
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      });
+
+      // Extract name from displayName or email
+      const displayNameParts = user.displayName ? user.displayName.split(' ') : [];
+      const firstName = displayNameParts[0] || user.email?.split('@')[0] || '';
+      const lastName = displayNameParts.slice(1).join(' ') || '';
+
+      // Check if user document exists in Firestore
+      const existingUserDoc = await this.getUserDocument(user.uid);
+      
+      let userDocument;
+      const isNewUser = !existingUserDoc;
+      
+      if (existingUserDoc) {
+        // User exists - update last login
+        console.log('AuthService: User document exists, updating last login');
+        userDocument = await this.updateUserDocument(user.uid, {
+          lastLogin: serverTimestamp(),
+          profileImage: user.photoURL || existingUserDoc.profileImage,
+          displayName: user.displayName || existingUserDoc.displayName,
+        });
+      } else if (createDocumentIfNotExists) {
+        // New user - create document
+        console.log('AuthService: New Google user, creating Firestore document');
+        userDocument = await this.createUserDocument(user, {
+          firstName: firstName,
+          lastName: lastName,
+          phone: null, // Google users don't provide phone initially
+          profileImage: user.photoURL || '',
+        });
+      } else {
+        // User doesn't exist and we shouldn't create document
+        // Sign out the user and return error
+        await signOut(this.auth);
+        throw new Error('Account does not exist. Please register first.');
+      }
+
+      // Generate and save tokens
+      const accessToken = await user.getIdToken();
+      const tokens = await tokenService.saveTokens({
+        accessToken: accessToken,
+        refreshToken: accessToken,
+      });
+
+      // Save user data to cache
+      await storageService.saveUserData(userDocument);
+      await storageService.saveUserCache({
+        lastUpdated: Date.now(),
+        data: userDocument,
+      });
+
+      console.log('AuthService: Google sign-in completed successfully', {
+        isNewUser,
+        userUid: userDocument.uid,
+        userRole: userDocument.role
+      });
+
+      return {
+        success: true,
+        user: userDocument,
+        tokens: {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresAt: tokens.expiresAt,
+        },
+        isNewUser,
+        message: isNewUser ? 'Account created successfully!' : 'Signed in successfully!',
+      };
+    } catch (error) {
+      console.error('AuthService: Google sign-in failed', error);
+      
+      // Handle specific Firebase errors
+      let errorMessage = 'Google sign-in failed';
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/popup-closed-by-user':
+            errorMessage = 'Sign-in was cancelled. Please try again.';
+            break;
+          case 'auth/popup-blocked':
+            errorMessage = 'Popup was blocked by your browser. Please allow popups and try again.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection and try again.';
+            break;
+          case 'auth/account-exists-with-different-credential':
+            errorMessage = 'An account already exists with this email but using a different sign-in method.';
+            break;
+          default:
+            errorMessage = `Google sign-in error: ${error.message}`;
+        }
+      } else {
+        errorMessage = error.message || 'An unknown error occurred during Google sign-in.';
+      }
+
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Check if a user exists in Firestore by email
+   * @param {string} email - User email
+   * @returns {Promise<boolean>} - True if user exists
+   */
+  async checkUserExistsByEmail(email) {
+    try {
+      if (!email || !email.trim()) {
+        return false;
+      }
+
+      // Query Firestore for user with this email
+      // Note: This requires an index if email is not the document ID
+      // For now, we'll check if Firebase Auth user exists and has a Firestore document
+      const currentUser = this.auth.currentUser;
+      
+      if (currentUser && currentUser.email === email) {
+        const userDoc = await this.getUserDocument(currentUser.uid);
+        return !!userDoc;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('AuthService: Error checking user existence by email', error);
+      return false;
     }
   }
 

@@ -10,6 +10,11 @@ export const AUTH_ACTIONS = {
   LOGIN_SUCCESS: 'LOGIN_SUCCESS',
   LOGIN_FAILURE: 'LOGIN_FAILURE',
   
+  // Google sign-in actions
+  GOOGLE_SIGNIN_START: 'GOOGLE_SIGNIN_START',
+  GOOGLE_SIGNIN_SUCCESS: 'GOOGLE_SIGNIN_SUCCESS',
+  GOOGLE_SIGNIN_FAILURE: 'GOOGLE_SIGNIN_FAILURE',
+  
   // Token management actions
   TOKEN_REFRESH_START: 'TOKEN_REFRESH_START',
   TOKEN_REFRESH_SUCCESS: 'TOKEN_REFRESH_SUCCESS',
@@ -38,6 +43,7 @@ export const initialAuthState = {
   isLoading: false,
   isRegistering: false,
   isLoggingIn: false,
+  isGoogleSigningIn: false,
   isRefreshingToken: false,
   
   // Error handling
@@ -114,6 +120,7 @@ export const authReducer = (state, action) => {
       return {
         ...state,
         isLoggingIn: true,
+        isGoogleSigningIn: false, // Ensure Google sign-in is false when email login starts
         loginError: null,
         error: null,
       };
@@ -122,6 +129,7 @@ export const authReducer = (state, action) => {
       return {
         ...state,
         isLoggingIn: false,
+        isGoogleSigningIn: false,
         user: action.payload.user,
         isAuthenticated: true,
         tokens: {
@@ -141,6 +149,55 @@ export const authReducer = (state, action) => {
     case AUTH_ACTIONS.LOGIN_FAILURE:
       return {
         ...state,
+        isLoggingIn: false,
+        isGoogleSigningIn: false,
+        loginError: action.payload.error,
+        error: action.payload.error,
+        user: null,
+        isAuthenticated: false,
+        tokens: {
+          ...state.tokens,
+          accessToken: null,
+          refreshToken: null,
+          expiresAt: null,
+        },
+      };
+
+    // Google sign-in actions
+    case AUTH_ACTIONS.GOOGLE_SIGNIN_START:
+      return {
+        ...state,
+        isGoogleSigningIn: true,
+        isLoggingIn: false, // Ensure email login is false when Google sign-in starts
+        loginError: null,
+        error: null,
+      };
+
+    case AUTH_ACTIONS.GOOGLE_SIGNIN_SUCCESS:
+      return {
+        ...state,
+        isGoogleSigningIn: false,
+        isLoggingIn: false,
+        user: action.payload.user,
+        isAuthenticated: true,
+        tokens: {
+          ...state.tokens,
+          accessToken: action.payload.accessToken,
+          refreshToken: action.payload.refreshToken,
+          expiresAt: action.payload.expiresAt,
+        },
+        userCache: {
+          lastUpdated: Date.now(),
+          data: action.payload.user,
+        },
+        loginError: null,
+        error: null,
+      };
+
+    case AUTH_ACTIONS.GOOGLE_SIGNIN_FAILURE:
+      return {
+        ...state,
+        isGoogleSigningIn: false,
         isLoggingIn: false,
         loginError: action.payload.error,
         error: action.payload.error,
@@ -295,6 +352,26 @@ export const authActions = {
 
   loginFailure: (error) => ({
     type: AUTH_ACTIONS.LOGIN_FAILURE,
+    payload: { error },
+  }),
+
+  // Google sign-in actions
+  googleSignInStart: () => ({
+    type: AUTH_ACTIONS.GOOGLE_SIGNIN_START,
+  }),
+
+  googleSignInSuccess: (user, tokens) => ({
+    type: AUTH_ACTIONS.GOOGLE_SIGNIN_SUCCESS,
+    payload: {
+      user,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresAt: tokens.expiresAt,
+    },
+  }),
+
+  googleSignInFailure: (error) => ({
+    type: AUTH_ACTIONS.GOOGLE_SIGNIN_FAILURE,
     payload: { error },
   }),
 

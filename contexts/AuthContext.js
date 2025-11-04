@@ -302,6 +302,44 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
+   * Sign in with Google OAuth
+   * @param {Object} options - Sign-in options
+   * @param {boolean} options.createDocumentIfNotExists - Create Firestore document if user doesn't exist (default: true)
+   * @returns {Promise<Object>} - Sign-in result
+   */
+  const googleSignIn = useCallback(async (options = {}) => {
+    try {
+      dispatch(authActions.googleSignInStart()); // Use googleSignInStart instead of loginStart
+      
+      // Call auth service to sign in with Google
+      const result = await authService.signInWithGoogle(options);
+      
+      if (result.success) {
+        // Dispatch success action
+        dispatch(authActions.googleSignInSuccess(result.user, result.tokens));
+        
+        console.log('AuthContext: Google sign-in successful');
+        return {
+          success: true,
+          user: result.user,
+          isNewUser: result.isNewUser,
+          message: result.message,
+        };
+      } else {
+        throw new Error(result.message || 'Google sign-in failed');
+      }
+    } catch (error) {
+      // Dispatch failure action
+      dispatch(authActions.googleSignInFailure(error.message));
+      
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }, []);
+
+  /**
    * Clear authentication error
    */
   const clearError = useCallback(() => {
@@ -516,9 +554,13 @@ export const AuthProvider = ({ children }) => {
     user: getCurrentUser(),
     error: getError(),
     
+    // State (expose isGoogleSigningIn)
+    isGoogleSigningIn: state.isGoogleSigningIn,
+    
     // Actions
     register,
     login,
+    googleSignIn,
     signOut,
     continueAsGuest,
     forceClearSessions,

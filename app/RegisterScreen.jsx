@@ -39,10 +39,10 @@ export default function RegisterScreen() {
   const router = useRouter();
 
   // Auth hooks
-  const { isAuthenticated, debugAuthState } = useAuth();
+  const { isAuthenticated, debugAuthState, googleSignIn } = useAuth();
   const { register } = useAuthActions();
   const { error: authError, clearError } = useAuthError();
-  const { isRegistering } = useAuthLoading();
+  const { isRegistering, isLoggingIn } = useAuthLoading();
 
   // Smart scrolling state
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -254,6 +254,58 @@ export default function RegisterScreen() {
     router.push('/LoginScreen');
   };
 
+  const handleGoogleSignUp = async () => {
+    try {
+      console.log('RegisterScreen: Google Sign-Up button clicked');
+      
+      // Sign in with Google and create document if user doesn't exist
+      const result = await googleSignIn({ createDocumentIfNotExists: true });
+      
+      if (result.success) {
+        if (result.isNewUser) {
+          // New account created - redirect to customer screen (without checking role)
+          showSuccessToast(
+            'Account Created!',
+            `Welcome to Salon 16, ${result.user.firstName || result.user.displayName || 'User'}!`,
+            { duration: 3000 }
+          );
+          
+          // Redirect to customer screen for all new signups
+          router.replace('/(customer-tabs)');
+        } else {
+          // Account already exists - sign in successful
+          showSuccessToast(
+            'Sign-In Successful!',
+            `Welcome back, ${result.user.firstName || result.user.displayName || 'User'}!`,
+            { duration: 3000 }
+          );
+          
+          // Navigate based on user role (since account existed)
+          if (result.user.role === 'admin') {
+            router.replace('/(admin-tabs)');
+          } else {
+            router.replace('/(customer-tabs)');
+          }
+        }
+      } else {
+        // Handle error
+        const errorMessage = result.error || 'Google sign-up failed. Please try again.';
+        showErrorToast(
+          'Sign-Up Failed',
+          errorMessage,
+          { duration: 5000 }
+        );
+      }
+    } catch (error) {
+      console.error('RegisterScreen: Google sign-up error', error);
+      showErrorToast(
+        'Sign-Up Error',
+        error.message || 'Something went wrong. Please try again.',
+        { duration: 5000 }
+      );
+    }
+  };
+
   // Styles matching LoginScreen pattern
   const styles = StyleSheet.create({
     container: {
@@ -435,6 +487,40 @@ export default function RegisterScreen() {
       color: colors.primary,
       fontWeight: 'bold',
       fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.8 : 2.0),
+    },
+    googleSignUpButton: {
+      backgroundColor: 'white',
+      marginBottom: responsive.spacing.md,
+      width: '100%',
+      minHeight: responsive.responsive.height(5.5),
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: borderRadius.button.large, // Match theme border radius
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 8,
+        },
+        web: {
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+        },
+      }),
+    },
+    googleSignUpButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    googleButtonText: {
+      color: '#3c4043',
+      fontWeight: '600',
+      fontSize: responsive.responsive.fontSize(responsive.isSmallScreen ? 1.6 : 1.8),
+      marginLeft: responsive.spacing.sm,
     },
     loginContainer: {
       flexDirection: 'row',
@@ -689,6 +775,23 @@ export default function RegisterScreen() {
                 disabled={isRegistering}
                 loading={isRegistering}
               />
+            </View>
+
+            {/* Google Sign-Up Button */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                onPress={handleGoogleSignUp}
+                style={styles.googleSignUpButton}
+                activeOpacity={0.8}
+                disabled={isLoggingIn || isRegistering}
+              >
+                <View style={styles.googleSignUpButtonContent}>
+                  {!isLoggingIn && <Ionicons name="logo-google" size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)} color="#4285F4" />}
+                  <ThemedText style={styles.googleButtonText}>
+                    {isLoggingIn ? 'Signing in...' : 'SignUp with Google'}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
             </View>
 
             {/* Login Link */}
