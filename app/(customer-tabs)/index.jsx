@@ -24,7 +24,6 @@ import { serviceService } from "../../services/firebaseService";
 
 // Section Components
 import AllServicesGrid from "../../components/sections/AllServicesGrid";
-import FeaturedServices from "../../components/sections/FeaturedServices";
 import HeroSection from "../../components/sections/HeroSection";
 // Platform-specific imports will be loaded dynamically
 import TodaysAvailability from "../../components/sections/TodaysAvailability";
@@ -409,7 +408,7 @@ export default function CustomerHomeScreen() {
         />
 
         {/* Featured Services */}
-        <FeaturedServices
+        {/* <FeaturedServices
           featuredServices={featuredServices}
           colors={colors}
           spacing={spacing}
@@ -418,7 +417,7 @@ export default function CustomerHomeScreen() {
           onServicePress={handleServicePress}
           onViewAllServices={handleViewAllServices}
           servicesAnim={servicesAnim}
-        />
+        /> */}
 
         {/* All Services Grid */}
         <AllServicesGrid
@@ -550,7 +549,7 @@ const createStyles = (colors, spacing, borderRadius, shadows, responsive) => Sty
     zIndex: 2, // Ensure content scrolls above decorative elements
   },
   content: {
-    paddingBottom: 100, // Space for bottom tabs
+    paddingBottom: responsive.isSmallScreen ? responsive.heightSpacing.xl : responsive.heightSpacing.xxl, // Space for bottom tabs
     backgroundColor: 'transparent',
   },
   // Floating Action Button Styles
