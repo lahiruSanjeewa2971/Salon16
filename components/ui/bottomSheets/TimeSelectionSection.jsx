@@ -284,7 +284,7 @@ export default function TimeSelectionSection({
       alignItems: "center",
       paddingVertical: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
       paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
-      marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      // marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
     },
     timePickerWrapper: {
       width: "100%",

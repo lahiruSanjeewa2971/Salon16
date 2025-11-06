@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Dimensions, Modal, Platform, ScrollView, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useResponsive } from "../../../hooks/useResponsive";
@@ -22,11 +22,25 @@ export default function ServiceBookingBottomSheet({
 }) {
   const theme = useTheme();
   const responsive = useResponsive();
+  const insets = useSafeAreaInsets();
 
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
   const spacing = theme?.spacing || {};
   const borderRadius = theme?.borderRadius || {};
+
+  // Calculate action buttons container height (approximate)
+  const actionButtonsHeight = 
+    (responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl) + // paddingTop
+    ((responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg) * 2) + // button paddingVertical (top + bottom)
+    (responsive.isSmallScreen ? responsive.responsive.fontSize(1.8) * 1.5 : responsive.responsive.fontSize(2.0) * 1.5) + // button text height
+    (responsive.isSmallScreen ? responsive.spacing.xl + insets.bottom : responsive.spacing.xxl + insets.bottom) + // paddingBottom + safe area
+    (responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl) + // marginTop
+    1; // borderTopWidth
+
+  // Calculate available height for ScrollView content container
+  const handleBarHeight = responsive.isSmallScreen ? (responsive.spacing.sm * 2 + 4) : (responsive.spacing.md * 2 + 4);
+  const availableContentHeight = (SCREEN_HEIGHT * 0.9) - handleBarHeight;
 
   // State management
   const [salonHoursData, setSalonHoursData] = useState({});
@@ -380,13 +394,18 @@ export default function ServiceBookingBottomSheet({
       flexDirection: 'column',
     },
     scrollContent: {
-      flexShrink: 1,
-      flexGrow: 1,
-      minHeight: 0,
+      flex: 1,
     },
     scrollContentContainer: {
+      flexGrow: 1,
+      minHeight: availableContentHeight,
+      flexDirection: 'column',
+    },
+    scrollContentInner: {
       paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
-      paddingBottom: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
+      paddingBottom: responsive.isSmallScreen ? responsive.spacing.xxl + insets.bottom : responsive.spacing.xxl * 1.5 + insets.bottom,
+      flexShrink: 1,
+      flexGrow: 0,
     },
     // Service Info Section
     serviceInfoSection: {
@@ -490,11 +509,15 @@ export default function ServiceBookingBottomSheet({
     actionButtonsContainer: {
       paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
       paddingTop: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
-      paddingBottom: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
+      paddingBottom: responsive.isSmallScreen ? responsive.spacing.xxxl : responsive.spacing.xxl,
+      marginTop: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.xxxl : responsive.spacing.xxl,
       borderTopWidth: 1,
       borderTopColor: "rgba(255, 255, 255, 0.2)",
-      backgroundColor: "rgba(0, 0, 0, 0.1)",
-      flexShrink: 0, // Prevent button container from being compressed
+      // backgroundColor: "rgba(236, 72, 153, 0.8)",
+      width: '100%',
+      flexShrink: 0,
+      flexGrow: 0,
     },
     placeBookingButton: {
       backgroundColor: colors.accent || "#EC4899",
@@ -596,144 +619,147 @@ export default function ServiceBookingBottomSheet({
                     showsVerticalScrollIndicator={false}
                     bounces={true}
                   >
-                  {/* Service Header */}
-                  <View style={styles.serviceHeader}>
-                    <ThemedText style={styles.serviceName}>
-                      {service?.name || "Service"}
-                    </ThemedText>
-                  </View>
-
-                  {/* Service Info Section */}
-                  <View style={styles.serviceInfoSection}>
-                    <View style={styles.serviceInfoRow}>
-                      {/* Price */}
-                      <View style={styles.serviceInfoItem}>
-                        <Ionicons
-                          name="cash"
-                          size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
-                          color={colors.accent || "#EC4899"}
-                          style={styles.serviceInfoIcon}
-                        />
-                        <ThemedText style={styles.serviceInfoPrice}>
-                          ${service?.price || 0}
+                    <View style={styles.scrollContentInner}>
+                      {/* Service Header */}
+                      <View style={styles.serviceHeader}>
+                        <ThemedText style={styles.serviceName}>
+                          {service?.name || "Service"}
                         </ThemedText>
                       </View>
 
-                      {/* Duration */}
-                      <View style={styles.serviceInfoItem}>
-                        <Ionicons
-                          name="time"
-                          size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
-                          color="white"
-                          style={styles.serviceInfoIcon}
-                        />
-                        <ThemedText style={styles.serviceInfoText}>
-                          {service?.duration || 0} min
+                      {/* Service Info Section */}
+                      <View style={styles.serviceInfoSection}>
+                        <View style={styles.serviceInfoRow}>
+                          {/* Price */}
+                          <View style={styles.serviceInfoItem}>
+                            <Ionicons
+                              name="cash"
+                              size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
+                              color={colors.accent || "#EC4899"}
+                              style={styles.serviceInfoIcon}
+                            />
+                            <ThemedText style={styles.serviceInfoPrice}>
+                              ${service?.price || 0}
+                            </ThemedText>
+                          </View>
+
+                          {/* Duration */}
+                          <View style={styles.serviceInfoItem}>
+                            <Ionicons
+                              name="time"
+                              size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
+                              color="white"
+                              style={styles.serviceInfoIcon}
+                            />
+                            <ThemedText style={styles.serviceInfoText}>
+                              {service?.duration || 0} min
+                            </ThemedText>
+                          </View>
+                        </View>
+
+                        {/* Description */}
+                        {service?.description && (
+                          <ThemedText style={styles.serviceDescription}>
+                            {service.description}
+                          </ThemedText>
+                        )}
+                      </View>
+
+                      {/* Date Selection Section */}
+                      <View style={styles.dateSelectionSection}>
+                        <ThemedText style={styles.sectionTitle}>
+                          Select Date
                         </ThemedText>
+
+                        {loadingHours ? (
+                          <View style={styles.loadingContainer}>
+                            <ThemedText style={styles.loadingText}>
+                              Loading available dates...
+                            </ThemedText>
+                          </View>
+                        ) : (
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.dateCardsContainer}
+                            bounces={false}
+                          >
+                            {availableDates.map((dateInfo) => {
+                              const { dayName, dayNumber } = formatDateDisplay(
+                                dateInfo.date,
+                                dateInfo.dateObj
+                              );
+                              const isSelected = selectedDate === dateInfo.date;
+                              const isAvailable = dateInfo.availability.isAvailable;
+
+                              return (
+                                <TouchableOpacity
+                                  key={dateInfo.date}
+                                  style={[
+                                    styles.dateCard,
+                                    isSelected && styles.dateCardSelected,
+                                    !isAvailable && styles.dateCardDisabled,
+                                  ]}
+                                  onPress={() => handleDateSelect(dateInfo.date)}
+                                  disabled={!isAvailable}
+                                  activeOpacity={0.7}
+                                >
+                                  <ThemedText style={styles.dateCardDayName}>
+                                    {dayName}
+                                  </ThemedText>
+                                  <ThemedText style={styles.dateCardDayNumber}>
+                                    {dayNumber}
+                                  </ThemedText>
+                                  <View style={styles.dateCardStatusIcon}>
+                                    {isAvailable ? (
+                                      <Ionicons
+                                        name="checkmark-circle"
+                                        size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
+                                        color={isSelected ? "white" : colors.status?.success || "#10B981"}
+                                      />
+                                    ) : (
+                                      <Ionicons
+                                        name="close-circle"
+                                        size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
+                                        color={colors.status?.error || "#EF4444"}
+                                      />
+                                    )}
+                                  </View>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        )}
+                      </View>
+
+                      {/* Time Selection Section */}
+                      <TimeSelectionSection
+                        selectedDate={selectedDate}
+                        service={service}
+                        salonHoursData={salonHoursData}
+                        onTimeChange={handleTimeChange}
+                        onValidationChange={handleValidationChange}
+                      />
+
+                      {/* Action Buttons Section */}
+                      <View style={styles.actionButtonsContainer}>
+                        <TouchableOpacity
+                          style={[
+                            styles.placeBookingButton,
+                            (!selectedDate || !selectedTime || !isTimeValid) && styles.placeBookingButtonDisabled,
+                          ]}
+                          onPress={handlePlaceBooking}
+                          disabled={!selectedDate || !selectedTime || !isTimeValid}
+                          activeOpacity={0.8}
+                        >
+                          <ThemedText style={styles.placeBookingButtonText}>
+                            Place Booking
+                          </ThemedText>
+                        </TouchableOpacity>
                       </View>
                     </View>
 
-                    {/* Description */}
-                    {service?.description && (
-                      <ThemedText style={styles.serviceDescription}>
-                        {service.description}
-                      </ThemedText>
-                    )}
-                  </View>
-
-                  {/* Date Selection Section */}
-                  <View style={styles.dateSelectionSection}>
-                    <ThemedText style={styles.sectionTitle}>
-                      Select Date
-                    </ThemedText>
-
-                    {loadingHours ? (
-                      <View style={styles.loadingContainer}>
-                        <ThemedText style={styles.loadingText}>
-                          Loading available dates...
-                        </ThemedText>
-                      </View>
-                    ) : (
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.dateCardsContainer}
-                        bounces={false}
-                      >
-                        {availableDates.map((dateInfo) => {
-                          const { dayName, dayNumber } = formatDateDisplay(
-                            dateInfo.date,
-                            dateInfo.dateObj
-                          );
-                          const isSelected = selectedDate === dateInfo.date;
-                          const isAvailable = dateInfo.availability.isAvailable;
-
-                          return (
-                            <TouchableOpacity
-                              key={dateInfo.date}
-                              style={[
-                                styles.dateCard,
-                                isSelected && styles.dateCardSelected,
-                                !isAvailable && styles.dateCardDisabled,
-                              ]}
-                              onPress={() => handleDateSelect(dateInfo.date)}
-                              disabled={!isAvailable}
-                              activeOpacity={0.7}
-                            >
-                              <ThemedText style={styles.dateCardDayName}>
-                                {dayName}
-                              </ThemedText>
-                              <ThemedText style={styles.dateCardDayNumber}>
-                                {dayNumber}
-                              </ThemedText>
-                              <View style={styles.dateCardStatusIcon}>
-                                {isAvailable ? (
-                                  <Ionicons
-                                    name="checkmark-circle"
-                                    size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
-                                    color={isSelected ? "white" : colors.status?.success || "#10B981"}
-                                  />
-                                ) : (
-                                  <Ionicons
-                                    name="close-circle"
-                                    size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
-                                    color={colors.status?.error || "#EF4444"}
-                                  />
-                                )}
-                              </View>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                    )}
-                  </View>
-
-                  {/* Time Selection Section */}
-                  <TimeSelectionSection
-                    selectedDate={selectedDate}
-                    service={service}
-                    salonHoursData={salonHoursData}
-                    onTimeChange={handleTimeChange}
-                    onValidationChange={handleValidationChange}
-                  />
                   </ScrollView>
-
-                  {/* Action Buttons Section */}
-                  <View style={styles.actionButtonsContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.placeBookingButton,
-                      (!selectedDate || !selectedTime || !isTimeValid) && styles.placeBookingButtonDisabled,
-                    ]}
-                    onPress={handlePlaceBooking}
-                    disabled={!selectedDate || !selectedTime || !isTimeValid}
-                    activeOpacity={0.8}
-                  >
-                    <ThemedText style={styles.placeBookingButtonText}>
-                      Place Booking
-                    </ThemedText>
-                  </TouchableOpacity>
-                  </View>
                 </View>
               </LinearGradient>
             </SafeAreaView>
