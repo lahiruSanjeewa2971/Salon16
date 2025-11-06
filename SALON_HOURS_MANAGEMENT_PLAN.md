@@ -1,7 +1,7 @@
 # 🕒 Salon Hours Management Bottom Sheet - Implementation Plan
 
 ## 📋 Overview
-Enhance the existing `ServiceBookingBottomSheet` to include salon hours management functionality when a day is long-pressed in the admin bookings calendar.
+Enhance the existing `AdminCalendarBottomSheet` to include salon hours management functionality when a day is long-pressed in the admin bookings calendar.
 
 ## 🎯 Core Features
 
@@ -63,7 +63,7 @@ Enhance the existing `ServiceBookingBottomSheet` to include salon hours manageme
 
 ### 1. **Component Structure**
 ```javascript
-// Enhanced ServiceBookingBottomSheet props
+// Enhanced AdminCalendarBottomSheet props
 {
   visible: boolean,
   selectedDate: string,
@@ -217,7 +217,7 @@ User taps Save → Validate data → Show loading → Save to Firestore → Show
 ## 🚀 Implementation Phases
 
 ### **Phase 1: Core Structure**
-- [ ] Add `salon-hours` mode to ServiceBookingBottomSheet
+- [ ] Add `salon-hours` mode to AdminCalendarBottomSheet
 - [ ] Create salon hours state management
 - [ ] Implement basic UI layout
 - [ ] Add day-specific logic (Tuesday closure)

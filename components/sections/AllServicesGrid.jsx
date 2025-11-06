@@ -7,9 +7,9 @@ import Animated, {
   useAnimatedStyle,
 } from 'react-native-reanimated';
 
-import { ThemedText } from '../ThemedText';
-import ServiceBookingBottomSheet from '../ui/ServiceBookingBottomSheet';
 import { useResponsive } from '../../hooks/useResponsive';
+import { ThemedText } from '../ThemedText';
+import ServiceBookingModal from '../ui/bottomSheets/ServiceBookingBottomSheet';
 
 const AllServicesGrid = ({ 
   services, 
@@ -224,8 +224,8 @@ const AllServicesGrid = ({
         })}
       </View>
       
-      {/* Service Booking Bottom Sheet */}
-      <ServiceBookingBottomSheet
+      {/* Service Booking Modal */}
+      <ServiceBookingModal
         visible={isBottomSheetVisible}
         service={selectedService}
         onClose={handleCloseBottomSheet}

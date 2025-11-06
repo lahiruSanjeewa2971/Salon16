@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StatusBar, StyleSheet, View, Platform } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import {
   useAnimatedStyle,
   useSharedValue,
@@ -10,8 +10,8 @@ import {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AdminCalendarBottomSheet from '../../components/ui/bottomSheets/AdminCalendarBottomSheet';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
-import ServiceBookingBottomSheet from '../../components/ui/ServiceBookingBottomSheet';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -362,7 +362,7 @@ export default function AdminBookingsScreen() {
         </View>
 
         {/* Service Booking Bottom Sheet */}
-        <ServiceBookingBottomSheet
+        <AdminCalendarBottomSheet
           visible={isBottomSheetVisible}
           selectedDate={bottomSheetDate}
           mode="salon-hours"

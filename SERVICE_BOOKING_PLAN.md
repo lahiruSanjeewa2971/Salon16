@@ -45,7 +45,7 @@ Show Success/Error Feedback
 
 ### **Component Structure**
 ```
-ServiceBookingBottomSheet
+AdminCalendarBottomSheet
 ├── Service Header Section
 │   └── Service Name (Large, Bold)
 ├── Service Info Section (Body)
@@ -1134,7 +1134,7 @@ Are there any bookings? (existingBookings.length > 0)
 ## 🔗 Related Files
 
 ### **Components**
-- `components/ui/ServiceBookingBottomSheet.jsx` - Main booking component
+- `components/ui/AdminCalendarBottomSheet.jsx` - Main booking component
 - `components/sections/AllServicesGrid.jsx` - Service grid with "Book Now" button
 
 ### **Services**

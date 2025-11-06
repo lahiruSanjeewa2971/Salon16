@@ -7,15 +7,15 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming, } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useTheme } from "../../contexts/ThemeContext";
+import { useTheme } from "../../../contexts/ThemeContext";
 import {
   salonHoursService
-} from "../../services/firebaseService";
-import { ThemedText } from "../ThemedText";
+} from "../../../services/firebaseService";
+import { ThemedText } from "../../ThemedText";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-export default function ServiceBookingBottomSheet({
+export default function AdminCalendarBottomSheet({
   visible,
   service,
   selectedDate,
@@ -1250,3 +1250,4 @@ export default function ServiceBookingBottomSheet({
     </Modal>
   );
 }
+
