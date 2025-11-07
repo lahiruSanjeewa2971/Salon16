@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, TouchableOpacity, View } from "react-native";
 
@@ -83,6 +84,45 @@ export default function TimeSelectionSection({
     return `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
 
+  // Check if selected date is "Today"
+  const isToday = (dateStr) => {
+    if (!dateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateStr + 'T00:00:00');
+    selectedDate.setHours(0, 0, 0, 0);
+    return today.getTime() === selectedDate.getTime();
+  };
+
+  // Get earliest valid time for "Today" (current time rounded up to next 15-minute interval)
+  const getEarliestValidTime = () => {
+    const now = new Date();
+    const currentMinutes = now.getMinutes();
+    // Round up to next 15-minute interval
+    const roundedMinutes = Math.ceil(currentMinutes / 15) * 15;
+    const earliestTime = new Date(now);
+    if (roundedMinutes >= 60) {
+      earliestTime.setHours(earliestTime.getHours() + 1);
+      earliestTime.setMinutes(0);
+    } else {
+      earliestTime.setMinutes(roundedMinutes);
+    }
+    earliestTime.setSeconds(0);
+    earliestTime.setMilliseconds(0);
+    return earliestTime;
+  };
+
+  // Check if a time option is disabled for "Today" (past time)
+  const isTimeOptionDisabled = (hour, minute, ampm) => {
+    if (!isToday(selectedDate)) return false;
+    
+    const earliestValidTime = getEarliestValidTime();
+    const time24 = formatTime24(hour, minute, ampm);
+    const selectedDateTime = new Date(selectedDate + 'T' + time24);
+    
+    return selectedDateTime < earliestValidTime;
+  };
+
   // Validate time picker selection
   const validateTimePickerSelection = (hour, minute, ampm, date = selectedDate) => {
     if (!date || !service) return { valid: false, error: 'Date or service not selected' };
@@ -105,9 +145,25 @@ export default function TimeSelectionSection({
       return { valid: false, error: 'Selected time is outside salon hours' };
     }
 
-    // Check if service duration fits before closing
+    // For "Today", check if selected time is in the past
+    if (isToday(date)) {
+      const earliestValidTime = getEarliestValidTime();
+      if (selectedDateTime < earliestValidTime) {
+        const formatTime12 = (dateObj) => {
+          const hours = dateObj.getHours();
+          const minutes = dateObj.getMinutes();
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const displayHours = hours % 12 || 12;
+          return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+        };
+        return { valid: false, error: `Please select a time after ${formatTime12(earliestValidTime)}` };
+      }
+    }
+
+    // Check if service duration fits before closing (including 20-minute buffer)
+    const bufferMinutes = 20;
     const serviceEndTime = new Date(selectedDateTime);
-    serviceEndTime.setMinutes(serviceEndTime.getMinutes() + service.duration);
+    serviceEndTime.setMinutes(serviceEndTime.getMinutes() + service.duration + bufferMinutes);
 
     if (serviceEndTime > closeTime) {
       return { valid: false, error: 'Service duration exceeds closing time' };
@@ -116,21 +172,42 @@ export default function TimeSelectionSection({
     return { valid: true };
   };
 
+  // Track previous date to detect date changes
+  const prevDateRef = useRef(selectedDate);
+
   // Load existing bookings for selected date
   useEffect(() => {
     if (selectedDate) {
-      loadExistingBookings(selectedDate);
+      const isDateChange = prevDateRef.current !== null && prevDateRef.current !== selectedDate;
+      prevDateRef.current = selectedDate;
+      
+      // Clear time selection when date changes
+      if (isDateChange) {
+        setSelectedTime(null);
+        setSelectedHour(9);
+        setSelectedMinute(30);
+        setSelectedAmPm('AM');
+        setTimeValidationError(null);
+        onTimeChange(null);
+        onValidationChange(false);
+      }
+      
+      loadExistingBookings(selectedDate, isDateChange);
     } else {
       setExistingBookings([]);
       setTimeSelectionMode(null);
       setSelectedTime(null);
+      setSelectedHour(9);
+      setSelectedMinute(30);
+      setSelectedAmPm('AM');
       setTimeValidationError(null);
       onTimeChange(null);
       onValidationChange(false);
+      prevDateRef.current = null;
     }
   }, [selectedDate]);
 
-  const loadExistingBookings = async (date) => {
+  const loadExistingBookings = async (date, skipAutoInit = false) => {
     setLoadingBookings(true);
     try {
       const bookings = await bookingService.getBookingsByDate(date);
@@ -141,7 +218,8 @@ export default function TimeSelectionSection({
       setTimeSelectionMode(hasBookings ? 'slots' : 'picker');
 
       // Initialize time picker with salon opening time if in picker mode
-      if (!hasBookings) {
+      // Skip auto-initialization if this is a date change (user should manually select time)
+      if (!hasBookings && !skipAutoInit) {
         const hours = getSalonHoursForDate(date);
         if (hours && hours.openTime && !hours.isClosed) {
           const [openHour24, openMinute] = hours.openTime.split(':').map(Number);
@@ -269,8 +347,31 @@ export default function TimeSelectionSection({
       fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.3) : responsive.responsive.fontSize(1.4),
       color: "rgba(255, 255, 255, 0.7)",
       textAlign: "center",
-      marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
       paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+    },
+    timeErrorContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(239, 68, 68, 0.2)",
+      borderRadius: borderRadius.md || 12,
+      borderWidth: 1,
+      borderColor: colors.status?.error || "#EF4444",
+      paddingVertical: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
+      paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      marginHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+    },
+    timeErrorIcon: {
+      marginRight: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
+    },
+    timeErrorText: {
+      fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.4) : responsive.responsive.fontSize(1.5),
+      color: "#FFB3B3",
+      fontWeight: "600",
+      textAlign: "center",
+      flex: 1,
     },
     loadingContainer: {
       paddingVertical: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
@@ -456,6 +557,21 @@ export default function TimeSelectionSection({
         </ThemedText>
       )}
 
+      {/* Error Message - Display after Operating Hours */}
+      {timeValidationError && (
+        <View style={styles.timeErrorContainer}>
+          <Ionicons
+            name="alert-circle"
+            size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)}
+            color={colors.status?.error || "#EF4444"}
+            style={styles.timeErrorIcon}
+          />
+          <ThemedText style={styles.timeErrorText}>
+            {timeValidationError}
+          </ThemedText>
+        </View>
+      )}
+
       {loadingBookings ? (
         <View style={styles.loadingContainer}>
           <ThemedText style={styles.loadingText}>
@@ -486,32 +602,38 @@ export default function TimeSelectionSection({
                     paddingVertical: responsive.isSmallScreen ? responsive.responsive.height(6) : responsive.responsive.height(7),
                   }}
                 >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
-                    <TouchableOpacity
-                      key={hour}
-                      style={[
-                        styles.timePickerItem,
-                        selectedHour === hour && styles.timePickerItemSelected,
-                      ]}
-                      onPress={() => {
-                        handleTimePickerChange(hour, selectedMinute, selectedAmPm);
-                        // Scroll to selected item
-                        const itemHeight = responsive.isSmallScreen ? responsive.responsive.height(10) : responsive.responsive.height(12);
-                        const offset = (hour - 1) * itemHeight;
-                        hourScrollRef.current?.scrollTo({ y: offset, animated: true });
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <ThemedText
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => {
+                    const isDisabled = isTimeOptionDisabled(hour, selectedMinute, selectedAmPm);
+                    return (
+                      <TouchableOpacity
+                        key={hour}
                         style={[
-                          styles.timePickerItemText,
-                          selectedHour === hour && styles.timePickerItemSelectedText,
+                          styles.timePickerItem,
+                          selectedHour === hour && styles.timePickerItemSelected,
                         ]}
+                        onPress={() => {
+                          if (!isDisabled) {
+                            handleTimePickerChange(hour, selectedMinute, selectedAmPm);
+                            // Scroll to selected item
+                            const itemHeight = responsive.isSmallScreen ? responsive.responsive.height(10) : responsive.responsive.height(12);
+                            const offset = (hour - 1) * itemHeight;
+                            hourScrollRef.current?.scrollTo({ y: offset, animated: true });
+                          }
+                        }}
+                        disabled={isDisabled}
+                        activeOpacity={isDisabled ? 1 : 0.8}
                       >
-                        {hour}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))}
+                        <ThemedText
+                          style={[
+                            styles.timePickerItemText,
+                            selectedHour === hour && styles.timePickerItemSelectedText,
+                          ]}
+                        >
+                          {hour}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
 
@@ -531,33 +653,39 @@ export default function TimeSelectionSection({
                     paddingVertical: responsive.isSmallScreen ? responsive.responsive.height(6) : responsive.responsive.height(7),
                   }}
                 >
-                  {[0, 15, 30, 45].map((minute) => (
-                    <TouchableOpacity
-                      key={minute}
-                      style={[
-                        styles.timePickerItem,
-                        selectedMinute === minute && styles.timePickerItemSelected,
-                      ]}
-                      onPress={() => {
-                        handleTimePickerChange(selectedHour, minute, selectedAmPm);
-                        // Scroll to selected item
-                        const itemHeight = responsive.isSmallScreen ? responsive.responsive.height(10) : responsive.responsive.height(12);
-                        const minuteIndex = [0, 15, 30, 45].indexOf(minute);
-                        const offset = minuteIndex * itemHeight;
-                        minuteScrollRef.current?.scrollTo({ y: offset, animated: true });
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <ThemedText
+                  {[0, 15, 30, 45].map((minute) => {
+                    const isDisabled = isTimeOptionDisabled(selectedHour, minute, selectedAmPm);
+                    return (
+                      <TouchableOpacity
+                        key={minute}
                         style={[
-                          styles.timePickerItemText,
-                          selectedMinute === minute && styles.timePickerItemSelectedText,
+                          styles.timePickerItem,
+                          selectedMinute === minute && styles.timePickerItemSelected,
                         ]}
+                        onPress={() => {
+                          if (!isDisabled) {
+                            handleTimePickerChange(selectedHour, minute, selectedAmPm);
+                            // Scroll to selected item
+                            const itemHeight = responsive.isSmallScreen ? responsive.responsive.height(10) : responsive.responsive.height(12);
+                            const minuteIndex = [0, 15, 30, 45].indexOf(minute);
+                            const offset = minuteIndex * itemHeight;
+                            minuteScrollRef.current?.scrollTo({ y: offset, animated: true });
+                          }
+                        }}
+                        disabled={isDisabled}
+                        activeOpacity={isDisabled ? 1 : 0.8}
                       >
-                        {minute.toString().padStart(2, '0')}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))}
+                        <ThemedText
+                          style={[
+                            styles.timePickerItemText,
+                            selectedMinute === minute && styles.timePickerItemSelectedText,
+                          ]}
+                        >
+                          {minute.toString().padStart(2, '0')}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
             </View>
@@ -570,7 +698,12 @@ export default function TimeSelectionSection({
                 styles.amPmButton,
                 selectedAmPm === 'AM' && styles.amPmButtonSelected,
               ]}
-              onPress={() => handleTimePickerChange(selectedHour, selectedMinute, 'AM')}
+              onPress={() => {
+                if (!isTimeOptionDisabled(selectedHour, selectedMinute, 'AM')) {
+                  handleTimePickerChange(selectedHour, selectedMinute, 'AM');
+                }
+              }}
+              disabled={isTimeOptionDisabled(selectedHour, selectedMinute, 'AM')}
               activeOpacity={0.7}
             >
               <ThemedText
@@ -587,7 +720,12 @@ export default function TimeSelectionSection({
                 styles.amPmButton,
                 selectedAmPm === 'PM' && styles.amPmButtonSelected,
               ]}
-              onPress={() => handleTimePickerChange(selectedHour, selectedMinute, 'PM')}
+              onPress={() => {
+                if (!isTimeOptionDisabled(selectedHour, selectedMinute, 'PM')) {
+                  handleTimePickerChange(selectedHour, selectedMinute, 'PM');
+                }
+              }}
+              disabled={isTimeOptionDisabled(selectedHour, selectedMinute, 'PM')}
               activeOpacity={0.7}
             >
               <ThemedText

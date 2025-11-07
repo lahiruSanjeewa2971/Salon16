@@ -154,6 +154,38 @@ export default function ServiceBookingBottomSheet({
       return { isAvailable: false, reason: 'Past date' };
     }
 
+    // Check if "Today" should be disabled based on current time + service duration + buffer
+    const todayStr = formatDateToString(today);
+    if (dateStr === todayStr && service) {
+      const now = new Date();
+      const bufferMinutes = 20; // 20-minute buffer between bookings
+      
+      if (salonHours && salonHours.closeTime && !salonHours.isClosed) {
+        // Calculate if current time + service duration + buffer exceeds closing time
+        const serviceEndTime = new Date(now);
+        serviceEndTime.setMinutes(serviceEndTime.getMinutes() + service.duration + bufferMinutes);
+        
+        const [closeHour, closeMinute] = salonHours.closeTime.split(':').map(Number);
+        const closeTime = new Date(now);
+        closeTime.setHours(closeHour, closeMinute, 0, 0);
+        
+        if (serviceEndTime > closeTime) {
+          return { isAvailable: false, reason: 'Too late to book today' };
+        }
+      } else if (!salonHours) {
+        // If no salon hours, use default closing time (21:00)
+        const serviceEndTime = new Date(now);
+        serviceEndTime.setMinutes(serviceEndTime.getMinutes() + service.duration + bufferMinutes);
+        
+        const closeTime = new Date(now);
+        closeTime.setHours(21, 0, 0, 0);
+        
+        if (serviceEndTime > closeTime) {
+          return { isAvailable: false, reason: 'Too late to book today' };
+        }
+      }
+    }
+
     if (!salonHours) {
       // If no salon hours data, check if it's Tuesday (default closure)
       const dateForCheck = new Date(dateStr + 'T00:00:00');
