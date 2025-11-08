@@ -332,6 +332,27 @@ export const bookingService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Delete booking
+  deleteBooking: async (bookingId) => {
+    try {
+      return await firestoreService.delete('bookings', bookingId);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Subscribe to user bookings (real-time)
+  subscribeToUserBookings: (userId, callback) => {
+    try {
+      return firestoreService.listen('bookings', 
+        [{ field: 'customerId', operator: '==', value: userId }],
+        callback
+      );
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
