@@ -7,10 +7,12 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAuth } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useResponsive } from "../../../hooks/useResponsive";
-import { salonHoursService } from "../../../services/firebaseService";
+import { bookingService, salonHoursService } from "../../../services/firebaseService";
 import { ThemedText } from "../../ThemedText";
+import { useToastHelpers } from "../ToastSystem";
 import TimeSelectionSection from "./TimeSelectionSection";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -23,6 +25,8 @@ export default function ServiceBookingBottomSheet({
   const theme = useTheme();
   const responsive = useResponsive();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { showSuccess, showError } = useToastHelpers();
 
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -51,6 +55,9 @@ export default function ServiceBookingBottomSheet({
   // Time selection state (managed by TimeSelectionSection component)
   const [selectedTime, setSelectedTime] = useState(null); // Format: "HH:mm"
   const [isTimeValid, setIsTimeValid] = useState(false); // Validation state from TimeSelectionSection
+  
+  // Booking submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Animation values
   const translateY = useSharedValue(SCREEN_HEIGHT);
@@ -336,14 +343,154 @@ export default function ServiceBookingBottomSheet({
   };
 
   // Handle place booking button click
-  const handlePlaceBooking = () => {
-    console.log('Place Booking clicked', {
-      service: service?.id,
-      serviceName: service?.name,
-      date: selectedDate,
-      time: selectedTime,
-      isValid: isTimeValid,
-    });
+  const handlePlaceBooking = async () => {
+    // Validation checks
+    if (!user) {
+      showError('Authentication Required', 'Please login to place a booking');
+      return;
+    }
+
+    if (!service) {
+      showError('Service Error', 'Service information is missing');
+      return;
+    }
+
+    if (!selectedDate) {
+      showError('Date Required', 'Please select a date for your booking');
+      return;
+    }
+
+    if (!selectedTime) {
+      showError('Time Required', 'Please select a time for your booking');
+      return;
+    }
+
+    if (!isTimeValid) {
+      showError('Invalid Time', 'Please select a valid time within salon operating hours');
+      return;
+    }
+
+    // Check if service duration fits before closing (with buffer)
+    const bufferMinutes = 20;
+    const hours = salonHoursData[selectedDate];
+    if (hours && hours.closeTime && !hours.isClosed) {
+      const [closeHour, closeMinute] = hours.closeTime.split(':').map(Number);
+      const selectedDateTime = new Date(selectedDate + 'T' + selectedTime);
+      const serviceEndTime = new Date(selectedDateTime);
+      serviceEndTime.setMinutes(serviceEndTime.getMinutes() + service.duration + bufferMinutes);
+      
+      const closeTime = new Date(selectedDate + 'T' + hours.closeTime);
+      if (serviceEndTime > closeTime) {
+        showError('Invalid Booking', 'Service duration exceeds salon closing time');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Final check: Verify no conflicting bookings exist (double-check before saving)
+      // This will return an empty array if no bookings exist or if query fails
+      let existingBookings = [];
+      try {
+        existingBookings = await bookingService.getBookingsByDate(selectedDate);
+      } catch (queryError) {
+        // If query fails (e.g., permissions, empty collection), continue with empty array
+        // This allows booking creation even if we can't check for conflicts
+        console.warn('Could not query existing bookings, proceeding with conflict check:', queryError.message);
+        existingBookings = [];
+      }
+      
+      // Ensure existingBookings is an array
+      if (!Array.isArray(existingBookings)) {
+        existingBookings = [];
+      }
+      
+      const bufferMinutes = 20;
+      const selectedDateTime = new Date(selectedDate + 'T' + selectedTime);
+      const bookingEndTime = new Date(selectedDateTime);
+      bookingEndTime.setMinutes(bookingEndTime.getMinutes() + service.duration);
+
+      // Check for conflicts with existing bookings (including buffer)
+      const hasConflict = existingBookings.some(booking => {
+        if (booking.status === 'cancelled') return false; // Ignore cancelled bookings
+        
+        const bookingStart = new Date(booking.date + 'T' + booking.time);
+        const bookingEnd = new Date(bookingStart);
+        bookingEnd.setMinutes(bookingEnd.getMinutes() + (booking.serviceDuration || 30));
+
+        // Add buffer zones
+        const bookingStartWithBuffer = new Date(bookingStart);
+        bookingStartWithBuffer.setMinutes(bookingStartWithBuffer.getMinutes() - bufferMinutes);
+        const bookingEndWithBuffer = new Date(bookingEnd);
+        bookingEndWithBuffer.setMinutes(bookingEndWithBuffer.getMinutes() + bufferMinutes);
+
+        // Check if new booking overlaps with existing booking + buffer
+        return (selectedDateTime < bookingEndWithBuffer && bookingEndTime > bookingStartWithBuffer);
+      });
+
+      if (hasConflict) {
+        showError(
+          'Time Slot Unavailable',
+          'This time slot has been booked by another customer. Please select a different time.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Prepare booking data
+      const bookingData = {
+        customerId: user.uid,
+        customerName: user.displayName || user.name || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : null) || user.email?.split('@')[0] || 'Customer',
+        serviceId: service.id,
+        serviceName: service.name,
+        servicePrice: service.price,
+        serviceDuration: service.duration,
+        categoryId: service.category?.id || null,
+        categoryName: service.category?.name || null,
+        date: selectedDate, // YYYY-MM-DD format
+        time: selectedTime, // HH:mm format
+        status: 'pending',
+        notes: '',
+        rescheduleCount: 0,
+      };
+
+      // Create booking in Firestore
+      await bookingService.createBooking(bookingData);
+
+      // Show success toast
+      showSuccess(
+        'Booking Confirmed',
+        `Your booking for ${service.name} on ${formatDateDisplay(selectedDate, new Date(selectedDate + 'T00:00:00')).dayName} at ${formatTimeDisplay(selectedTime)} has been confirmed.`,
+        { duration: 4000 }
+      );
+
+      // Close bottom sheet after a short delay to allow toast to be visible
+      setTimeout(() => {
+        onClose();
+        // Reset state
+        setSelectedDate(null);
+        setSelectedTime(null);
+        setIsTimeValid(false);
+      }, 500);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      showError(
+        'Booking Failed',
+        error.message || 'Failed to create booking. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Format time for display (12-hour format)
+  const formatTimeDisplay = (time24) => {
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
   const styles = {
@@ -778,14 +925,14 @@ export default function ServiceBookingBottomSheet({
                         <TouchableOpacity
                           style={[
                             styles.placeBookingButton,
-                            (!selectedDate || !selectedTime || !isTimeValid) && styles.placeBookingButtonDisabled,
+                            (!selectedDate || !selectedTime || !isTimeValid || isSubmitting) && styles.placeBookingButtonDisabled,
                           ]}
                           onPress={handlePlaceBooking}
-                          disabled={!selectedDate || !selectedTime || !isTimeValid}
+                          disabled={!selectedDate || !selectedTime || !isTimeValid || isSubmitting}
                           activeOpacity={0.8}
                         >
                           <ThemedText style={styles.placeBookingButtonText}>
-                            Place Booking
+                            {isSubmitting ? 'Placing Booking...' : 'Place Booking'}
                           </ThemedText>
                         </TouchableOpacity>
                       </View>

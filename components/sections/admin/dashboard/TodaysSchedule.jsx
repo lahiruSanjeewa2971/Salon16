@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
 
-export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking }) {
+export default function TodaysSchedule({ bookings, loading, animatedStyle, onViewBooking }) {
   const theme = useTheme();
   
   // Add comprehensive safety checks for theme destructuring
@@ -14,16 +14,29 @@ export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking 
   const borderRadius = theme?.borderRadius || {};
   const colors = theme?.colors || {};
 
-  // Add null safety for schedule
-  const safeSchedule = schedule || [];
+  // Add null safety for bookings
+  const safeBookings = bookings || [];
+
+  // Format time helper
+  const formatTime = (time) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed': return colors.success;
-      case 'in-progress': return colors.warning;
-      case 'upcoming': return colors.accent; // Changed from colors.info to colors.accent for better visibility
-      case 'cancelled': return colors.error;
-      default: return colors.textSecondary;
+      case 'completed': return colors?.success || '#10B981';
+      case 'in-progress': return colors?.warning || '#F59E0B';
+      case 'upcoming': return colors?.info || '#3B82F6';
+      case 'pending': return colors?.warning || '#F59E0B';
+      case 'accepted': return colors?.success || '#10B981';
+      case 'cancelled': return colors?.error || '#EF4444';
+      case 'rejected': return colors?.error || '#EF4444';
+      default: return colors?.textSecondary || '#666666';
     }
   };
 
@@ -32,8 +45,11 @@ export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking 
       case 'completed': return 'checkmark-circle';
       case 'in-progress': return 'time';
       case 'upcoming': return 'time-outline';
+      case 'pending': return 'time-outline';
+      case 'accepted': return 'checkmark-circle';
       case 'cancelled': return 'close-circle';
-      default: return 'ellipse';
+      case 'rejected': return 'close-circle';
+      default: return 'help-circle';
     }
   };
 
@@ -74,33 +90,49 @@ export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking 
       fontWeight: '600',
       color: 'white',
       width: 60,
+      marginRight: spacing.md,
     },
     bookingDetails: {
       flex: 1,
-      marginLeft: spacing.md,
+      marginRight: spacing.md,
     },
-    bookingService: {
+    bookingCustomer: {
       fontSize: 16,
       fontWeight: '600',
       color: 'white',
       marginBottom: spacing.xs,
     },
-    bookingCustomer: {
+    bookingService: {
       fontSize: 14,
       color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: spacing.xs,
     },
-    bookingStatus: {
+    bookingPriceDurationRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginLeft: spacing.md,
+      marginTop: spacing.xs,
     },
-    statusIcon: {
+    bookingPrice: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors?.accent || '#D4AF37',
       marginRight: spacing.xs,
     },
+    bookingDuration: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.7)',
+    },
+    bookingStatus: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    statusIcon: {
+      marginBottom: spacing.xs,
+    },
     statusText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '600',
-      color: 'white',
+      textTransform: 'capitalize',
     },
     emptyState: {
       padding: spacing.xl,
@@ -113,54 +145,86 @@ export default function TodaysSchedule({ schedule, animatedStyle, onViewBooking 
     },
   };
 
+  if (loading) {
+    return (
+      <Animated.View style={animatedStyle}>
+        <View style={styles.scheduleContainer}>
+          <View style={styles.scheduleHeader}>
+            <ThemedText style={styles.scheduleTitle}>Today&apos;s Schedule</ThemedText>
+            <ThemedText style={styles.scheduleSubtitle}>Loading bookings...</ThemedText>
+          </View>
+          <View style={styles.emptyState}>
+            <ThemedText style={styles.emptyText}>Loading...</ThemedText>
+          </View>
+        </View>
+      </Animated.View>
+    );
+  }
+
   return (
     <Animated.View style={animatedStyle}>
       <View style={styles.scheduleContainer}>
         <View style={styles.scheduleHeader}>
           <ThemedText style={styles.scheduleTitle}>Today&apos;s Schedule</ThemedText>
           <ThemedText style={styles.scheduleSubtitle}>
-            {safeSchedule.length} appointments scheduled
+            {safeBookings.length} appointment{safeBookings.length !== 1 ? 's' : ''} scheduled
           </ThemedText>
         </View>
         
-        {safeSchedule.length === 0 ? (
+        {safeBookings.length === 0 ? (
           <View style={styles.emptyState}>
             <ThemedText style={styles.emptyText}>
               No appointments scheduled for today
             </ThemedText>
           </View>
         ) : (
-          safeSchedule.map((booking, index) => (
-            <TouchableOpacity
-              key={booking.id}
-              style={styles.bookingItem}
-              onPress={() => onViewBooking(booking)}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.bookingTime}>
-                {booking.time}
-              </ThemedText>
-              <View style={styles.bookingDetails}>
-                <ThemedText style={styles.bookingService}>
-                  {booking.service}
+          safeBookings.map((booking) => {
+            const statusColor = getStatusColor(booking.status);
+            const statusIcon = getStatusIcon(booking.status);
+            
+            return (
+              <TouchableOpacity
+                key={booking.id}
+                style={styles.bookingItem}
+                onPress={() => onViewBooking && onViewBooking(booking)}
+                activeOpacity={0.7}
+              >
+                <ThemedText style={styles.bookingTime}>
+                  {formatTime(booking.time)}
                 </ThemedText>
-                <ThemedText style={styles.bookingCustomer}>
-                  {booking.customer}
-                </ThemedText>
-              </View>
-              <View style={styles.bookingStatus}>
-                <Ionicons
-                  name={getStatusIcon(booking.status)}
-                  size={16}
-                  color={getStatusColor(booking.status)}
-                  style={styles.statusIcon}
-                />
-                <ThemedText style={[styles.statusText, { color: getStatusColor(booking.status) }]}>
-                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
-          ))
+                <View style={styles.bookingDetails}>
+                  <ThemedText style={styles.bookingCustomer}>
+                    {booking.customer}
+                  </ThemedText>
+                  <ThemedText style={styles.bookingService}>
+                    {booking.service}
+                  </ThemedText>
+                  <View style={styles.bookingPriceDurationRow}>
+                    <ThemedText style={styles.bookingPrice}>
+                      ${booking.price}
+                    </ThemedText>
+                    {booking.duration != null && booking.duration > 0 ? (
+                      <ThemedText style={styles.bookingDuration}>
+                        {' • '}
+                        {booking.duration} min
+                      </ThemedText>
+                    ) : null}
+                  </View>
+                </View>
+                <View style={styles.bookingStatus}>
+                  <Ionicons
+                    name={statusIcon}
+                    size={20}
+                    color={statusColor}
+                    style={styles.statusIcon}
+                  />
+                  <ThemedText style={[styles.statusText, { color: statusColor }]}>
+                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace(/-/g, ' ')}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            );
+          })
         )}
       </View>
     </Animated.View>

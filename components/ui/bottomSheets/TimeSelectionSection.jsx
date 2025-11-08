@@ -398,7 +398,7 @@ export default function TimeSelectionSection({
       justifyContent: "center",
       width: "100%",
       position: "relative",
-      height: responsive.isSmallScreen ? responsive.responsive.height(22) : responsive.responsive.height(26),
+      height: responsive.isSmallScreen ? responsive.responsive.height(27) : responsive.responsive.height(26),
     },
     timePickerColumn: {
       alignItems: "center",
@@ -420,16 +420,20 @@ export default function TimeSelectionSection({
       width: "100%",
     },
     timePickerItem: {
-      paddingVertical: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      paddingVertical: 0,
       paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
       alignItems: "center",
       justifyContent: "center",
+      height: responsive.isSmallScreen ? responsive.responsive.height(8) : responsive.responsive.height(12),
       minHeight: responsive.isSmallScreen ? responsive.responsive.height(10) : responsive.responsive.height(12),
     },
     timePickerItemText: {
       fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.8) : responsive.responsive.fontSize(2.0),
       color: "rgba(255, 255, 255, 0.4)",
       fontWeight: "500",
+      textAlign: "center",
+      textAlignVertical: "center",
+      includeFontPadding: false,
     },
     timePickerItemSelected: {
       backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -443,6 +447,9 @@ export default function TimeSelectionSection({
       textShadowColor: "rgba(0, 0, 0, 0.3)",
       textShadowOffset: { width: 0, height: 2 },
       textShadowRadius: 4,
+      textAlign: "center",
+      textAlignVertical: "center",
+      includeFontPadding: false,
     },
     timePickerSelectionIndicator: {
       position: "absolute",

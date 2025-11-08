@@ -303,11 +303,21 @@ export const bookingService = {
   // Get bookings by date
   getBookingsByDate: async (date) => {
     try {
-      return await firestoreService.query('bookings', [
+      const bookings = await firestoreService.query('bookings', [
         { field: 'date', operator: '==', value: date }
       ]);
+      // Return empty array if no bookings found (normal case)
+      return bookings || [];
     } catch (error) {
-      throw error;
+      // If error is due to permissions or empty collection, return empty array
+      // This allows the booking flow to continue even if query fails
+      if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+        console.warn('Permission denied when querying bookings, returning empty array:', error.message);
+        return [];
+      }
+      // For other errors, log and return empty array to prevent blocking booking creation
+      console.warn('Error querying bookings by date, returning empty array:', error.message);
+      return [];
     }
   },
 

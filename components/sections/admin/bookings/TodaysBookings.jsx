@@ -1,12 +1,11 @@
-import React from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
-import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 
-export default function TodaysBookings({ animatedStyle, bookings = [], onBookingAction, selectedDate, salonStatus = null }) {
+export default function TodaysBookings({ animatedStyle, bookings = [], onBookingAction, selectedDate, salonStatus = null, loading = false }) {
   const theme = useTheme();
   
   // Add comprehensive safety checks for theme destructuring
@@ -142,7 +141,7 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
           {salonStatusInfo.message}
         </ThemedText>
         
-        {salonStatus && salonStatusInfo.status === 'open' && (
+        {salonStatus && salonStatusInfo && salonStatusInfo.status === 'open' ? (
           <View style={styles.salonStatusDetails}>
             <View style={styles.salonStatusDetailRow}>
               <ThemedText style={styles.salonStatusDetailLabel}>Open Time:</ThemedText>
@@ -156,20 +155,20 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
                 {formatTime(salonStatus.closeTime)}
               </ThemedText>
             </View>
-            {salonStatus.isSpecific && (
+            {salonStatus.isSpecific ? (
               <View style={styles.salonStatusDetailRow}>
                 <ThemedText style={styles.salonStatusDetailLabel}>Status:</ThemedText>
                 <ThemedText style={styles.salonStatusDetailValue}>Custom Hours</ThemedText>
               </View>
-            )}
-            {salonStatus.notes && (
+            ) : null}
+            {salonStatus.notes ? (
               <View style={styles.salonStatusDetailRow}>
                 <ThemedText style={styles.salonStatusDetailLabel}>Notes:</ThemedText>
                 <ThemedText style={styles.salonStatusDetailValue}>{salonStatus.notes}</ThemedText>
               </View>
-            )}
+            ) : null}
           </View>
-        )}
+        ) : null}
       </View>
     );
   };
@@ -231,10 +230,20 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
       color: 'rgba(255, 255, 255, 0.8)',
       marginBottom: spacing.xs,
     },
+    bookingPriceDurationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.xs,
+    },
     bookingPrice: {
       fontSize: 14,
       fontWeight: '600',
       color: colors?.accent || '#D4AF37',
+      marginRight: spacing.xs,
+    },
+    bookingDuration: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.7)',
     },
     bookingStatus: {
       alignItems: 'center',
@@ -245,20 +254,31 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
       alignItems: 'center',
     },
     actionButton: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      borderRadius: borderRadius.sm,
-      padding: spacing.sm,
-      marginLeft: spacing.xs,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderRadius: borderRadius.md || 8,
+      padding: spacing.md,
+      marginLeft: spacing.sm,
+      borderWidth: 2,
+      width: 34,
+      height: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.4,
+      shadowRadius: 6,
+      elevation: 6,
     },
     acceptButton: {
-      backgroundColor: 'rgba(16, 185, 129, 0.2)',
-      borderColor: 'rgba(16, 185, 129, 0.3)',
+      backgroundColor: 'rgba(16, 185, 129, 0.5)',
+      borderColor: '#10B981',
     },
     rejectButton: {
-      backgroundColor: 'rgba(239, 68, 68, 0.2)',
-      borderColor: 'rgba(239, 68, 68, 0.3)',
+      backgroundColor: 'rgba(239, 68, 68, 0.5)',
+      borderColor: '#EF4444',
+    },
+    delayButton: {
+      backgroundColor: 'rgba(245, 158, 11, 0.5)',
+      borderColor: '#F59E0B',
     },
     emptyState: {
       padding: spacing.xl,
@@ -322,6 +342,26 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
     },
   };
 
+  if (loading) {
+    return (
+      <Animated.View style={animatedStyle}>
+        <View style={styles.bookingsContainer}>
+          <View style={styles.bookingsHeader}>
+            <ThemedText style={styles.bookingsTitle}>📋 {displayDate}&apos;s Bookings</ThemedText>
+            <ThemedText style={styles.bookingsSubtitle}>Loading bookings...</ThemedText>
+          </View>
+          
+          {/* Salon Status Card */}
+          <SalonStatusCard />
+          
+          <View style={styles.emptyState}>
+            <ThemedText style={styles.emptyText}>Loading...</ThemedText>
+          </View>
+        </View>
+      </Animated.View>
+    );
+  }
+
   if (!bookings || bookings.length === 0) {
     return (
       <Animated.View style={animatedStyle}>
@@ -367,7 +407,7 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
             return (
               <View key={booking.id} style={styles.bookingItem}>
                 <ThemedText style={styles.bookingTime}>
-                  {booking.time}
+                  {formatTime(booking.time)}
                 </ThemedText>
                 
                 <View style={styles.bookingDetails}>
@@ -377,38 +417,53 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
                   <ThemedText style={styles.bookingService}>
                     {booking.service}
                   </ThemedText>
-                  <ThemedText style={styles.bookingPrice}>
-                    ${booking.price}
-                  </ThemedText>
+                  <View style={styles.bookingPriceDurationRow}>
+                    <ThemedText style={styles.bookingPrice}>
+                      ${booking.price}
+                    </ThemedText>
+                    {booking.duration != null && booking.duration > 0 ? (
+                      <ThemedText style={styles.bookingDuration}>
+                        {' • '}
+                        {booking.duration} min
+                      </ThemedText>
+                    ) : null}
+                  </View>
                 </View>
                 
-                <View style={styles.bookingStatus}>
+                {/* <View style={styles.bookingStatus}>
                   <Ionicons 
                     name={statusIcon.name} 
                     size={20} 
                     color={statusColor} 
                   />
-                </View>
+                </View> */}
                 
                 <View style={styles.bookingActions}>
-                  {booking.status === 'pending' && (
+                  {booking.status === 'pending' ? (
                     <>
                       <TouchableOpacity
                         style={[styles.actionButton, styles.acceptButton]}
                         onPress={() => handleBookingAction(booking.id, 'accept')}
-                        activeOpacity={0.7}
+                        activeOpacity={0.8}
                       >
-                        <Ionicons name="checkmark" size={16} color={colors?.success || '#10B981'} />
+                        <Ionicons name="checkmark" size={20} color="white" />
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.actionButton, styles.rejectButton]}
                         onPress={() => handleBookingAction(booking.id, 'reject')}
-                        activeOpacity={0.7}
+                        activeOpacity={0.8}
                       >
-                        <Ionicons name="close" size={16} color={colors?.error || '#EF4444'} />
+                        <Ionicons name="close" size={20} color="white" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.delayButton]}
+                        onPress={() => handleBookingAction(booking.id, 'delay')}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="time-outline" size={20} color="white" />
                       </TouchableOpacity>
                     </>
-                  )}
+                  ) : null}
                 </View>
               </View>
             );

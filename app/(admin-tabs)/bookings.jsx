@@ -15,7 +15,7 @@ import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useResponsive } from '../../hooks/useResponsive';
-import { salonHoursService } from '../../services/firebaseService';
+import { bookingService, salonHoursService } from '../../services/firebaseService';
 
 // Import new booking components
 import BookingsCalendar from '../../components/sections/admin/bookings/BookingsCalendar';
@@ -38,82 +38,8 @@ export default function AdminBookingsScreen() {
   const [bottomSheetDate, setBottomSheetDate] = useState(null);
   const [salonHoursData, setSalonHoursData] = useState(null);
   const [selectedDateSalonStatus, setSelectedDateSalonStatus] = useState(null);
-
-  // Mock data for bookings
-  const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const dayAfterTomorrow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  
-  const mockBookings = [
-    {
-      id: '1',
-      date: today,
-      time: '09:00',
-      customer: 'John Doe',
-      service: 'Hair Cut',
-      price: 50,
-      status: 'completed',
-    },
-    {
-      id: '2',
-      date: today,
-      time: '10:30',
-      customer: 'Jane Smith',
-      service: 'Hair Color',
-      price: 80,
-      status: 'in-progress',
-    },
-    {
-      id: '3',
-      date: today,
-      time: '12:00',
-      customer: 'Bob Johnson',
-      service: 'Manicure',
-      price: 35,
-      status: 'upcoming',
-    },
-    {
-      id: '4',
-      date: today,
-      time: '14:30',
-      customer: 'Alice Brown',
-      service: 'Facial',
-      price: 60,
-      status: 'pending',
-    },
-    {
-      id: '5',
-      date: tomorrow,
-      time: '11:00',
-      customer: 'Charlie Wilson',
-      service: 'Massage',
-      price: 90,
-      status: 'pending',
-    },
-    {
-      id: '6',
-      date: tomorrow,
-      time: '15:00',
-      customer: 'Diana Prince',
-      service: 'Hair Styling',
-      price: 75,
-      status: 'pending',
-    },
-    {
-      id: '7',
-      date: dayAfterTomorrow,
-      time: '10:00',
-      customer: 'Bruce Wayne',
-      service: 'Beard Trim',
-      price: 25,
-      status: 'pending',
-    },
-  ];
-
-  // Filter bookings for selected date
-  const todaysBookings = mockBookings.filter(booking => 
-    booking.date === selectedDate
-  );
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -151,14 +77,57 @@ export default function AdminBookingsScreen() {
   // Calendar refresh callback
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
-  // Load initial salon status for today
+  // Load bookings for selected date
+  const loadBookingsForDate = useCallback(async (date) => {
+    setLoadingBookings(true);
+    try {
+      const bookingsData = await bookingService.getBookingsByDate(date);
+      
+      // Transform Firestore booking data to match component format
+      const transformedBookings = bookingsData.map(booking => ({
+        id: booking.id,
+        date: booking.date,
+        time: booking.time,
+        customer: booking.customerName || 'Unknown Customer',
+        service: booking.serviceName || 'Unknown Service',
+        price: booking.servicePrice || 0,
+        duration: booking.serviceDuration || 0,
+        status: booking.status || 'pending',
+        customerId: booking.customerId,
+        serviceId: booking.serviceId,
+      }));
+      
+      // Sort bookings by time
+      transformedBookings.sort((a, b) => {
+        const timeA = a.time.split(':').map(Number);
+        const timeB = b.time.split(':').map(Number);
+        const minutesA = timeA[0] * 60 + timeA[1];
+        const minutesB = timeB[0] * 60 + timeB[1];
+        return minutesA - minutesB;
+      });
+      
+      setBookings(transformedBookings);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      showError('Failed to load bookings');
+      setBookings([]);
+    } finally {
+      setLoadingBookings(false);
+    }
+  }, [showError]);
+
+  // Load initial salon status and bookings for today
   useEffect(() => {
-    const loadInitialSalonStatus = async () => {
+    const loadInitialData = async () => {
       try {
+        // Load salon status
         const salonStatus = await salonHoursService.getSalonHours(selectedDate);
         setSelectedDateSalonStatus(salonStatus);
+        
+        // Load bookings for today
+        await loadBookingsForDate(selectedDate);
       } catch (error) {
-        console.error('Error loading initial salon status:', error);
+        console.error('Error loading initial data:', error);
         // Set default status on error
         const dayOfWeek = new Date(selectedDate).getDay();
         const isTuesday = dayOfWeek === 2;
@@ -174,25 +143,34 @@ export default function AdminBookingsScreen() {
           notes: '',
           isSpecific: false
         });
+        setBookings([]);
       }
     };
     
-    loadInitialSalonStatus();
+    loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
   // Handlers
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     
     // Trigger calendar refresh
     setCalendarRefreshTrigger(prev => prev + 1);
     
-    // Shorter delay for better responsiveness
-    setTimeout(() => {
-      setRefreshing(false);
+    try {
+      // Reload salon status and bookings for selected date
+      const salonStatus = await salonHoursService.getSalonHours(selectedDate);
+      setSelectedDateSalonStatus(salonStatus);
+      await loadBookingsForDate(selectedDate);
       showSuccess('Bookings and salon hours refreshed');
-    }, 500);
-  }, [showSuccess]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      showError('Failed to refresh data');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [selectedDate, loadBookingsForDate, showSuccess, showError]);
 
   const handleSearch = () => {
     showSuccess('Search functionality coming soon');
@@ -201,12 +179,16 @@ export default function AdminBookingsScreen() {
   const handleDateSelect = useCallback(async (date) => {
     setSelectedDate(date);
     
-    // Load salon status for the selected date
+    // Load salon status and bookings for the selected date
     try {
+      // Load salon status
       const salonStatus = await salonHoursService.getSalonHours(date);
       setSelectedDateSalonStatus(salonStatus);
+      
+      // Load bookings for selected date
+      await loadBookingsForDate(date);
     } catch (error) {
-      console.error('Error loading salon status for selected date:', error);
+      console.error('Error loading data for selected date:', error);
       // Set default status on error
       const dayOfWeek = new Date(date).getDay();
       const isTuesday = dayOfWeek === 2;
@@ -222,8 +204,9 @@ export default function AdminBookingsScreen() {
         notes: '',
         isSpecific: false
       });
+      setBookings([]);
     }
-  }, []);
+  }, [loadBookingsForDate]);
 
   const handleDayLongPress = useCallback((date) => {
     setBottomSheetDate(date);
@@ -275,7 +258,39 @@ export default function AdminBookingsScreen() {
   }, [showSuccess, showError]);
 
   const handleBookingAction = (bookingId, action) => {
-    showSuccess(`${action} booking ${bookingId}`);
+    console.log(`Booking action: ${action} for booking ${bookingId}`);
+    
+    // Find the booking
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      console.log('Booking details:', {
+        id: booking.id,
+        customer: booking.customer,
+        service: booking.service,
+        date: booking.date,
+        time: booking.time,
+        status: booking.status,
+        action: action
+      });
+    }
+    
+    // TODO: Implement actual booking actions (accept, reject, delay)
+    switch (action) {
+      case 'accept':
+        console.log('Accept booking:', bookingId);
+        // showSuccess(`Booking ${bookingId} accepted`);
+        break;
+      case 'reject':
+        console.log('Reject booking:', bookingId);
+        // showError(`Booking ${bookingId} rejected`);
+        break;
+      case 'delay':
+        console.log('Delay booking:', bookingId);
+        // showWarning(`Booking ${bookingId} delayed`);
+        break;
+      default:
+        console.log('Unknown action:', action);
+    }
   };
 
   const styles = StyleSheet.create({
@@ -345,7 +360,7 @@ export default function AdminBookingsScreen() {
               animatedStyle={contentAnimatedStyle}
               onDateSelect={handleDateSelect}
               onDayLongPress={handleDayLongPress}
-              bookings={mockBookings}
+              bookings={bookings}
               selectedDate={selectedDate}
               refreshTrigger={calendarRefreshTrigger}
             />
@@ -353,10 +368,11 @@ export default function AdminBookingsScreen() {
             {/* Today's Bookings */}
             <TodaysBookings 
               animatedStyle={contentAnimatedStyle}
-              bookings={todaysBookings}
+              bookings={bookings}
               onBookingAction={handleBookingAction}
               selectedDate={selectedDate}
               salonStatus={selectedDateSalonStatus}
+              loading={loadingBookings}
             />
           </ScrollView>
         </View>

@@ -14,6 +14,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
+import { bookingService } from '../../services/firebaseService';
 
 // Import dashboard components
 import DashboardHeader from '../../components/sections/admin/dashboard/DashboardHeader';
@@ -43,6 +44,8 @@ export default function AdminDashboardScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [todayBookings, setTodayBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
   const categorySectionRef = useRef(null);
   const scrollViewRef = useRef(null);
 
@@ -54,43 +57,50 @@ export default function AdminDashboardScreen() {
     activeServices: 8,
   };
 
-  const mockSchedule = [
-    {
-      id: '1',
-      time: '09:00',
-      service: 'Hair Cut',
-      customer: 'John Doe',
-      status: 'completed',
-    },
-    {
-      id: '2',
-      time: '10:30',
-      service: 'Hair Color',
-      customer: 'Jane Smith',
-      status: 'in-progress',
-    },
-    {
-      id: '3',
-      time: '12:00',
-      service: 'Manicure',
-      customer: 'Bob Johnson',
-      status: 'upcoming',
-    },
-    {
-      id: '4',
-      time: '14:30',
-      service: 'Facial',
-      customer: 'Alice Brown',
-      status: 'upcoming',
-    },
-    {
-      id: '5',
-      time: '16:00',
-      service: 'Massage',
-      customer: 'Charlie Wilson',
-      status: 'upcoming',
-    },
-  ];
+  // Load today's bookings
+  const loadTodayBookings = useCallback(async () => {
+    setLoadingBookings(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const bookingsData = await bookingService.getBookingsByDate(today);
+      
+      // Transform Firestore booking data to match component format
+      const transformedBookings = bookingsData.map(booking => ({
+        id: booking.id,
+        date: booking.date,
+        time: booking.time,
+        customer: booking.customerName || 'Unknown Customer',
+        service: booking.serviceName || 'Unknown Service',
+        price: booking.servicePrice || 0,
+        duration: booking.serviceDuration || 0,
+        status: booking.status || 'pending',
+        customerId: booking.customerId,
+        serviceId: booking.serviceId,
+      }));
+      
+      // Sort bookings by time
+      transformedBookings.sort((a, b) => {
+        const timeA = a.time.split(':').map(Number);
+        const timeB = b.time.split(':').map(Number);
+        const minutesA = timeA[0] * 60 + timeA[1];
+        const minutesB = timeB[0] * 60 + timeB[1];
+        return minutesA - minutesB;
+      });
+      
+      setTodayBookings(transformedBookings);
+    } catch (error) {
+      console.error('Error loading today\'s bookings:', error);
+      showError('Failed to load today\'s bookings');
+      setTodayBookings([]);
+    } finally {
+      setLoadingBookings(false);
+    }
+  }, [showError]);
+
+  // Load today's bookings on component mount
+  useEffect(() => {
+    loadTodayBookings();
+  }, [loadTodayBookings]);
 
   // Fetch all categories from Firebase (for admin panel)
   const fetchCategories = useCallback(async () => {
@@ -224,7 +234,10 @@ export default function AdminDashboardScreen() {
     setRefreshing(true);
     try {
       console.log('Refreshing dashboard data...');
-      await fetchCategories();
+      await Promise.all([
+        fetchCategories(),
+        loadTodayBookings()
+      ]);
       console.log('Dashboard refreshed successfully');
       showSuccess('Dashboard refreshed!');
     } catch (error) {
@@ -233,7 +246,7 @@ export default function AdminDashboardScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchCategories, showError, showSuccess]);
+  }, [fetchCategories, loadTodayBookings, showError, showSuccess]);
 
   const handleViewBooking = (booking) => {
     showSuccess(`Viewing booking: ${booking.service} for ${booking.customer}`);
@@ -324,7 +337,7 @@ export default function AdminDashboardScreen() {
     activeServices: 0,
   };
 
-  const safeMockSchedule = mockSchedule || [];
+  const safeTodayBookings = todayBookings || [];
   const safeCategories = categories || [];
 
   // Animated styles
@@ -403,7 +416,8 @@ export default function AdminDashboardScreen() {
 
           {/* Today's Schedule */}
           <TodaysSchedule 
-            schedule={safeMockSchedule} 
+            bookings={safeTodayBookings}
+            loading={loadingBookings}
             animatedStyle={contentAnimatedStyle}
             onViewBooking={handleViewBooking}
           />
