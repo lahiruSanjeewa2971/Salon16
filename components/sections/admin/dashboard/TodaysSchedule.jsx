@@ -1,10 +1,8 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 
 export default function TodaysSchedule({ bookings, loading, animatedStyle, onViewBooking }) {
   const theme = useTheme();
@@ -29,14 +27,25 @@ export default function TodaysSchedule({ bookings, loading, animatedStyle, onVie
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed': return colors?.success || '#10B981';
-      case 'in-progress': return colors?.warning || '#F59E0B';
-      case 'upcoming': return colors?.info || '#3B82F6';
-      case 'pending': return colors?.warning || '#F59E0B';
-      case 'accepted': return colors?.success || '#10B981';
-      case 'cancelled': return colors?.error || '#EF4444';
-      case 'rejected': return colors?.error || '#EF4444';
-      default: return colors?.textSecondary || '#666666';
+      case 'completed': return '#10B981'; // Bright green
+      case 'in-progress': return '#F59E0B'; // Bright orange
+      case 'upcoming': return '#3B82F6'; // Bright blue
+      case 'pending': return '#F59E0B'; // Bright orange
+      case 'accepted': return '#10B981'; // Bright green
+      case 'cancelled': return '#EF4444'; // Bright red
+      case 'rejected': return '#FF4444'; // Bright red for better visibility
+      default: return '#FFFFFF'; // White for better visibility
+    }
+  };
+
+  const getStatusBackgroundColor = (status) => {
+    switch (status) {
+      // case 'rejected': return 'rgba(236, 33, 33, 0.3)'; // Red background for rejected
+      // case 'cancelled': return 'rgba(239, 68, 68, 0.2)'; // Red background for cancelled
+      // default: return 'rgba(255, 255, 255, 0.2)'; // Default white background
+      case 'rejected': return 'rgba(255, 255, 255, 0.69)'; // Red background for rejected
+      case 'cancelled': return 'rgba(255, 255, 255, 0.69)'; // Red background for cancelled
+      default: return 'rgba(255, 255, 255, 0.69)'; // Default white background
     }
   };
 
@@ -125,14 +134,19 @@ export default function TodaysSchedule({ bookings, loading, animatedStyle, onVie
     bookingStatus: {
       alignItems: 'center',
       justifyContent: 'center',
+      minWidth: 70,
     },
     statusIcon: {
       marginBottom: spacing.xs,
     },
     statusText: {
-      fontSize: 11,
-      fontWeight: '600',
+      fontSize: 12,
+      fontWeight: '700',
       textTransform: 'capitalize',
+      paddingHorizontal: spacing.sm || 8,
+      paddingVertical: spacing.xs || 4,
+      borderRadius: borderRadius.md || 8,
+      overflow: 'hidden',
     },
     emptyState: {
       padding: spacing.xl,
@@ -181,6 +195,7 @@ export default function TodaysSchedule({ bookings, loading, animatedStyle, onVie
           safeBookings.map((booking) => {
             const statusColor = getStatusColor(booking.status);
             const statusIcon = getStatusIcon(booking.status);
+            const statusBackgroundColor = getStatusBackgroundColor(booking.status);
             
             return (
               <TouchableOpacity
@@ -212,13 +227,13 @@ export default function TodaysSchedule({ bookings, loading, animatedStyle, onVie
                   </View>
                 </View>
                 <View style={styles.bookingStatus}>
-                  <Ionicons
+                  {/* <Ionicons
                     name={statusIcon}
-                    size={20}
+                    size={22}
                     color={statusColor}
                     style={styles.statusIcon}
-                  />
-                  <ThemedText style={[styles.statusText, { color: statusColor }]}>
+                  /> */}
+                  <ThemedText style={[styles.statusText, { color: statusColor, backgroundColor: statusBackgroundColor }]}>
                     {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace(/-/g, ' ')}
                   </ThemedText>
                 </View>

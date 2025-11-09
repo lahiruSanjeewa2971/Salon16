@@ -1,30 +1,30 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, router } from 'expo-router';
-import { 
-  useSharedValue, 
-  withSpring, 
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  useAnimatedStyle,
+  useSharedValue,
   withDelay,
-  useAnimatedStyle 
+  withSpring
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useTheme } from '../../contexts/ThemeContext';
-import { useResponsive } from '../../hooks/useResponsive';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { bookingService } from '../../services/firebaseService';
 
 // Import dashboard components
+import CategoryForm from '../../components/sections/admin/categories/CategoryForm';
+import CategoryManager from '../../components/sections/admin/categories/CategoryManager';
 import DashboardHeader from '../../components/sections/admin/dashboard/DashboardHeader';
 import DashboardStats from '../../components/sections/admin/dashboard/DashboardStats';
-import TodaysSchedule from '../../components/sections/admin/dashboard/TodaysSchedule';
 import QuickActions from '../../components/sections/admin/dashboard/QuickActions';
-import CategoryManager from '../../components/sections/admin/categories/CategoryManager';
-import CategoryForm from '../../components/sections/admin/categories/CategoryForm';
-import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
+import TodaysSchedule from '../../components/sections/admin/dashboard/TodaysSchedule';
 import { useAuth } from '../../contexts/AuthContext';
+import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
 
 export default function AdminDashboardScreen() {
   const theme = useTheme();
@@ -87,6 +87,7 @@ export default function AdminDashboardScreen() {
         return minutesA - minutesB;
       });
       
+      console.log("transformedBookings :", transformedBookings)
       setTodayBookings(transformedBookings);
     } catch (error) {
       console.error('Error loading today\'s bookings:', error);

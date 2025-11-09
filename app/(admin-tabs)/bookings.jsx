@@ -11,11 +11,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AdminCalendarBottomSheet from '../../components/ui/bottomSheets/AdminCalendarBottomSheet';
+import BookingRejectionBottomSheet from '../../components/ui/bottomSheets/BookingRejectionBottomSheet';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { bookingService, salonHoursService } from '../../services/firebaseService';
+import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Import new booking components
 import BookingsCalendar from '../../components/sections/admin/bookings/BookingsCalendar';
@@ -25,6 +28,10 @@ import TodaysBookings from '../../components/sections/admin/bookings/TodaysBooki
 export default function AdminBookingsScreen() {
   const theme = useTheme();
   const responsive = useResponsive();
+  const { user } = useAuth();
+  
+  // Create secure service with user context
+  const secureService = createSecureFirestoreService(user);
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -40,6 +47,8 @@ export default function AdminBookingsScreen() {
   const [selectedDateSalonStatus, setSelectedDateSalonStatus] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [isRejectionBottomSheetVisible, setIsRejectionBottomSheetVisible] = useState(false);
+  const [selectedBookingForRejection, setSelectedBookingForRejection] = useState(null);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -262,35 +271,75 @@ export default function AdminBookingsScreen() {
     
     // Find the booking
     const booking = bookings.find(b => b.id === bookingId);
-    if (booking) {
-      console.log('Booking details:', {
-        id: booking.id,
-        customer: booking.customer,
-        service: booking.service,
-        date: booking.date,
-        time: booking.time,
-        status: booking.status,
-        action: action
-      });
+    if (!booking) {
+      console.error('Booking not found:', bookingId);
+      return;
     }
     
-    // TODO: Implement actual booking actions (accept, reject, delay)
     switch (action) {
       case 'accept':
-        console.log('Accept booking:', bookingId);
-        // showSuccess(`Booking ${bookingId} accepted`);
+        handleAcceptBooking(bookingId);
         break;
       case 'reject':
-        console.log('Reject booking:', bookingId);
-        // showError(`Booking ${bookingId} rejected`);
+        // Show rejection bottom sheet
+        setSelectedBookingForRejection(booking);
+        setIsRejectionBottomSheetVisible(true);
         break;
       case 'delay':
-        console.log('Delay booking:', bookingId);
-        // showWarning(`Booking ${bookingId} delayed`);
+        handleDelayBooking(bookingId);
         break;
       default:
         console.log('Unknown action:', action);
     }
+  };
+
+  const handleAcceptBooking = async (bookingId) => {
+    // Close rejection bottom sheet if open for this booking
+    if (selectedBookingForRejection?.id === bookingId && isRejectionBottomSheetVisible) {
+      handleCloseRejectionBottomSheet();
+    }
+    
+    try {
+      await secureService.adminOperations.updateBookingStatus(bookingId, 'accepted', '');
+      showSuccess('Booking accepted successfully');
+      // Real-time listener will update the list automatically
+    } catch (error) {
+      console.error('Error accepting booking:', error);
+      showError('Failed to accept booking', 'Please try again.');
+    }
+  };
+
+  const handleDelayBooking = async (bookingId) => {
+    // Close rejection bottom sheet if open for this booking
+    if (selectedBookingForRejection?.id === bookingId && isRejectionBottomSheetVisible) {
+      handleCloseRejectionBottomSheet();
+    }
+    
+    try {
+      await secureService.adminOperations.updateBookingStatus(bookingId, 'pending', 'Booking delayed by admin');
+      showSuccess('Booking delayed successfully');
+      // Real-time listener will update the list automatically
+    } catch (error) {
+      console.error('Error delaying booking:', error);
+      showError('Failed to delay booking', 'Please try again.');
+    }
+  };
+
+  const handleRejectBooking = async (bookingId, rejectionNote) => {
+    try {
+      await secureService.adminOperations.updateBookingStatus(bookingId, 'rejected', rejectionNote || 'Booking rejected by admin');
+      showSuccess('Booking rejected successfully');
+      // Real-time listener will update the list automatically
+    } catch (error) {
+      console.error('Error rejecting booking:', error);
+      showError('Failed to reject booking', 'Please try again.');
+      throw error; // Re-throw to let bottom sheet handle loading state
+    }
+  };
+
+  const handleCloseRejectionBottomSheet = () => {
+    setIsRejectionBottomSheetVisible(false);
+    setSelectedBookingForRejection(null);
   };
 
   const styles = StyleSheet.create({
@@ -385,6 +434,14 @@ export default function AdminBookingsScreen() {
           salonHours={salonHoursData}
           onClose={handleCloseBottomSheet}
           onSave={handleSaveSalonHours}
+        />
+
+        {/* Booking Rejection Bottom Sheet */}
+        <BookingRejectionBottomSheet
+          visible={isRejectionBottomSheetVisible}
+          booking={selectedBookingForRejection}
+          onClose={handleCloseRejectionBottomSheet}
+          onSend={handleRejectBooking}
         />
       </LinearGradient>
     </SafeAreaView>
