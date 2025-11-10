@@ -261,7 +261,16 @@ export default function RegisterScreen() {
       // Sign in with Google and create document if user doesn't exist
       const result = await googleSignIn({ createDocumentIfNotExists: true });
       
-      if (result.success) {
+      // Check if redirect is pending (for web/PWA)
+      if (result && result.pending) {
+        console.log('RegisterScreen: Google sign-in redirect initiated');
+        // The user will be redirected to Google, then back to the app
+        // The redirect result will be handled by AuthContext on app reload
+        // No need to show error or navigate - the redirect will happen
+        return;
+      }
+      
+      if (result && result.success) {
         if (result.isNewUser) {
           // New account created - redirect to customer screen (without checking role)
           showSuccessToast(

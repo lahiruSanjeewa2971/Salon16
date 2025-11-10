@@ -24,8 +24,8 @@ import { ThemedButton } from '../components/themed/ThemedButton';
 import { ThemedText } from '../components/ThemedText';
 import { useToastHelpers } from '../components/ui/ToastSystem';
 import { useAuth } from '../contexts/AuthContext';
-import { useAuthLoading } from '../hooks/useAuth';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuthLoading } from '../hooks/useAuth';
 
 const { height } = Dimensions.get('window');
 
@@ -120,8 +120,18 @@ export default function WelcomeScreen() {
       
       // Sign in with Google but don't create document if user doesn't exist
       const result = await googleSignIn({ createDocumentIfNotExists: false });
+      console.log('WelcomeScreen: Google sign-in result', result);
       
-      if (result.success) {
+      // Check if redirect is pending (for web/PWA)
+      if (result && result.pending) {
+        console.log('WelcomeScreen: Google sign-in redirect initiated');
+        // The user will be redirected to Google, then back to the app
+        // The redirect result will be handled by AuthContext on app reload
+        // No need to show error or navigate - the redirect will happen
+        return;
+      }
+      
+      if (result && result.success) {
         // Account exists - login successful, navigate based on role
         showSuccessToast(
           'Login Successful!',
@@ -137,7 +147,7 @@ export default function WelcomeScreen() {
         }
       } else {
         // Handle specific error messages
-        const errorMessage = result.error || 'Google sign-in failed. Please try again.';
+        const errorMessage = result?.error || 'Google sign-in failed. Please try again.';
         
         // Check if it's an account doesn't exist error
         if (errorMessage.includes('Account does not exist')) {

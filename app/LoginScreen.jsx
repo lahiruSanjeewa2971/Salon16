@@ -271,7 +271,16 @@ export default function LoginScreen() {
       // Sign in with Google but don't create document if user doesn't exist
       const result = await googleSignIn({ createDocumentIfNotExists: false });
       
-      if (result.success) {
+      // Check if redirect is pending (for web/PWA)
+      if (result && result.pending) {
+        console.log('LoginScreen: Google sign-in redirect initiated');
+        // The user will be redirected to Google, then back to the app
+        // The redirect result will be handled by AuthContext on app reload
+        // No need to show error or navigate - the redirect will happen
+        return;
+      }
+      
+      if (result && result.success) {
         // Account exists - login successful, navigate based on role
         showSuccessToast(
           'Login Successful!',
