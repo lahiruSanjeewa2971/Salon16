@@ -356,7 +356,7 @@ This comprehensive plan ensures that salon hours management becomes a seamless, 
    - Implement error handling for failed operations
 
 **Implementation Details**:
-- Use the existing `ServiceBookingBottomSheet` component
+- Use the existing `AdminCalendarBottomSheet` component
 - Integrate `salonHoursService` and `salonSettingsService`
 - Add loading states and error handling
 - Implement real-time validation feedback

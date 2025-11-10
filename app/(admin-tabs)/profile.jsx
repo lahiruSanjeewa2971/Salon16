@@ -28,6 +28,7 @@ import Animated, {
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedButton } from '../../components/themed/ThemedButton';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useAuthActions } from '../../hooks/useAuth';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
@@ -41,6 +42,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function AdminProfileScreen() {
   const theme = useTheme();
+  const responsive = useResponsive();
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -153,7 +155,7 @@ export default function AdminProfileScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary,
     },
     gradient: {
@@ -166,7 +168,7 @@ export default function AdminProfileScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
     },
     // Clean Header
     header: {

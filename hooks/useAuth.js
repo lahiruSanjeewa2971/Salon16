@@ -18,6 +18,7 @@ export const useAuthActions = () => {
   return {
     register: auth.register,
     login: auth.login,
+    googleSignIn: auth.googleSignIn,
     signOut: auth.signOut,
     updateUser: auth.updateUser,
     clearError: auth.clearError,
@@ -113,6 +114,7 @@ export const useAuthLoading = () => {
     isLoading: auth.isLoading,
     isRegistering: auth.isRegistering,
     isLoggingIn: auth.isLoggingIn,
+    isGoogleSigningIn: auth.isGoogleSigningIn,
     isRefreshingToken: auth.isRefreshingToken,
     clearLoading: auth.clearLoading,
   };

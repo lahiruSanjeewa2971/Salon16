@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
+  TouchableOpacity,
   View
 } from 'react-native';
 import Animated, {
@@ -21,7 +22,9 @@ import { useRouter } from 'expo-router';
 import { FloatingElements } from '../components/animations/FloatingElements';
 import { ThemedButton } from '../components/themed/ThemedButton';
 import { ThemedText } from '../components/ThemedText';
+import { useToastHelpers } from '../components/ui/ToastSystem';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthLoading } from '../hooks/useAuth';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { height } = Dimensions.get('window');
@@ -32,8 +35,10 @@ const isMediumScreen = height >= 700 && height < 800;
 
 export default function WelcomeScreen() {
   const { colors, spacing, borderRadius } = useTheme();
-  const { continueAsGuest } = useAuth();
+  const { continueAsGuest, googleSignIn } = useAuth();
+  const { isLoggingIn } = useAuthLoading();
   const router = useRouter();
+  const { showSuccess: showSuccessToast, showError: showErrorToast } = useToastHelpers();
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -106,6 +111,59 @@ export default function WelcomeScreen() {
       console.error('WelcomeScreen: Failed to continue as guest', error);
       // Still navigate even if clearing fails
       router.push('/(customer-tabs)');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      console.log('WelcomeScreen: Google Sign-In button clicked');
+      
+      // Sign in with Google but don't create document if user doesn't exist
+      const result = await googleSignIn({ createDocumentIfNotExists: false });
+      
+      if (result.success) {
+        // Account exists - login successful, navigate based on role
+        showSuccessToast(
+          'Login Successful!',
+          `Welcome back, ${result.user.firstName || result.user.displayName || 'User'}!`,
+          { duration: 3000 }
+        );
+        
+        // Navigate based on user role
+        if (result.user.role === 'admin') {
+          router.replace('/(admin-tabs)');
+        } else {
+          router.replace('/(customer-tabs)');
+        }
+      } else {
+        // Handle specific error messages
+        const errorMessage = result.error || 'Google sign-in failed. Please try again.';
+        
+        // Check if it's an account doesn't exist error
+        if (errorMessage.includes('Account does not exist')) {
+          showErrorToast(
+            'Account Not Found',
+            'No account found with this Google email. Please register first.',
+            { duration: 4000 }
+          );
+          setTimeout(() => {
+            router.push('/RegisterScreen');
+          }, 1500);
+        } else {
+          showErrorToast(
+            'Sign-In Failed',
+            errorMessage,
+            { duration: 5000 }
+          );
+        }
+      }
+    } catch (error) {
+      console.error('WelcomeScreen: Google sign-in error', error);
+      showErrorToast(
+        'Sign-In Error',
+        error.message || 'Something went wrong. Please try again.',
+        { duration: 5000 }
+      );
     }
   };
 
@@ -261,6 +319,41 @@ export default function WelcomeScreen() {
       fontWeight: '600',
       fontSize: isSmallScreen ? 14 : 16,
     },
+    googleSignInButton: {
+      backgroundColor: 'white',
+      marginBottom: spacing.md,
+      width: '100%',
+      minHeight: 52, // Match ThemedButton large size
+      // paddingVertical: spacing.button.large.vertical, // Match theme spacing
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: borderRadius.button.large, // Match theme border radius
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 8,
+        },
+        web: {
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+        },
+      }),
+    },
+    googleSignInButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    googleButtonText: {
+      color: '#3c4043',
+      fontWeight: '600',
+      fontSize: isSmallScreen ? 16 : 18,
+      marginLeft: spacing.sm,
+    },
     bottomIndicator: {
       position: 'absolute',
       bottom: isSmallScreen ? 10 : 20,
@@ -367,6 +460,21 @@ export default function WelcomeScreen() {
               style={styles.primaryButton}
               textStyle={styles.primaryButtonText}
             />
+
+            {/* Google Sign-In Button */}
+            <TouchableOpacity
+              onPress={handleGoogleSignIn}
+              style={styles.googleSignInButton}
+              activeOpacity={0.8}
+              disabled={isLoggingIn}
+            >
+              <View style={styles.googleSignInButtonContent}>
+                {!isLoggingIn && <Ionicons name="logo-google" size={isSmallScreen ? 22 : 24} color="#4285F4" />}
+                <ThemedText style={styles.googleButtonText}>
+                  {isLoggingIn ? 'Signing in...' : 'Continue with Google'}
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
 
             <ThemedButton
               title="Continue as Guest"

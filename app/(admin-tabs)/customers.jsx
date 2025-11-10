@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
 import { useAuth } from '../../contexts/AuthContext';
 // import { useToastHelpers } from '../../hooks/useToastHelpers';
@@ -27,6 +28,7 @@ import CustomerStats from '../../components/sections/admin/customers/CustomerSta
 
 export default function AdminCustomersScreen() {
   const theme = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   
   // Create secure service with user context (memoized to prevent infinite re-renders)
@@ -489,7 +491,7 @@ export default function AdminCustomersScreen() {
               )}
             </View>
           )}
-          contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 80 }}
+          contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10) }}
         />
 
         {/* Scroll to Top Button */}

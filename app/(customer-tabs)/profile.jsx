@@ -23,11 +23,13 @@ import ProfileSkeletonLoader from "../../components/ui/ProfileSkeletonLoader";
 import { useToastHelpers } from "../../components/ui/ToastSystem";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth, useAuthActions } from "../../hooks/useAuth";
+import { useResponsive } from "../../hooks/useResponsive";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 export default function CustomerProfileScreen() {
   const { colors, spacing } = useTheme();
+  const responsive = useResponsive();
   const router = useRouter();
   const { user } = useAuth();
   const { signOut } = useAuthActions();
@@ -172,7 +174,7 @@ export default function CustomerProfileScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary || "#6C2A52",
     },
     gradient: {
@@ -186,8 +188,8 @@ export default function CustomerProfileScreen() {
       flex: 1,
     },
     content: {
-      paddingHorizontal: spacing.lg,
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
+      paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
     },
     // Header Section
     headerSection: {

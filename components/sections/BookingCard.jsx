@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../ThemedText';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const BookingCard = ({
   booking,
@@ -15,31 +16,16 @@ const BookingCard = ({
   spacing,
   borderRadius,
   shadows,
-  onReschedule,
-  onCancel,
-  onViewDetails,
+  onCheckForAnotherTime,
+  onRemoveBooking,
   // Animation values
   fadeAnim,
   slideUpAnim,
 }) => {
+  const responsive = useResponsive();
+  
   // Press animation
   const pressAnim = useSharedValue(1);
-
-  const handlePress = () => {
-    pressAnim.value = withSpring(0.98, { damping: 15, stiffness: 300 });
-    setTimeout(() => {
-      pressAnim.value = withSpring(1, { damping: 15, stiffness: 300 });
-    }, 100);
-    onViewDetails(booking);
-  };
-
-  const handleReschedulePress = () => {
-    onReschedule(booking);
-  };
-
-  const handleCancelPress = () => {
-    onCancel(booking);
-  };
 
   // Status configuration
   const getStatusConfig = (status) => {
@@ -51,12 +37,13 @@ const BookingCard = ({
           icon: 'time-outline',
           label: 'Pending'
         };
+      case 'accepted':
       case 'confirmed':
         return {
           color: '#10B981',
           bgColor: 'rgba(16, 185, 129, 0.15)',
           icon: 'checkmark-circle',
-          label: 'Confirmed'
+          label: 'Accepted'
         };
       case 'completed':
         return {
@@ -72,6 +59,13 @@ const BookingCard = ({
           icon: 'close-circle',
           label: 'Cancelled'
         };
+      case 'rejected':
+        return {
+          color: '#EF4444',
+          bgColor: 'rgba(239, 68, 68, 0.15)',
+          icon: 'close-circle',
+          label: 'Rejected'
+        };
       default:
         return {
           color: '#6B7280',
@@ -83,8 +77,10 @@ const BookingCard = ({
   };
 
   const statusConfig = getStatusConfig(booking.status);
-  const canReschedule = ['pending', 'confirmed'].includes(booking.status);
-  const canCancel = ['pending', 'confirmed'].includes(booking.status);
+  const isPending = booking.status === 'pending';
+  const isCompleted = booking.status === 'completed';
+  const showRemoveButton = !isCompleted;
+  const showCheckForAnotherTime = isPending;
 
   // Animated styles
   const cardAnimatedStyle = useAnimatedStyle(() => ({
@@ -124,11 +120,11 @@ const BookingCard = ({
       marginRight: spacing.md,
     },
     serviceName: {
-      fontSize: 20,
+      fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.8) : responsive.responsive.fontSize(2.0),
       fontWeight: '700',
       color: '#1F2937',
       marginBottom: spacing.xs,
-      lineHeight: 24,
+      lineHeight: responsive.isSmallScreen ? responsive.responsive.fontSize(2.2) : responsive.responsive.fontSize(2.4),
     },
     bookingId: {
       fontSize: 13,
@@ -213,7 +209,7 @@ const BookingCard = ({
       shadowRadius: 4,
       elevation: 2,
     },
-    rescheduleButton: {
+    checkForAnotherTimeButton: {
       backgroundColor: '#F59E0B',
       shadowColor: '#F59E0B',
       shadowOffset: { width: 0, height: 4 },
@@ -221,7 +217,7 @@ const BookingCard = ({
       shadowRadius: 8,
       elevation: 4,
     },
-    cancelButton: {
+    removeButton: {
       backgroundColor: '#EF4444',
       shadowColor: '#EF4444',
       shadowOffset: { width: 0, height: 4 },
@@ -235,37 +231,11 @@ const BookingCard = ({
       color: 'white',
       textAlign: 'center',
     },
-    viewDetailsButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.large,
-      backgroundColor: colors.primary || '#6B46C1',
-      height: 44,
-      flex: 1,
-      shadowColor: colors.primary || '#6B46C1',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    viewDetailsButtonText: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: 'white',
-      textAlign: 'center',
-    },
   });
 
   return (
     <Animated.View style={[styles.container, cardAnimatedStyle]}>
-      <TouchableOpacity
-        style={styles.cardContent}
-        onPress={handlePress}
-        activeOpacity={0.9}
-      >
+      <View style={styles.cardContent}>
         {/* Header with Status */}
         <View style={styles.header}>
           <View style={styles.serviceInfo}>
@@ -273,7 +243,7 @@ const BookingCard = ({
               {booking.serviceName}
             </ThemedText>
             <ThemedText style={styles.bookingId}>
-              #{booking.bookingId}
+              ID: {booking.bookingId}
             </ThemedText>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
@@ -320,20 +290,6 @@ const BookingCard = ({
           </View>
 
           <View style={styles.detailItem}>
-            <View style={[styles.detailIconContainer, { backgroundColor: '#10B981' + '10' }]}>
-              <Ionicons
-                name="person-outline"
-                size={18}
-                color="#10B981"
-              />
-            </View>
-            <View style={styles.detailContent}>
-              <ThemedText style={styles.detailLabel}>Stylist</ThemedText>
-              <ThemedText style={styles.detailText}>{booking.stylist}</ThemedText>
-            </View>
-          </View>
-
-          <View style={styles.detailItem}>
             <View style={[styles.detailIconContainer, { backgroundColor: '#F59E0B' + '10' }]}>
               <Ionicons
                 name="pricetag-outline"
@@ -350,41 +306,31 @@ const BookingCard = ({
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          {canReschedule && (
+          {showCheckForAnotherTime && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.rescheduleButton]}
-              onPress={handleReschedulePress}
+              style={[styles.actionButton, styles.checkForAnotherTimeButton]}
+              onPress={() => onCheckForAnotherTime && onCheckForAnotherTime(booking)}
               activeOpacity={0.8}
             >
               <ThemedText style={styles.actionButtonText}>
-                Reschedule
+                Check for another time
               </ThemedText>
             </TouchableOpacity>
           )}
           
-          {canCancel && (
+          {showRemoveButton && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleCancelPress}
+              style={[styles.actionButton, styles.removeButton]}
+              onPress={() => onRemoveBooking && onRemoveBooking(booking)}
               activeOpacity={0.8}
             >
               <ThemedText style={styles.actionButtonText}>
-                Cancel
+                Remove Booking
               </ThemedText>
             </TouchableOpacity>
           )}
-          
-          <TouchableOpacity
-            style={styles.viewDetailsButton}
-            onPress={handlePress}
-            activeOpacity={0.8}
-          >
-            <ThemedText style={styles.viewDetailsButtonText}>
-              View Details
-            </ThemedText>
-          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 };

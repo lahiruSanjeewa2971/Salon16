@@ -1,12 +1,11 @@
-import { useWindowDimensions } from 'react-native';
-import { Platform } from 'react-native';
 import { useMemo } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
 import {
   responsiveFontSize,
   responsiveHeight,
-  responsiveWidth,
   responsiveScreenHeight,
   responsiveScreenWidth,
+  responsiveWidth,
 } from 'react-native-responsive-dimensions';
 
 /**
@@ -95,6 +94,7 @@ export const useResponsive = () => {
     lg: responsiveWidth(4),
     xl: responsiveWidth(6),
     xxl: responsiveWidth(8),
+    xxxl: responsiveWidth(10),
   }), []);
 
   const heightSpacing = useMemo(() => ({

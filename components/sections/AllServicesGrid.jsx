@@ -1,17 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Extrapolate,
   interpolate,
   useAnimatedStyle,
 } from 'react-native-reanimated';
 
+import { useResponsive } from '../../hooks/useResponsive';
 import { ThemedText } from '../ThemedText';
-import ServiceBookingBottomSheet from '../ui/ServiceBookingBottomSheet';
-
-const { width } = Dimensions.get('window');
-const SERVICE_CARD_WIDTH = (width - 48) / 2;
+import ServiceBookingModal from '../ui/bottomSheets/ServiceBookingBottomSheet';
 
 const AllServicesGrid = ({ 
   services, 
@@ -24,6 +22,15 @@ const AllServicesGrid = ({
   // Animation values
   servicesAnim,
 }) => {
+  // Responsive hook
+  const responsive = useResponsive();
+  
+  // Calculate card width using responsive utilities
+  // Account for: horizontal padding (left + right) + horizontal margins between cards
+  const horizontalPadding = responsive.isSmallScreen ? responsive.spacing.md * 2 : responsive.spacing.lg * 2;
+  const horizontalMargin = responsive.isSmallScreen ? responsive.spacing.xs * 4 : (responsive.spacing.sm * 4); // 2 cards * 2 margins each
+  const cardWidth = (responsive.width - horizontalPadding - horizontalMargin) / 2;
+  
   // Animated styles
   const servicesAnimatedStyle = useAnimatedStyle(() => ({
     opacity: servicesAnim.value,
@@ -32,7 +39,7 @@ const AllServicesGrid = ({
     ],
   }));
 
-  const styles = createStyles(colors, spacing, borderRadius, shadows);
+  const styles = createStyles(colors, spacing, borderRadius, shadows, responsive, cardWidth);
 
   // Bottom sheet state
   const [selectedService, setSelectedService] = useState(null);
@@ -40,7 +47,7 @@ const AllServicesGrid = ({
 
   // Handle service booking
   const handleBookNow = (service) => {
-    console.log('🔘 Book Now button pressed for service:', service.name);
+    console.log('🔘 Book Now button pressed for service:', service);
     setSelectedService(service);
     setIsBottomSheetVisible(true);
     console.log('📱 Bottom sheet should be visible now');
@@ -60,7 +67,7 @@ const AllServicesGrid = ({
       </View>
       <View style={styles.servicesGrid}>
         {[1, 2, 3, 4].map((index) => (
-          <View key={index} style={styles.loadingCard}>
+          <View key={index} style={[styles.loadingCard, { width: cardWidth }]}>
             <View style={styles.loadingImage} />
             <View style={styles.loadingContent}>
               <View style={styles.loadingTitle} />
@@ -132,6 +139,7 @@ const AllServicesGrid = ({
               key={service.id}
               style={[
                 styles.serviceCard,
+                { width: cardWidth },
                 {
                   opacity: servicesAnim.value,
                   transform: [
@@ -216,8 +224,8 @@ const AllServicesGrid = ({
         })}
       </View>
       
-      {/* Service Booking Bottom Sheet */}
-      <ServiceBookingBottomSheet
+      {/* Service Booking Modal */}
+      <ServiceBookingModal
         visible={isBottomSheetVisible}
         service={selectedService}
         onClose={handleCloseBottomSheet}
@@ -226,9 +234,9 @@ const AllServicesGrid = ({
   );
 };
 
-const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.create({
+const createStyles = (colors, spacing, borderRadius, shadows, responsive, cardWidth) => StyleSheet.create({
   section: {
-    marginBottom: spacing.xxl,
+    marginBottom: responsive.isSmallScreen ? responsive.spacing.xl : responsive.spacing.xxl,
     backgroundColor: 'transparent',
     position: 'relative',
   },
@@ -236,11 +244,11 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+    marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
   },
   sectionTitleWhite: {
-    fontSize: 24,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(2.2) : responsive.responsive.fontSize(2.4),
     fontWeight: "700",
     color: "white",
     textShadowColor: "rgba(0, 0, 0, 0.3)",
@@ -251,11 +259,12 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
   },
   serviceCard: {
-    width: SERVICE_CARD_WIDTH,
-    marginBottom: spacing.md,
+    width: cardWidth,
+    marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+    marginHorizontal: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm / 2, // Small horizontal margin for spacing
     backgroundColor: "rgba(0, 0, 0, 0.4)",
     borderRadius: borderRadius.xl,
     overflow: "hidden",
@@ -269,25 +278,25 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   },
   serviceImage: {
     width: "100%",
-    height: 140,
+    height: responsive.isSmallScreen ? responsive.responsive.height(18) : responsive.responsive.height(20),
     backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   popularBadge: {
     position: "absolute",
-    top: spacing.sm,
-    right: spacing.sm,
+    top: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
+    right: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
     backgroundColor: colors.accent,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
+    paddingVertical: responsive.spacing.xs,
     borderRadius: borderRadius.small,
   },
   popularBadgeText: {
-    fontSize: 10,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(0.9) : responsive.responsive.fontSize(1.0),
     fontWeight: "bold",
     color: "white",
   },
   serviceContent: {
-    padding: spacing.md,
+    padding: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
     flex: 1,
     justifyContent: 'space-between',
   },
@@ -295,14 +304,14 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: spacing.xs,
+    marginBottom: responsive.spacing.xs,
   },
   serviceName: {
-    fontSize: 14,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.3) : responsive.responsive.fontSize(1.4),
     fontWeight: "700",
     color: "white",
     flex: 1,
-    marginRight: spacing.xs,
+    marginRight: responsive.spacing.xs,
   },
   ratingContainer: {
     flexDirection: "row",
@@ -315,20 +324,20 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     marginLeft: 2,
   },
   serviceDescription: {
-    fontSize: 12,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.1) : responsive.responsive.fontSize(1.2),
     color: "rgba(255, 255, 255, 0.8)",
-    lineHeight: 18,
+    lineHeight: responsive.isSmallScreen ? 16 : 18,
     flex: 1,
-    marginBottom: spacing.sm,
+    marginBottom: responsive.spacing.sm,
   },
   serviceFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: spacing.sm,
+    marginTop: responsive.spacing.sm,
   },
   servicePrice: {
-    fontSize: 16,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.5) : responsive.responsive.fontSize(1.6),
     fontWeight: "bold",
     color: "white",
   },
@@ -340,17 +349,17 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   // New service card elements
   categoryBadge: {
     position: "absolute",
-    top: spacing.sm,
-    left: spacing.sm,
+    top: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
+    left: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
+    paddingVertical: responsive.spacing.xs,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.8)",
   },
   categoryBadgeText: {
-    fontSize: 10,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(0.9) : responsive.responsive.fontSize(1.0),
     fontWeight: "600",
     color: "white",
   },
@@ -359,28 +368,27 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
     alignItems: "center",
   },
   durationText: {
-    fontSize: 12,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.1) : responsive.responsive.fontSize(1.2),
     fontWeight: "600",
     color: "rgba(255, 255, 255, 0.8)",
     marginLeft: 4,
   },
   bookButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.xs : responsive.spacing.sm,
+    paddingVertical: responsive.spacing.xs,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
   },
   bookButtonText: {
-    fontSize: 12,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.1) : responsive.responsive.fontSize(1.2),
     fontWeight: "600",
     color: "white",
   },
   // Loading state styles
   loadingCard: {
-    width: SERVICE_CARD_WIDTH,
-    marginBottom: spacing.md,
+    marginBottom: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: borderRadius.large,
     overflow: "hidden",
@@ -389,7 +397,7 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   },
   loadingImage: {
     width: "100%",
-    height: 140,
+    height: responsive.isSmallScreen ? responsive.responsive.height(18) : responsive.responsive.height(20),
     backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   loadingContent: {
@@ -426,45 +434,45 @@ const createStyles = (colors, spacing, borderRadius, shadows) => StyleSheet.crea
   },
   // Empty state styles
   emptyStateContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
+    paddingHorizontal: responsive.isSmallScreen ? responsive.spacing.md : responsive.spacing.lg,
+    paddingVertical: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
   },
   emptyStateContent: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: borderRadius.large,
-    padding: spacing.xl,
+    padding: responsive.isSmallScreen ? responsive.spacing.lg : responsive.spacing.xl,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
     backdropFilter: "blur(10px)",
   },
   emptyStateIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: responsive.isSmallScreen ? responsive.responsive.width(18) : responsive.responsive.width(20),
+    height: responsive.isSmallScreen ? responsive.responsive.width(18) : responsive.responsive.width(20),
+    borderRadius: responsive.isSmallScreen ? responsive.responsive.width(9) : responsive.responsive.width(10),
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing.lg,
+    marginBottom: responsive.spacing.lg,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
   emptyStateTitle: {
-    fontSize: 18,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.7) : responsive.responsive.fontSize(1.8),
     fontWeight: "700",
     color: "white",
     textAlign: "center",
-    marginBottom: spacing.sm,
+    marginBottom: responsive.spacing.sm,
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   emptyStateDescription: {
-    fontSize: 14,
+    fontSize: responsive.isSmallScreen ? responsive.responsive.fontSize(1.3) : responsive.responsive.fontSize(1.4),
     color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: spacing.md,
+    lineHeight: responsive.isSmallScreen ? 18 : 20,
+    paddingHorizontal: responsive.spacing.md,
   },
 });
 

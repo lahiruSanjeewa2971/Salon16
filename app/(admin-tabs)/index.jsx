@@ -1,35 +1,38 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, router } from 'expo-router';
-import { 
-  useSharedValue, 
-  withSpring, 
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  useAnimatedStyle,
+  useSharedValue,
   withDelay,
-  useAnimatedStyle 
+  withSpring
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useTheme } from '../../contexts/ThemeContext';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useResponsive } from '../../hooks/useResponsive';
+import { bookingService, serviceService, firestoreService } from '../../services/firebaseService';
 
 // Import dashboard components
+import CategoryForm from '../../components/sections/admin/categories/CategoryForm';
+import CategoryManager from '../../components/sections/admin/categories/CategoryManager';
 import DashboardHeader from '../../components/sections/admin/dashboard/DashboardHeader';
 import DashboardStats from '../../components/sections/admin/dashboard/DashboardStats';
-import TodaysSchedule from '../../components/sections/admin/dashboard/TodaysSchedule';
 import QuickActions from '../../components/sections/admin/dashboard/QuickActions';
-import CategoryManager from '../../components/sections/admin/categories/CategoryManager';
-import CategoryForm from '../../components/sections/admin/categories/CategoryForm';
-import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
+import TodaysSchedule from '../../components/sections/admin/dashboard/TodaysSchedule';
 import { useAuth } from '../../contexts/AuthContext';
+import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
 
 export default function AdminDashboardScreen() {
   const theme = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   
-  // Create secure service with user context
-  const secureService = createSecureFirestoreService(user);
+  // Create secure service with user context (memoized to prevent recreation on every render)
+  const secureService = useMemo(() => createSecureFirestoreService(user), [user]);
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -41,54 +44,125 @@ export default function AdminDashboardScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [todayBookings, setTodayBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [allBookings, setAllBookings] = useState([]);
+  const [activeServices, setActiveServices] = useState([]);
+  const [loadingStats, setLoadingStats] = useState(false);
   const categorySectionRef = useRef(null);
   const scrollViewRef = useRef(null);
 
-  // Mock data for dashboard
-  const mockStats = {
-    totalBookings: 24,
-    pendingBookings: 5,
-    todayRevenue: 450,
-    activeServices: 8,
-  };
+  // Load today's bookings
+  const loadTodayBookings = useCallback(async () => {
+    setLoadingBookings(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const bookingsData = await bookingService.getBookingsByDate(today);
+      
+      // Transform Firestore booking data to match component format
+      const transformedBookings = bookingsData.map(booking => ({
+        id: booking.id,
+        date: booking.date,
+        time: booking.time,
+        customer: booking.customerName || 'Unknown Customer',
+        service: booking.serviceName || 'Unknown Service',
+        price: booking.servicePrice || 0,
+        duration: booking.serviceDuration || 0,
+        status: booking.status || 'pending',
+        customerId: booking.customerId,
+        serviceId: booking.serviceId,
+      }));
+      
+      // Sort bookings by time
+      transformedBookings.sort((a, b) => {
+        const timeA = a.time.split(':').map(Number);
+        const timeB = b.time.split(':').map(Number);
+        const minutesA = timeA[0] * 60 + timeA[1];
+        const minutesB = timeB[0] * 60 + timeB[1];
+        return minutesA - minutesB;
+      });
+      
+      console.log("transformedBookings :", transformedBookings)
+      setTodayBookings(transformedBookings);
+    } catch (error) {
+      console.error('Error loading today\'s bookings:', error);
+      showError('Failed to load today\'s bookings');
+      setTodayBookings([]);
+    } finally {
+      setLoadingBookings(false);
+    }
+  }, [showError]);
 
-  const mockSchedule = [
-    {
-      id: '1',
-      time: '09:00',
-      service: 'Hair Cut',
-      customer: 'John Doe',
-      status: 'completed',
-    },
-    {
-      id: '2',
-      time: '10:30',
-      service: 'Hair Color',
-      customer: 'Jane Smith',
-      status: 'in-progress',
-    },
-    {
-      id: '3',
-      time: '12:00',
-      service: 'Manicure',
-      customer: 'Bob Johnson',
-      status: 'upcoming',
-    },
-    {
-      id: '4',
-      time: '14:30',
-      service: 'Facial',
-      customer: 'Alice Brown',
-      status: 'upcoming',
-    },
-    {
-      id: '5',
-      time: '16:00',
-      service: 'Massage',
-      customer: 'Charlie Wilson',
-      status: 'upcoming',
-    },
-  ];
+  // Load all bookings (for total bookings count)
+  const loadAllBookings = useCallback(async () => {
+    try {
+      // Query all bookings without date filter
+      const bookingsData = await firestoreService.query('bookings', []);
+      setAllBookings(bookingsData || []);
+    } catch (error) {
+      console.error('Error loading all bookings:', error);
+      setAllBookings([]);
+    }
+  }, []);
+
+  // Load active services (for active services count)
+  const loadActiveServices = useCallback(async () => {
+    try {
+      const services = await secureService.sharedOperations.getActiveServices();
+      setActiveServices(services || []);
+    } catch (error) {
+      console.error('Error loading active services:', error);
+      setActiveServices([]);
+    }
+  }, [secureService]);
+
+  // Calculate dashboard stats from real data
+  const calculateStats = useCallback(() => {
+    // Use todayBookings state if available (more accurate), otherwise filter from allBookings
+    const today = new Date().toISOString().split('T')[0];
+    const todayBookingsForStats = todayBookings.length > 0 
+      ? todayBookings 
+      : allBookings.filter(booking => booking.date === today);
+    
+    // Calculate stats
+    const stats = {
+      totalBookings: allBookings.length,
+      pendingBookings: todayBookingsForStats.filter(b => b.status === 'pending').length,
+      todayRevenue: todayBookingsForStats.reduce((sum, booking) => {
+        return sum + (parseFloat(booking.price || booking.servicePrice) || 0);
+      }, 0),
+      activeServices: activeServices.length,
+    };
+    
+    return stats;
+  }, [allBookings, activeServices, todayBookings]);
+
+  // Memoized stats
+  const dashboardStats = useMemo(() => calculateStats(), [calculateStats]);
+
+  // Load today's bookings on component mount
+  useEffect(() => {
+    loadTodayBookings();
+  }, [loadTodayBookings]);
+
+  // Load initial stats data
+  useEffect(() => {
+    const loadInitialStats = async () => {
+      setLoadingStats(true);
+      try {
+        await Promise.all([
+          loadAllBookings(),
+          loadActiveServices()
+        ]);
+      } catch (error) {
+        console.error('Error loading initial stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    
+    loadInitialStats();
+  }, [loadAllBookings, loadActiveServices]);
 
   // Fetch all categories from Firebase (for admin panel)
   const fetchCategories = useCallback(async () => {
@@ -217,12 +291,99 @@ export default function AdminDashboardScreen() {
     }, [fadeAnim, slideUpAnim, headerAnim])
   );
 
+  // Set up real-time listener for all bookings (for stats)
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up real-time listener for all bookings (stats)...');
+    
+    const unsubscribe = firestoreService.listen('bookings', [], (updatedBookings) => {
+      console.log('Real-time update received for all bookings:', updatedBookings.length);
+      setAllBookings(updatedBookings || []);
+    });
+
+    return () => {
+      console.log('Cleaning up all bookings subscription...');
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
+
+  // Set up real-time listener for today's bookings
+  useEffect(() => {
+    if (!user) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    console.log('Setting up real-time listener for today\'s bookings:', today);
+    
+    const unsubscribe = secureService.adminOperations.subscribeToBookingsByDate(
+      today,
+      (updatedBookings) => {
+        console.log('Real-time update received for today\'s bookings:', updatedBookings.length);
+        
+        // Transform Firestore booking data to match component format
+        const transformedBookings = updatedBookings.map(booking => ({
+          id: booking.id,
+          date: booking.date,
+          time: booking.time,
+          customer: booking.customerName || 'Unknown Customer',
+          service: booking.serviceName || 'Unknown Service',
+          price: booking.servicePrice || 0,
+          duration: booking.serviceDuration || 0,
+          status: booking.status || 'pending',
+          customerId: booking.customerId,
+          serviceId: booking.serviceId,
+        }));
+        
+        // Sort bookings by time
+        transformedBookings.sort((a, b) => {
+          const timeA = a.time.split(':').map(Number);
+          const timeB = b.time.split(':').map(Number);
+          const minutesA = timeA[0] * 60 + timeA[1];
+          const minutesB = timeB[0] * 60 + timeB[1];
+          return minutesA - minutesB;
+        });
+        
+        setTodayBookings(transformedBookings);
+      }
+    );
+
+    return () => {
+      console.log('Cleaning up today\'s bookings subscription...');
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user, secureService]);
+
+  // Set up real-time listener for active services
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up real-time listener for active services...');
+    
+    const unsubscribe = firestoreService.listen('services', 
+      [{ field: 'isActive', operator: '==', value: true }],
+      (updatedServices) => {
+        console.log('Real-time update received for active services:', updatedServices.length);
+        setActiveServices(updatedServices || []);
+      }
+    );
+
+    return () => {
+      console.log('Cleaning up active services subscription...');
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
+
   // Event handlers
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       console.log('Refreshing dashboard data...');
-      await fetchCategories();
+      await Promise.all([
+        fetchCategories(),
+        loadTodayBookings(),
+        loadAllBookings(),
+        loadActiveServices()
+      ]);
       console.log('Dashboard refreshed successfully');
       showSuccess('Dashboard refreshed!');
     } catch (error) {
@@ -231,7 +392,7 @@ export default function AdminDashboardScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchCategories, showError, showSuccess]);
+  }, [fetchCategories, loadTodayBookings, loadAllBookings, loadActiveServices, showError, showSuccess]);
 
   const handleViewBooking = (booking) => {
     showSuccess(`Viewing booking: ${booking.service} for ${booking.customer}`);
@@ -315,14 +476,13 @@ export default function AdminDashboardScreen() {
   };
 
   // Add null safety for all props passed to components
-  const safeMockStats = mockStats || {
+  const safeStats = dashboardStats || {
     totalBookings: 0,
     pendingBookings: 0,
     todayRevenue: 0,
     activeServices: 0,
   };
 
-  const safeMockSchedule = mockSchedule || [];
   const safeCategories = categories || [];
 
   // Animated styles
@@ -341,7 +501,7 @@ export default function AdminDashboardScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary,
     },
     gradient: {
@@ -358,8 +518,8 @@ export default function AdminDashboardScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
-      paddingTop: spacing.sm,
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
     },
   });
 
@@ -397,11 +557,12 @@ export default function AdminDashboardScreen() {
           }
         >
           {/* Stats Section */}
-          <DashboardStats stats={safeMockStats} animatedStyle={contentAnimatedStyle} />
+          <DashboardStats stats={safeStats} animatedStyle={contentAnimatedStyle} />
 
           {/* Today's Schedule */}
           <TodaysSchedule 
-            schedule={safeMockSchedule} 
+            bookings={todayBookings}
+            loading={loadingBookings}
             animatedStyle={contentAnimatedStyle}
             onViewBooking={handleViewBooking}
           />

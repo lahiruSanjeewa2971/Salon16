@@ -37,4 +37,7 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Sensitive configuration files
+google-services.json
+
 app-example

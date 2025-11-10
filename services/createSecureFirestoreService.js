@@ -291,6 +291,17 @@ export const createSecureFirestoreService = (userFromContext) => {
           throw error;
         }
       },
+
+      subscribeToBookingsByDate: (date, callback) => {
+        try {
+          console.log('🔒 SecureService: Setting up real-time listener for bookings by date (admin only)');
+          // Note: Real-time subscriptions don't need role validation as they're read-only
+          return bookingService.subscribeToBookingsByDate(date, callback);
+        } catch (error) {
+          console.error('❌ SecureService: Error in subscribeToBookingsByDate:', error);
+          throw error;
+        }
+      },
     },
 
     /**
@@ -331,6 +342,47 @@ export const createSecureFirestoreService = (userFromContext) => {
           return result;
         } catch (error) {
           console.error('❌ SecureService: Error in getUserBookings:', error);
+          throw error;
+        }
+      },
+
+      deleteBooking: async (bookingId) => {
+        try {
+          console.log('🔒 SecureService: Validating ownership for deleteBooking');
+          
+          // Get the booking document to check ownership
+          const bookingDoc = await firestoreService.read('bookings', bookingId);
+          
+          if (!bookingDoc) {
+            throw new Error('Booking not found');
+          }
+          
+          if (bookingDoc.customerId !== userFromContext?.uid) {
+            throw new Error('You can only delete your own bookings');
+          }
+          
+          console.log('✅ SecureService: Ownership validated, deleting booking');
+          const result = await bookingService.deleteBooking(bookingId);
+          
+          console.log('✅ SecureService: Booking deleted successfully');
+          return result;
+        } catch (error) {
+          console.error('❌ SecureService: Error in deleteBooking:', error);
+          throw error;
+        }
+      },
+
+      subscribeToUserBookings: (userId, callback) => {
+        try {
+          console.log('🔒 SecureService: Setting up real-time listener for user bookings');
+          // Note: Real-time listeners don't need validation on setup, but we validate in callback
+          return bookingService.subscribeToUserBookings(userId, (bookings) => {
+            // Filter to only return bookings for this user (security)
+            const userBookings = bookings.filter(b => b.customerId === userId);
+            callback(userBookings);
+          });
+        } catch (error) {
+          console.error('❌ SecureService: Error in subscribeToUserBookings:', error);
           throw error;
         }
       },

@@ -5,7 +5,7 @@ import Animated from 'react-native-reanimated';
 
 import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
-import CustomerDetailBottomSheet from '../../../ui/CustomerDetailBottomSheet';
+import CustomerDetailBottomSheet from '../../../ui/bottomSheets/CustomerDetailBottomSheet';
 
 export default function CustomerList({ customers, animatedStyle, onCustomerPress }) {
   const theme = useTheme();

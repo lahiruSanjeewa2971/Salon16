@@ -21,6 +21,7 @@ import { ThemedText } from '../../components/ThemedText';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -34,6 +35,7 @@ import ServicesStats from '../../components/sections/admin/services/ServicesStat
 
 export default function AdminServicesScreen() {
   const theme = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   
   // Create secure service with user context
@@ -331,7 +333,7 @@ export default function AdminServicesScreen() {
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary,
     },
     gradient: {
@@ -348,8 +350,8 @@ export default function AdminServicesScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
-      paddingTop: spacing.sm,
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
     },
     errorContainer: {
       alignItems: 'center',

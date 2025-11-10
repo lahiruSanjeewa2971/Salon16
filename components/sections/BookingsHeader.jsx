@@ -129,7 +129,6 @@ const BookingsHeader = ({
       paddingVertical: spacing.xs,
       backgroundColor: 'transparent',
       borderWidth: 0,
-      outline: 'none',
       textAlignVertical: 'center',
     },
     clearButton: {

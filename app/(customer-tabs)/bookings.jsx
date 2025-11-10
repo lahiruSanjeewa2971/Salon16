@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -15,103 +15,27 @@ import { ThemedText } from '../../components/ThemedText';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useResponsive } from '../../hooks/useResponsive';
 import BookingsSkeletonLoader from '../../components/ui/BookingsSkeletonLoader';
+import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
 
 // Section Components
 import BookingCard from '../../components/sections/BookingCard';
 import BookingsHeader from '../../components/sections/BookingsHeader';
 import EmptyBookingsState from '../../components/sections/EmptyBookingsState';
 
-// Mock data for bookings
-const mockBookings = [
-  // {
-  //   id: '1',
-  //   bookingId: 'BK001234',
-  //   serviceName: 'Hair Cut & Style',
-  //   date: 'Dec 20, 2024',
-  //   time: '2:00 PM',
-  //   status: 'accepted',
-  //   stylist: 'Sarah Johnson',
-  //   price: '85',
-  //   duration: '60 min',
-  //   isReschedulePending: false,
-  //   rescheduleCount: 0,
-  // },
-  {
-    id: '2',
-    bookingId: 'BK001235',
-    serviceName: 'Facial Treatment',
-    date: 'Dec 18, 2024',
-    time: '10:30 AM',
-    status: 'completed',
-    stylist: 'Emma Wilson',
-    price: '120',
-    duration: '90 min',
-    isReschedulePending: false,
-    rescheduleCount: 0,
-  },
-  // {
-  //   id: '3',
-  //   bookingId: 'BK001236',
-  //   serviceName: 'Manicure & Pedicure',
-  //   date: 'Dec 22, 2024',
-  //   time: '3:30 PM',
-  //   status: 'pending',
-  //   stylist: 'Lisa Brown',
-  //   price: '65',
-  //   duration: '75 min',
-  //   isReschedulePending: false,
-  //   rescheduleCount: 0,
-  // },
-  {
-    id: '4',
-    bookingId: 'BK001237',
-    serviceName: 'Hair Coloring',
-    date: 'Dec 15, 2024',
-    time: '1:00 PM',
-    status: 'cancelled',
-    stylist: 'Sarah Johnson',
-    price: '150',
-    duration: '120 min',
-    isReschedulePending: false,
-    rescheduleCount: 1,
-  },
-  // {
-  //   id: '5',
-  //   bookingId: 'BK001238',
-  //   serviceName: 'Eyebrow Shaping',
-  //   date: 'Dec 25, 2024',
-  //   time: '11:00 AM',
-  //   status: 'accepted',
-  //   stylist: 'Maria Garcia',
-  //   price: '45',
-  //   duration: '30 min',
-  //   isReschedulePending: false,
-  //   rescheduleCount: 0,
-  // },
-  {
-    id: '6',
-    bookingId: 'BK001239',
-    serviceName: 'Deep Conditioning Treatment',
-    date: 'Dec 12, 2024',
-    time: '4:00 PM',
-    status: 'completed',
-    stylist: 'Emma Wilson',
-    price: '95',
-    duration: '60 min',
-    isReschedulePending: false,
-    rescheduleCount: 0,
-  },
-];
-
 export default function CustomerBookingsScreen() {
   const { colors, spacing, borderRadius, shadows } = useTheme();
+  const responsive = useResponsive();
   const { user } = useAuth();
   const router = useRouter();
-  const { showInfo, showSuccess, showWarning } = useToastHelpers();
+  const { showInfo, showSuccess, showWarning, showError } = useToastHelpers();
+
+  // Create secure service with user context
+  const secureService = createSecureFirestoreService(user);
 
   // State management
-  const [bookings, setBookings] = useState(mockBookings);
+  const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState('upcoming');
@@ -122,9 +46,108 @@ export default function CustomerBookingsScreen() {
   const slideUpAnim = useSharedValue(50);
   const headerAnim = useSharedValue(-30);
 
-  // Reset loading state every time screen comes into focus
+  // Transform booking data from Firestore format to component format
+  const transformBooking = useCallback((booking) => {
+    // Format date
+    const formatDate = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+    };
+
+    // Format time
+    const formatTime = (timeString) => {
+      if (!timeString) return '';
+      const [hours, minutes] = timeString.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minutes} ${ampm}`;
+    };
+
+    return {
+      id: booking.id,
+      bookingId: booking.id.substring(0, 8).toUpperCase() || 'N/A',
+      serviceName: booking.serviceName || 'Unknown Service',
+      date: formatDate(booking.date) || 'N/A',
+      time: formatTime(booking.time) || 'N/A',
+      status: booking.status || 'pending',
+      price: booking.servicePrice || 0,
+      duration: booking.serviceDuration || 0,
+      dateRaw: booking.date, // Keep raw date for calculations
+      timeRaw: booking.time, // Keep raw time for calculations
+    };
+  }, []);
+
+  // Categorize bookings
+  const categorizeBookings = useCallback((bookings) => {
+    const now = new Date();
+    
+    const upcoming = bookings.filter(booking => {
+      if (!booking.dateRaw || !booking.timeRaw) return false;
+      const bookingDateTime = new Date(`${booking.dateRaw}T${booking.timeRaw}`);
+      const isFuture = bookingDateTime >= now;
+      const isUpcomingStatus = ['pending', 'accepted'].includes(booking.status);
+      return isFuture && isUpcomingStatus;
+    });
+
+    const past = bookings.filter(booking => {
+      if (!booking.dateRaw || !booking.timeRaw) return false;
+      const bookingDateTime = new Date(`${booking.dateRaw}T${booking.timeRaw}`);
+      const isPast = bookingDateTime < now;
+      const isPastStatus = ['completed', 'cancelled', 'rejected'].includes(booking.status);
+      return isPast || isPastStatus;
+    });
+
+    return {
+      upcoming,
+      past,
+      all: bookings
+    };
+  }, []);
+
+  // Memoized categorized bookings
+  const categorizedBookings = useMemo(() => {
+    return categorizeBookings(allBookings);
+  }, [allBookings, categorizeBookings]);
+
+  // Fetch all user bookings
+  const fetchAllUserBookings = useCallback(async () => {
+    if (!user?.uid) return;
+
+    try {
+      const bookingsData = await secureService.customerOperations.getUserBookings(user.uid);
+      
+      // Transform Firestore booking data
+      const transformedBookings = bookingsData.map(transformBooking);
+      
+      // Sort by date and time (most recent first)
+      transformedBookings.sort((a, b) => {
+        const dateA = new Date(`${a.dateRaw}T${a.timeRaw}`);
+        const dateB = new Date(`${b.dateRaw}T${b.timeRaw}`);
+        return dateB - dateA;
+      });
+      
+      setAllBookings(transformedBookings);
+    } catch (error) {
+      console.error('Error fetching user bookings:', error);
+      showError('Failed to load bookings', 'Please try again later.');
+      setAllBookings([]);
+    }
+  }, [user?.uid, transformBooking, showError]);
+
+  // Initial load
   useFocusEffect(
     useCallback(() => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       
       // Start animations
@@ -132,60 +155,74 @@ export default function CustomerBookingsScreen() {
       fadeAnim.value = withDelay(400, withSpring(1, { damping: 15, stiffness: 150 }));
       slideUpAnim.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
 
-      // Hide skeleton loader after animations complete
-      const hideSkeleton = setTimeout(() => {
+      // Fetch bookings
+      fetchAllUserBookings().finally(() => {
         setLoading(false);
-      }, 2000);
+      });
 
       // Check if user is logged in and show toast
       if (!user) {
         showInfo('To access this, please login.');
       }
-
-      return () => clearTimeout(hideSkeleton);
-    }, [user, showInfo, fadeAnim, slideUpAnim, headerAnim])
+    }, [user, fetchAllUserBookings, showInfo, fadeAnim, slideUpAnim, headerAnim])
   );
+
+  // Set up real-time listener
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    console.log('Setting up real-time listener for user bookings...');
+    const unsubscribe = secureService.customerOperations.subscribeToUserBookings(
+      user.uid,
+      (updatedBookings) => {
+        try {
+          console.log('Real-time bookings update received:', updatedBookings.length);
+          
+          // Transform Firestore booking data
+          const transformedBookings = updatedBookings.map(transformBooking);
+          
+          // Sort by date and time
+          transformedBookings.sort((a, b) => {
+            const dateA = new Date(`${a.dateRaw}T${a.timeRaw}`);
+            const dateB = new Date(`${b.dateRaw}T${b.timeRaw}`);
+            return dateB - dateA;
+          });
+          
+          setAllBookings(transformedBookings);
+        } catch (error) {
+          console.error('Error processing real-time booking update:', error);
+        }
+      }
+    );
+
+    return () => {
+      console.log('Cleaning up bookings subscription...');
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user?.uid, transformBooking]);
 
   // Filter bookings based on active filter and search query
   const filteredBookings = useMemo(() => {
-    let filtered = bookings;
-    
-    // Filter by status
-    if (activeFilter !== 'all') {
-      filtered = filtered.filter(booking => {
-        if (activeFilter === 'upcoming') {
-          return ['pending', 'accepted'].includes(booking.status);
-        }
-        if (activeFilter === 'past') {
-          return ['completed', 'cancelled', 'rejected'].includes(booking.status);
-        }
-        return true;
-      });
-    }
+    let filtered = categorizedBookings[activeFilter] || [];
     
     // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(booking =>
         booking.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         booking.bookingId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.date.includes(searchQuery) ||
-        booking.stylist.toLowerCase().includes(searchQuery.toLowerCase())
+        booking.date.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
     return filtered;
-  }, [bookings, activeFilter, searchQuery]);
+  }, [categorizedBookings, activeFilter, searchQuery]);
 
   // Calculate counts for filter tabs
-  const upcomingCount = bookings.filter(booking => 
-    ['pending', 'accepted'].includes(booking.status)
-  ).length;
-  
-  const pastCount = bookings.filter(booking => 
-    ['completed', 'cancelled', 'rejected'].includes(booking.status)
-  ).length;
-  
-  const totalCount = bookings.length;
+  const upcomingCount = categorizedBookings.upcoming.length;
+  const pastCount = categorizedBookings.past.length;
+  const totalCount = categorizedBookings.all.length;
 
   // Event handlers
   const handleFilterChange = (filterId) => {
@@ -196,34 +233,55 @@ export default function CustomerBookingsScreen() {
     setSearchQuery(query);
   };
 
-  const handleReschedule = (booking) => {
-    showWarning('Reschedule functionality coming soon!');
+  const handleCheckForAnotherTime = (booking) => {
+    console.log('Check for another time clicked for booking:', booking.id);
+    
+    // Check if booking time is more than 1 hour away
+    if (!booking.dateRaw || !booking.timeRaw) {
+      showWarning('Invalid booking time');
+      return;
+    }
+
+    const bookingDateTime = new Date(`${booking.dateRaw}T${booking.timeRaw}`);
+    const now = new Date();
+    const hoursDiff = (bookingDateTime - now) / (1000 * 60 * 60);
+
+    if (hoursDiff < 1) {
+      showWarning('You can only change booked time if there are more than 1 hour gap');
+      return;
+    }
+
+    // TODO: Implement reschedule functionality
+    showInfo('Reschedule functionality will be implemented soon');
   };
 
-  const handleCancel = (booking) => {
-    showWarning('Cancel functionality coming soon!');
-  };
-
-  const handleViewDetails = (booking) => {
-    showInfo(`Viewing details for booking ${booking.bookingId}`);
-  };
-
-  const handleBookNow = () => {
-    showInfo('Navigate to booking screen');
+  const handleRemoveBooking = async (booking) => {
+    try {
+      await secureService.customerOperations.deleteBooking(booking.id);
+      showSuccess('Booking removed successfully');
+      // Real-time listener will automatically update the list
+    } catch (error) {
+      console.error('Error removing booking:', error);
+      showError('Failed to remove booking', 'Please try again.');
+    }
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
+    try {
+      await fetchAllUserBookings();
       showSuccess('Bookings refreshed!');
-    }, 1000);
+    } catch (error) {
+      console.error('Refresh error:', error);
+      showError('Refresh Failed', 'Failed to refresh bookings. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const styles = StyleSheet.create({
     container: {
-      flex: 1,
+      ...responsive.containerStyles.fullScreen,
       backgroundColor: colors.primary || '#6C2A52',
     },
     gradient: {
@@ -240,8 +298,8 @@ export default function CustomerBookingsScreen() {
       flex: 1,
     },
     scrollContent: {
-      paddingBottom: Platform.OS === 'ios' ? 100 : 80, // Account for tab bar height
-      paddingTop: spacing.sm,
+      paddingBottom: Platform.OS === 'ios' ? responsive.responsive.height(12) : responsive.responsive.height(10),
+      paddingTop: responsive.isSmallScreen ? responsive.spacing.sm : responsive.spacing.md,
       minHeight: '100%',
     },
   });
@@ -353,7 +411,7 @@ export default function CustomerBookingsScreen() {
               slideUpAnim={slideUpAnim}
             />
           ) : (
-            filteredBookings.map((booking, index) => (
+            filteredBookings.map((booking) => (
               <BookingCard
                 key={booking.id}
                 booking={booking}
@@ -361,9 +419,8 @@ export default function CustomerBookingsScreen() {
                 spacing={spacing}
                 borderRadius={borderRadius}
                 shadows={shadows}
-                onReschedule={handleReschedule}
-                onCancel={handleCancel}
-                onViewDetails={handleViewDetails}
+                onCheckForAnotherTime={handleCheckForAnotherTime}
+                onRemoveBooking={handleRemoveBooking}
                 fadeAnim={fadeAnim}
                 slideUpAnim={slideUpAnim}
               />

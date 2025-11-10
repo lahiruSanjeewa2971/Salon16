@@ -20,8 +20,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '../ThemedText';
-import { useTheme } from '../../contexts/ThemeContext';
+import { ThemedText } from '../../ThemedText';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -544,3 +544,4 @@ export default function CustomerDetailBottomSheet({
     </Modal>
   );
 }
+

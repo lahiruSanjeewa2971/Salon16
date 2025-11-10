@@ -22,14 +22,14 @@ const {
   addDoc 
 } = require('firebase/firestore');
 
-// Firebase configuration (same as in firebase.config.js)
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBCMkeZWqgb20dRaFIN6phPvKrTlMNcHJE",
-  authDomain: "salon16.firebaseapp.com",
-  projectId: "salon16",
-  storageBucket: "salon16.firebasestorage.app",
-  messagingSenderId: "958917048495",
-  appId: "1:958917048495:android:81dc8a28cf9ead58d3bc5a"
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID
 };
 
 // Initialize Firebase
@@ -38,9 +38,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Admin user credentials
-const ADMIN_EMAIL = 'rathne1997@gmail.com';
-const ADMIN_PASSWORD = 'Abcd@1234';
-const ADMIN_DISPLAY_NAME = 'Rathne Admin';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_DISPLAY_NAME = process.env.ADMIN_DISPLAY_NAME || 'Admin User';
 
 // Admin user data for Firestore
 const adminUserData = {
