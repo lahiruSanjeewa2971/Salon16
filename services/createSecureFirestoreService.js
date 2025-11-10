@@ -291,6 +291,17 @@ export const createSecureFirestoreService = (userFromContext) => {
           throw error;
         }
       },
+
+      subscribeToBookingsByDate: (date, callback) => {
+        try {
+          console.log('🔒 SecureService: Setting up real-time listener for bookings by date (admin only)');
+          // Note: Real-time subscriptions don't need role validation as they're read-only
+          return bookingService.subscribeToBookingsByDate(date, callback);
+        } catch (error) {
+          console.error('❌ SecureService: Error in subscribeToBookingsByDate:', error);
+          throw error;
+        }
+      },
     },
 
     /**

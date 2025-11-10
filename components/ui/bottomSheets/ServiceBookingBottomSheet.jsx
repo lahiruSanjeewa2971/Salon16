@@ -58,6 +58,9 @@ export default function ServiceBookingBottomSheet({
   
   // Booking submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Refresh trigger for TimeSelectionSection (increment to force refresh)
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Animation values
   const translateY = useSharedValue(SCREEN_HEIGHT);
@@ -432,9 +435,16 @@ export default function ServiceBookingBottomSheet({
       if (hasConflict) {
         showError(
           'Time Slot Unavailable',
-          'This time slot has been booked by another customer. Please select a different time.'
+          'This time slot was just booked by another customer. We\'ve refreshed available times. Please select a different time.'
         );
         setIsSubmitting(false);
+        
+        // Clear selection
+        setSelectedTime(null);
+        setIsTimeValid(false);
+        
+        // Trigger refresh of time slots by incrementing refreshTrigger
+        setRefreshTrigger(prev => prev + 1);
         return;
       }
 
@@ -918,6 +928,7 @@ export default function ServiceBookingBottomSheet({
                         salonHoursData={salonHoursData}
                         onTimeChange={handleTimeChange}
                         onValidationChange={handleValidationChange}
+                        refreshTrigger={refreshTrigger}
                       />
 
                       {/* Action Buttons Section */}

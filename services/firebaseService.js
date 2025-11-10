@@ -1,26 +1,26 @@
 import {
-    createUserWithEmailAndPassword,
-    onAuthStateChanged,
-    signInWithEmailAndPassword,
-    signOut,
-    updateProfile
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile
 } from 'firebase/auth';
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    limit,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    setDoc,
-    startAfter,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  startAfter,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { auth, db } from '../firebase.config';
 import cloudinaryService from './cloudinaryService';
@@ -163,13 +163,16 @@ export const firestoreService = {
       }
       
       const querySnapshot = await getDocs(q);
+      
       const results = [];
       querySnapshot.forEach((doc) => {
-        results.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        results.push({ id: doc.id, ...data });
       });
-      
+
       return results;
     } catch (error) {
+      console.error('❌ FirestoreService: Query error:', error);
       throw error;
     }
   },
@@ -302,21 +305,24 @@ export const bookingService = {
 
   // Get bookings by date
   getBookingsByDate: async (date) => {
-    try {
+    try {      
       const bookings = await firestoreService.query('bookings', [
         { field: 'date', operator: '==', value: date }
       ]);
+      
       // Return empty array if no bookings found (normal case)
       return bookings || [];
     } catch (error) {
+      // Log the full error for debugging
+      console.error('❌ BookingService: Error querying bookings by date:', error);      
       // If error is due to permissions or empty collection, return empty array
       // This allows the booking flow to continue even if query fails
       if (error.code === 'permission-denied' || error.message?.includes('permission')) {
-        console.warn('Permission denied when querying bookings, returning empty array:', error.message);
+        console.warn('⚠️ BookingService: Permission denied when querying bookings, returning empty array');
         return [];
       }
       // For other errors, log and return empty array to prevent blocking booking creation
-      console.warn('Error querying bookings by date, returning empty array:', error.message);
+      console.warn('⚠️ BookingService: Error querying bookings by date, returning empty array');
       return [];
     }
   },
@@ -348,6 +354,18 @@ export const bookingService = {
     try {
       return firestoreService.listen('bookings', 
         [{ field: 'customerId', operator: '==', value: userId }],
+        callback
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Subscribe to bookings by date (real-time) - for admin use
+  subscribeToBookingsByDate: (date, callback) => {
+    try {
+      return firestoreService.listen('bookings', 
+        [{ field: 'date', operator: '==', value: date }],
         callback
       );
     } catch (error) {

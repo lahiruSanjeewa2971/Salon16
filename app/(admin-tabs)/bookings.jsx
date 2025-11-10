@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import {
   useAnimatedStyle,
@@ -30,8 +30,8 @@ export default function AdminBookingsScreen() {
   const responsive = useResponsive();
   const { user } = useAuth();
   
-  // Create secure service with user context
-  const secureService = createSecureFirestoreService(user);
+  // Create secure service with user context (memoized to prevent recreation on every render)
+  const secureService = useMemo(() => createSecureFirestoreService(user), [user]);
   
   // Add comprehensive safety checks for theme destructuring
   const colors = theme?.colors || {};
@@ -86,35 +86,39 @@ export default function AdminBookingsScreen() {
   // Calendar refresh callback
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
+  // Transform booking data to component format
+  const transformBookings = useCallback((bookingsData) => {
+    const transformedBookings = bookingsData.map(booking => ({
+      id: booking.id,
+      date: booking.date,
+      time: booking.time,
+      customer: booking.customerName || 'Unknown Customer',
+      service: booking.serviceName || 'Unknown Service',
+      price: booking.servicePrice || 0,
+      duration: booking.serviceDuration || 0,
+      status: booking.status || 'pending',
+      customerId: booking.customerId,
+      serviceId: booking.serviceId,
+    }));
+    
+    // Sort bookings by time
+    transformedBookings.sort((a, b) => {
+      const timeA = a.time.split(':').map(Number);
+      const timeB = b.time.split(':').map(Number);
+      const minutesA = timeA[0] * 60 + timeA[1];
+      const minutesB = timeB[0] * 60 + timeB[1];
+      return minutesA - minutesB;
+    });
+    
+    return transformedBookings;
+  }, []);
+
   // Load bookings for selected date
   const loadBookingsForDate = useCallback(async (date) => {
     setLoadingBookings(true);
     try {
       const bookingsData = await bookingService.getBookingsByDate(date);
-      
-      // Transform Firestore booking data to match component format
-      const transformedBookings = bookingsData.map(booking => ({
-        id: booking.id,
-        date: booking.date,
-        time: booking.time,
-        customer: booking.customerName || 'Unknown Customer',
-        service: booking.serviceName || 'Unknown Service',
-        price: booking.servicePrice || 0,
-        duration: booking.serviceDuration || 0,
-        status: booking.status || 'pending',
-        customerId: booking.customerId,
-        serviceId: booking.serviceId,
-      }));
-      
-      // Sort bookings by time
-      transformedBookings.sort((a, b) => {
-        const timeA = a.time.split(':').map(Number);
-        const timeB = b.time.split(':').map(Number);
-        const minutesA = timeA[0] * 60 + timeA[1];
-        const minutesB = timeB[0] * 60 + timeB[1];
-        return minutesA - minutesB;
-      });
-      
+      const transformedBookings = transformBookings(bookingsData);
       setBookings(transformedBookings);
     } catch (error) {
       console.error('Error loading bookings:', error);
@@ -123,7 +127,7 @@ export default function AdminBookingsScreen() {
     } finally {
       setLoadingBookings(false);
     }
-  }, [showError]);
+  }, [showError, transformBookings]);
 
   // Load initial salon status and bookings for today
   useEffect(() => {
@@ -159,6 +163,31 @@ export default function AdminBookingsScreen() {
     loadInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
+
+  // Set up real-time listener for bookings by date
+  useEffect(() => {
+    if (!selectedDate || !user) {
+      return;
+    }
+
+    console.log('Setting up real-time listener for bookings by date:', selectedDate);
+    
+    // Set up real-time listener
+    const unsubscribe = secureService.adminOperations.subscribeToBookingsByDate(
+      selectedDate,
+      (updatedBookings) => {
+        console.log('Real-time update received for bookings:', updatedBookings.length);
+        const transformed = transformBookings(updatedBookings);
+        setBookings(transformed);
+      }
+    );
+
+    // Cleanup on unmount or date change
+    return () => {
+      console.log('Cleaning up bookings subscription for date:', selectedDate);
+      if (unsubscribe) unsubscribe();
+    };
+  }, [selectedDate, user, secureService, transformBookings]);
 
   // Handlers
   const handleRefresh = useCallback(async () => {
