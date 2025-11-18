@@ -33,52 +33,6 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch(authActions.setLoading(true));
       
-      // First, check for Google OAuth redirect result (web/PWA only)
-      // This must be checked before other auth checks
-      try {
-        console.log('AuthContext: Checking for Google OAuth redirect result...');
-        // Try to get createDocumentIfNotExists from sessionStorage first
-        let createDocumentIfNotExists = false;
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          const stored = sessionStorage.getItem('googleSignIn_createDocument');
-          if (stored !== null) {
-            createDocumentIfNotExists = JSON.parse(stored);
-            console.log('AuthContext: Found createDocumentIfNotExists in sessionStorage:', createDocumentIfNotExists);
-          }
-        }
-        
-        const redirectResult = await authService.handleGoogleRedirectResult({ 
-          createDocumentIfNotExists: createDocumentIfNotExists 
-        });
-        
-        console.log('AuthContext: Redirect result:', redirectResult ? 'Found' : 'Not found');
-        
-        if (redirectResult && redirectResult.success) {
-          // User successfully signed in via Google redirect
-          console.log('AuthContext: Processing successful redirect result...');
-          console.log('AuthContext: User data:', {
-            uid: redirectResult.user?.uid,
-            email: redirectResult.user?.email,
-            role: redirectResult.user?.role
-          });
-          
-          dispatch(authActions.googleSignInSuccess(redirectResult.user, redirectResult.tokens));
-          console.log('AuthContext: User authenticated via Google OAuth redirect - state updated');
-          dispatch(authActions.clearLoading());
-          return;
-        } else {
-          console.log('AuthContext: Redirect result was null or not successful');
-        }
-      } catch (redirectError) {
-        // If redirect result check fails, continue with normal auth flow
-        console.error('AuthContext: Google redirect result check error:', redirectError);
-        console.error('AuthContext: Error details:', {
-          message: redirectError.message,
-          code: redirectError.code,
-          stack: redirectError.stack
-        });
-      }
-      
       // Check if user is authenticated with session validation
       const isAuth = await tokenService.isAuthenticated();
       
@@ -147,93 +101,46 @@ export const AuthProvider = ({ children }) => {
   // Initialize authentication state on app start
   useEffect(() => {
     console.log('AuthContext: Starting authentication initialization...');
-    
-    // Mark initialization time to prevent premature clearing
-    if (typeof window !== 'undefined') {
-      window.__authInitTime = Date.now();
-    }
-    
-    // Check for redirect result FIRST, before setting up listeners
-    // This must happen immediately on page load
-    const checkRedirectFirst = async () => {
-      try {
-        console.log('AuthContext: Checking for redirect result immediately...');
-        // Try to get createDocumentIfNotExists from sessionStorage
-        let createDocumentIfNotExists = false;
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          const stored = sessionStorage.getItem('googleSignIn_createDocument');
-          if (stored !== null) {
-            createDocumentIfNotExists = JSON.parse(stored);
-            console.log('AuthContext: Found createDocumentIfNotExists in sessionStorage:', createDocumentIfNotExists);
-          }
-        }
-        
-        const redirectResult = await authService.handleGoogleRedirectResult({ 
-          createDocumentIfNotExists: createDocumentIfNotExists 
-        });
-        
-        if (redirectResult && redirectResult.success) {
-          console.log('AuthContext: Redirect result processed successfully');
-          dispatch(authActions.googleSignInSuccess(redirectResult.user, redirectResult.tokens));
-          return; // Don't continue with normal initialization if redirect was successful
-        }
-      } catch (error) {
-        console.log('AuthContext: Redirect check error (continuing with normal init):', error.message);
-      }
-      
-      // Continue with normal initialization
-      initializeAuth();
-    };
-    
-    checkRedirectFirst();
+    initializeAuth();
     
     // Set up Firebase auth state listener
-    // Add a small delay to ensure redirect check happens first
-    const unsubscribeTimeout = setTimeout(() => {
-      const unsubscribe = authService.setupAuthStateListener((authState) => {
-        console.log('AuthContext: Auth state changed:', {
-          isAuthenticated: authState.isAuthenticated,
-          hasUser: !!authState.user,
-          userRole: authState.user?.role
-        });
-        
-        if (authState.isAuthenticated && authState.user) {
-          // Check if user is already in state to avoid duplicate updates
-          if (state.user && state.user.uid === authState.user.uid) {
-            console.log('AuthContext: User already in state, skipping update');
-            return;
-          }
-          
-          // Use existing tokens or create basic token structure
-          const tokens = state.tokens.accessToken ? state.tokens : {
-            accessToken: 'firebase-auth-token',
-            refreshToken: 'firebase-refresh-token',
-            expiresAt: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
-          };
-          
-          dispatch(authActions.registerSuccess(authState.user, tokens));
-          console.log('AuthContext: User authenticated via Firebase auth state listener');
-        } else {
-          // Only clear if we actually had a user before AND we're not in the middle of a redirect check
-          // Don't clear during the first 2 seconds to allow redirect processing
-          if (state.user && Date.now() - (window.__authInitTime || 0) > 2000) {
-            dispatch(authActions.clearUser());
-            console.log('AuthContext: User cleared via Firebase auth state listener');
-          } else {
-            console.log('AuthContext: Skipping user clear (too early or redirect in progress)');
-          }
-        }
+    const unsubscribe = authService.setupAuthStateListener((authState) => {
+      console.log('AuthContext: Auth state changed:', {
+        isAuthenticated: authState.isAuthenticated,
+        hasUser: !!authState.user,
+        userRole: authState.user?.role,
+        userEmail: authState.user?.email
       });
       
-      // Store unsubscribe function
-      window.__authUnsubscribe = unsubscribe;
-    }, 500); // Delay listener setup by 500ms to allow redirect check first
+      if (authState.isAuthenticated && authState.user) {
+        // Check if user is already in state to avoid duplicate updates
+        if (state.user && state.user.uid === authState.user.uid) {
+          console.log('AuthContext: User already in state, skipping update');
+          return;
+        }
+        
+        // Use existing tokens or create basic token structure
+        const tokens = state.tokens.accessToken ? state.tokens : {
+          accessToken: 'firebase-auth-token',
+          refreshToken: 'firebase-refresh-token',
+          expiresAt: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
+        };
+        
+        dispatch(authActions.registerSuccess(authState.user, tokens));
+        console.log('AuthContext: User authenticated via Firebase auth state listener');
+      } else {
+        // Clear user if they're no longer authenticated
+        if (state.user) {
+          dispatch(authActions.clearUser());
+          console.log('AuthContext: User cleared via Firebase auth state listener');
+        }
+      }
+    });
     
     return () => {
       console.log('AuthContext: Cleaning up auth state listener');
-      clearTimeout(unsubscribeTimeout);
-      if (window.__authUnsubscribe) {
-        window.__authUnsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
   }, [initializeAuth]);
@@ -407,63 +314,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Sign in with Google OAuth
+   * Sign in with Google OAuth (stub - just logs)
    * @param {Object} options - Sign-in options
-   * @param {boolean} options.createDocumentIfNotExists - Create Firestore document if user doesn't exist (default: true)
    * @returns {Promise<Object>} - Sign-in result
    */
   const googleSignIn = useCallback(async (options = {}) => {
-    try {
-      dispatch(authActions.googleSignInStart()); // Use googleSignInStart instead of loginStart
-      
-      console.log('AuthContext: Calling authService.signInWithGoogle with options:', options);
-      
-      // Call auth service to sign in with Google
-      const result = await authService.signInWithGoogle(options);
-      
-      console.log('AuthContext: signInWithGoogle result:', result);
-      
-      // Check if redirect is pending (for web/PWA redirect flow)
-      if (result && result.pending) {
-        console.log('AuthContext: Google sign-in redirect initiated, returning pending state');
-        // Return pending state - the redirect will happen and result will be handled on page reload
-        return {
-          success: false,
-          pending: true,
-          message: result.message || 'Redirecting to Google sign-in...',
-        };
-      }
-      
-      if (result && result.success) {
-        // Dispatch success action
-        dispatch(authActions.googleSignInSuccess(result.user, result.tokens));
-        
-        console.log('AuthContext: Google sign-in successful');
-        return {
-          success: true,
-          user: result.user,
-          isNewUser: result.isNewUser,
-          message: result.message,
-        };
-      } else {
-        throw new Error(result?.message || 'Google sign-in failed');
-      }
-    } catch (error) {
-      console.error('AuthContext: Google sign-in error:', error);
-      console.error('AuthContext: Error details:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      // Dispatch failure action
-      dispatch(authActions.googleSignInFailure(error.message));
-      
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    console.log('AuthContext: Google sign-in called with options:', options);
+    return {
+      success: false,
+      pending: false,
+      message: 'Google sign-in is not implemented',
+    };
   }, []);
 
   /**

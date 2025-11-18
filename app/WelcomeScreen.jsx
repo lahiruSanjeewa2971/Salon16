@@ -35,7 +35,7 @@ const isMediumScreen = height >= 700 && height < 800;
 
 export default function WelcomeScreen() {
   const { colors, spacing, borderRadius } = useTheme();
-  const { continueAsGuest, googleSignIn } = useAuth();
+  const { continueAsGuest } = useAuth();
   const { isLoggingIn } = useAuthLoading();
   const router = useRouter();
   const { showSuccess: showSuccessToast, showError: showErrorToast } = useToastHelpers();
@@ -114,67 +114,8 @@ export default function WelcomeScreen() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      console.log('WelcomeScreen: Google Sign-In button clicked');
-      
-      // Sign in with Google but don't create document if user doesn't exist
-      const result = await googleSignIn({ createDocumentIfNotExists: false });
-      console.log('WelcomeScreen: Google sign-in result', result);
-      
-      // Check if redirect is pending (for web/PWA)
-      if (result && result.pending) {
-        console.log('WelcomeScreen: Google sign-in redirect initiated');
-        // The user will be redirected to Google, then back to the app
-        // The redirect result will be handled by AuthContext on app reload
-        // No need to show error or navigate - the redirect will happen
-        return;
-      }
-      
-      if (result && result.success) {
-        // Account exists - login successful, navigate based on role
-        showSuccessToast(
-          'Login Successful!',
-          `Welcome back, ${result.user.firstName || result.user.displayName || 'User'}!`,
-          { duration: 3000 }
-        );
-        
-        // Navigate based on user role
-        if (result.user.role === 'admin') {
-          router.replace('/(admin-tabs)');
-        } else {
-          router.replace('/(customer-tabs)');
-        }
-      } else {
-        // Handle specific error messages
-        const errorMessage = result?.error || 'Google sign-in failed. Please try again.';
-        
-        // Check if it's an account doesn't exist error
-        if (errorMessage.includes('Account does not exist')) {
-          showErrorToast(
-            'Account Not Found',
-            'No account found with this Google email. Please register first.',
-            { duration: 4000 }
-          );
-          setTimeout(() => {
-            router.push('/RegisterScreen');
-          }, 1500);
-        } else {
-          showErrorToast(
-            'Sign-In Failed',
-            errorMessage,
-            { duration: 5000 }
-          );
-        }
-      }
-    } catch (error) {
-      console.error('WelcomeScreen: Google sign-in error', error);
-      showErrorToast(
-        'Sign-In Error',
-        error.message || 'Something went wrong. Please try again.',
-        { duration: 5000 }
-      );
-    }
+  const handleGoogleSignIn = () => {
+    console.log('WelcomeScreen: Google Sign-In button clicked');
   };
 
   // Create responsive styles using theme values
@@ -476,12 +417,12 @@ export default function WelcomeScreen() {
               onPress={handleGoogleSignIn}
               style={styles.googleSignInButton}
               activeOpacity={0.8}
-              disabled={isLoggingIn}
+              disabled={false}
             >
               <View style={styles.googleSignInButtonContent}>
-                {!isLoggingIn && <Ionicons name="logo-google" size={isSmallScreen ? 22 : 24} color="#4285F4" />}
+                <Ionicons name="logo-google" size={isSmallScreen ? 22 : 24} color="#4285F4" />
                 <ThemedText style={styles.googleButtonText}>
-                  {isLoggingIn ? 'Signing in...' : 'Continue with Google'}
+                  Continue with Google
                 </ThemedText>
               </View>
             </TouchableOpacity>

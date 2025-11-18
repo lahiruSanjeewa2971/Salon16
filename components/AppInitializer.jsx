@@ -25,6 +25,10 @@ export default function AppInitializer() {
   const [isOnline, setIsOnline] = useState(true);
   const [initializationComplete, setInitializationComplete] = useState(false);
 
+  // Log when component renders
+  console.log('AppInitializer: Component rendered');
+  console.log('AppInitializer: Current path:', typeof window !== 'undefined' ? window.location.pathname : 'N/A');
+
   useEffect(() => {
     // Set up network status listener
     const unsubscribeNetwork = networkService.addListener((connected) => {
@@ -38,10 +42,12 @@ export default function AppInitializer() {
   }, []);
 
   useEffect(() => {
+    console.log('AppInitializer: useEffect triggered');
+    
     // Handle authentication flow when auth state changes
     const handleAuthFlow = async () => {
       try {
-        console.log('AppInitializer: Starting authentication flow...');
+        console.log('AppInitializer: ===== AUTHENTICATION FLOW =====');
         console.log('AppInitializer: Auth state -', {
           isAuthenticated,
           hasUser: !!user,
@@ -49,14 +55,14 @@ export default function AppInitializer() {
           isLoading: loadingState,
           isOnline
         });
-
-        // Wait for auth initialization to complete
         if (loadingState) {
           console.log('AppInitializer: Auth still loading, waiting...');
           return;
         }
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Check network connectivity first
+        // Check network connectivity
         if (!isOnline) {
           console.log('AppInitializer: Device is offline, showing welcome screen');
           router.replace('/WelcomeScreen');
@@ -64,38 +70,26 @@ export default function AppInitializer() {
           return;
         }
 
-        // Check if user is authenticated
+        // Check authentication and navigate based on role
         if (isAuthenticated && user) {
-          console.log('AppInitializer: User is authenticated, navigating based on role');
-          console.log('AppInitializer: User details -', {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || user.name,
-            role: user.role
-          });
+          console.log('AppInitializer: ✅ User authenticated - navigating based on role');
           
           // Navigate based on user role
           if (user.role === 'admin') {
-            console.log('AppInitializer: Admin user detected, navigating to admin dashboard');
+            console.log('AppInitializer: → Navigating to admin dashboard');
             router.replace('/(admin-tabs)');
           } else {
-            console.log('AppInitializer: Customer user detected, navigating to customer home');
+            console.log('AppInitializer: → Navigating to customer home');
             router.replace('/(customer-tabs)');
           }
         } else {
-          console.log('AppInitializer: User not authenticated, showing welcome screen');
-          console.log('AppInitializer: Auth details -', {
-            isAuthenticated,
-            hasUser: !!user,
-            userUid: user?.uid
-          });
+          console.log('AppInitializer: ❌ User not authenticated - showing welcome screen');
           router.replace('/WelcomeScreen');
         }
 
         setInitializationComplete(true);
       } catch (error) {
         console.error('AppInitializer: Error in authentication flow', error);
-        // On error, show welcome screen
         router.replace('/WelcomeScreen');
         setInitializationComplete(true);
       }

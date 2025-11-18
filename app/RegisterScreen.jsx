@@ -39,7 +39,7 @@ export default function RegisterScreen() {
   const router = useRouter();
 
   // Auth hooks
-  const { isAuthenticated, debugAuthState, googleSignIn } = useAuth();
+  const { isAuthenticated, debugAuthState } = useAuth();
   const { register } = useAuthActions();
   const { error: authError, clearError } = useAuthError();
   const { isRegistering, isLoggingIn } = useAuthLoading();
@@ -254,65 +254,8 @@ export default function RegisterScreen() {
     router.push('/LoginScreen');
   };
 
-  const handleGoogleSignUp = async () => {
-    try {
-      console.log('RegisterScreen: Google Sign-Up button clicked');
-      
-      // Sign in with Google and create document if user doesn't exist
-      const result = await googleSignIn({ createDocumentIfNotExists: true });
-      
-      // Check if redirect is pending (for web/PWA)
-      if (result && result.pending) {
-        console.log('RegisterScreen: Google sign-in redirect initiated');
-        // The user will be redirected to Google, then back to the app
-        // The redirect result will be handled by AuthContext on app reload
-        // No need to show error or navigate - the redirect will happen
-        return;
-      }
-      
-      if (result && result.success) {
-        if (result.isNewUser) {
-          // New account created - redirect to customer screen (without checking role)
-          showSuccessToast(
-            'Account Created!',
-            `Welcome to Salon 16, ${result.user.firstName || result.user.displayName || 'User'}!`,
-            { duration: 3000 }
-          );
-          
-          // Redirect to customer screen for all new signups
-          router.replace('/(customer-tabs)');
-        } else {
-          // Account already exists - sign in successful
-          showSuccessToast(
-            'Sign-In Successful!',
-            `Welcome back, ${result.user.firstName || result.user.displayName || 'User'}!`,
-            { duration: 3000 }
-          );
-          
-          // Navigate based on user role (since account existed)
-          if (result.user.role === 'admin') {
-            router.replace('/(admin-tabs)');
-          } else {
-            router.replace('/(customer-tabs)');
-          }
-        }
-      } else {
-        // Handle error
-        const errorMessage = result.error || 'Google sign-up failed. Please try again.';
-        showErrorToast(
-          'Sign-Up Failed',
-          errorMessage,
-          { duration: 5000 }
-        );
-      }
-    } catch (error) {
-      console.error('RegisterScreen: Google sign-up error', error);
-      showErrorToast(
-        'Sign-Up Error',
-        error.message || 'Something went wrong. Please try again.',
-        { duration: 5000 }
-      );
-    }
+  const handleGoogleSignUp = () => {
+    console.log('RegisterScreen: Google Sign-Up button clicked');
   };
 
   // Styles matching LoginScreen pattern
@@ -792,12 +735,12 @@ export default function RegisterScreen() {
                 onPress={handleGoogleSignUp}
                 style={styles.googleSignUpButton}
                 activeOpacity={0.8}
-                disabled={isLoggingIn || isRegistering}
+                disabled={false}
               >
                 <View style={styles.googleSignUpButtonContent}>
-                  {!isLoggingIn && <Ionicons name="logo-google" size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)} color="#4285F4" />}
+                  <Ionicons name="logo-google" size={responsive.isSmallScreen ? responsive.responsive.width(5) : responsive.responsive.width(6)} color="#4285F4" />
                   <ThemedText style={styles.googleButtonText}>
-                    {isLoggingIn ? 'Signing in...' : 'SignUp with Google'}
+                    SignUp with Google
                   </ThemedText>
                 </View>
               </TouchableOpacity>
