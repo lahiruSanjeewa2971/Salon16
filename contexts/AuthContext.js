@@ -108,10 +108,17 @@ export const AuthProvider = ({ children }) => {
       console.log('AuthContext: Auth state changed:', {
         isAuthenticated: authState.isAuthenticated,
         hasUser: !!authState.user,
-        userRole: authState.user?.role
+        userRole: authState.user?.role,
+        userEmail: authState.user?.email
       });
       
       if (authState.isAuthenticated && authState.user) {
+        // Check if user is already in state to avoid duplicate updates
+        if (state.user && state.user.uid === authState.user.uid) {
+          console.log('AuthContext: User already in state, skipping update');
+          return;
+        }
+        
         // Use existing tokens or create basic token structure
         const tokens = state.tokens.accessToken ? state.tokens : {
           accessToken: 'firebase-auth-token',
@@ -122,14 +129,19 @@ export const AuthProvider = ({ children }) => {
         dispatch(authActions.registerSuccess(authState.user, tokens));
         console.log('AuthContext: User authenticated via Firebase auth state listener');
       } else {
-        dispatch(authActions.clearUser());
-        console.log('AuthContext: User cleared via Firebase auth state listener');
+        // Clear user if they're no longer authenticated
+        if (state.user) {
+          dispatch(authActions.clearUser());
+          console.log('AuthContext: User cleared via Firebase auth state listener');
+        }
       }
     });
     
     return () => {
       console.log('AuthContext: Cleaning up auth state listener');
-      unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, [initializeAuth]);
 
@@ -302,41 +314,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Sign in with Google OAuth
+   * Sign in with Google OAuth (stub - just logs)
    * @param {Object} options - Sign-in options
-   * @param {boolean} options.createDocumentIfNotExists - Create Firestore document if user doesn't exist (default: true)
    * @returns {Promise<Object>} - Sign-in result
    */
   const googleSignIn = useCallback(async (options = {}) => {
-    try {
-      dispatch(authActions.googleSignInStart()); // Use googleSignInStart instead of loginStart
-      
-      // Call auth service to sign in with Google
-      const result = await authService.signInWithGoogle(options);
-      
-      if (result.success) {
-        // Dispatch success action
-        dispatch(authActions.googleSignInSuccess(result.user, result.tokens));
-        
-        console.log('AuthContext: Google sign-in successful');
-        return {
-          success: true,
-          user: result.user,
-          isNewUser: result.isNewUser,
-          message: result.message,
-        };
-      } else {
-        throw new Error(result.message || 'Google sign-in failed');
-      }
-    } catch (error) {
-      // Dispatch failure action
-      dispatch(authActions.googleSignInFailure(error.message));
-      
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    console.log('AuthContext: Google sign-in called with options:', options);
+    return {
+      success: false,
+      pending: false,
+      message: 'Google sign-in is not implemented',
+    };
   }, []);
 
   /**
