@@ -1,12 +1,11 @@
-import React from 'react';
-import { View, TouchableOpacity, Alert } from 'react-native';
-import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { Alert, TouchableOpacity, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
+import { useAuth } from '../../../../contexts/AuthContext';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
-import { useAuth } from '../../../../contexts/AuthContext';
+import { ThemedText } from '../../../ThemedText';
 import { useToastHelpers } from '../../../ui/ToastSystem';
 
 export default function CategoryManager({ categories, animatedStyle, onAddCategory, onEditCategory, onToggleCategoryStatus, onDeleteCategory }) {
@@ -131,7 +130,7 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
     categoryCard: {
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
       borderRadius: borderRadius.lg,
-      padding: spacing.lg,
+      padding: spacing.md,
       width: '100%',
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.12)',
@@ -142,33 +141,51 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
       shadowRadius: 8,
       elevation: 4,
       marginBottom: spacing.lg,
-      minHeight: 120,
+      minHeight: 130,
       overflow: 'hidden',
+    },
+    categoryCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: spacing.sm,
     },
     categoryContent: {
       flex: 1,
       justifyContent: 'flex-start',
       alignItems: 'flex-start',
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.xl,
+      paddingBottom: spacing.sm,
+    },
+    categoryNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+      gap: spacing.xs,
     },
     categoryName: {
       fontSize: 18,
       fontWeight: '700',
       color: 'white',
-      marginBottom: spacing.xs,
       letterSpacing: 0.3,
+      flex: 1,
+    },
+    statusIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    statusIndicatorActive: {
+      backgroundColor: '#22C55E',
+    },
+    statusIndicatorInactive: {
+      backgroundColor: '#9CA3AF',
     },
     categoryCount: {
-      fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.7)',
+      fontSize: 13,
+      color: 'rgba(255, 255, 255, 0.65)',
       fontWeight: '500',
-      marginRight: spacing.xl,
     },
     categoryIcon: {
-      position: 'absolute',
-      top: spacing.md,
-      right: spacing.md,
       width: 32,
       height: 32,
       borderRadius: 16,
@@ -177,38 +194,49 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
       justifyContent: 'center',
     },
     categoryActions: {
-      position: 'absolute',
-      bottom: spacing.sm,
-      right: spacing.sm,
       flexDirection: 'row',
-      gap: spacing.xs,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255, 255, 255, 0.08)',
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xs,
+      marginTop: spacing.sm,
+      marginHorizontal: -spacing.md,
+      marginBottom: -spacing.md,
+      gap: spacing.sm,
     },
-    categoryButton: {
+    categoryActionButton: {
+      flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.sm,
       borderRadius: borderRadius.medium,
+      minHeight: 40,
+    },
+    toggleStatusButton: {
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
-      width: 28,
-      height: 28,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      borderColor: 'rgba(255, 255, 255, 0.15)',
     },
-    statusButton: {
-      backgroundColor: 'rgba(156, 163, 175, 0.15)',
-      borderColor: 'rgba(156, 163, 175, 0.3)',
-    },
-    statusButtonActive: {
+    toggleStatusButtonActive: {
       backgroundColor: 'rgba(34, 197, 94, 0.2)',
       borderColor: 'rgba(34, 197, 94, 0.4)',
     },
-    deleteButton: {
+    toggleStatusButtonInactive: {
+      backgroundColor: 'rgba(156, 163, 175, 0.15)',
+      borderColor: 'rgba(156, 163, 175, 0.3)',
+    },
+    deleteActionButton: {
       backgroundColor: 'rgba(239, 68, 68, 0.15)',
-      borderColor: 'rgba(239, 68, 68, 0.3)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.35)',
+    },
+    actionButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: 'white',
+      textAlign: 'center',
     },
     bottomActions: {
       flexDirection: 'row',
@@ -298,54 +326,68 @@ export default function CategoryManager({ categories, animatedStyle, onAddCatego
                     }}
                     activeOpacity={0.8}
                   >
-                    {/* Category Icon - Top Right */}
-                    <View style={styles.categoryIcon}>
-                      <Ionicons
-                        name="folder-outline"
-                        size={16}
-                        color="rgba(255, 255, 255, 0.8)"
-                      />
+                    {/* Header with Category Name and Status Indicator */}
+                    <View style={styles.categoryCardHeader}>
+                      <View style={styles.categoryContent}>
+                        <View style={styles.categoryNameRow}>
+                          <ThemedText style={styles.categoryName}>
+                            {category.name}
+                          </ThemedText>
+                          <View style={[
+                            styles.statusIndicator,
+                            category.isActive ? styles.statusIndicatorActive : styles.statusIndicatorInactive
+                          ]} />
+                        </View>
+                        <ThemedText style={styles.categoryCount}>
+                          {category.serviceCount} {category.serviceCount === 1 ? 'service' : 'services'}
+                        </ThemedText>
+                      </View>
+                      
+                      <TouchableOpacity
+                        style={styles.categoryIcon}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          console.log('Category card clicked for edit:', category);
+                          onEditCategory(category);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons
+                          name="folder-outline"
+                          size={16}
+                          color="rgba(255, 255, 255, 0.8)"
+                        />
+                      </TouchableOpacity>
                     </View>
 
-                    {/* Main Content */}
-                    <View style={styles.categoryContent}>
-                      <ThemedText style={styles.categoryName}>
-                        {category.name}
-                      </ThemedText>
-                      <ThemedText style={styles.categoryCount}>
-                        {category.serviceCount} services
-                      </ThemedText>
-                    </View>
-
-                    {/* Action Buttons - Bottom Right */}
+                    {/* Action Buttons - Bottom */}
                     <View style={styles.categoryActions}>
                       <TouchableOpacity
                         style={[
-                          styles.categoryButton, 
-                          category.isActive ? styles.statusButtonActive : styles.statusButton
+                          styles.categoryActionButton,
+                          styles.toggleStatusButton,
+                          category.isActive ? styles.toggleStatusButtonActive : styles.toggleStatusButtonInactive
                         ]}
                         onPress={(e) => {
                           e.stopPropagation();
                           handleToggleCategoryStatus(category);
                         }}
-                        activeOpacity={0.8}
+                        activeOpacity={0.7}
                       >
-                        <Ionicons 
-                          name={category.isActive ? "eye" : "eye-off"} 
-                          size={12} 
-                          color="white" 
-                        />
+                        <ThemedText style={styles.actionButtonText}>
+                          {category.isActive ? 'Deactivate' : 'Activate'}
+                        </ThemedText>
                       </TouchableOpacity>
                       
                       <TouchableOpacity
-                        style={[styles.categoryButton, styles.deleteButton]}
+                        style={[styles.categoryActionButton, styles.deleteActionButton]}
                         onPress={(e) => {
                           e.stopPropagation();
                           handleDeleteCategory(category);
                         }}
-                        activeOpacity={0.8}
+                        activeOpacity={0.7}
                       >
-                        <Ionicons name="trash-outline" size={12} color="white" />
+                        <ThemedText style={styles.actionButtonText}>Delete</ThemedText>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>

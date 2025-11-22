@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Modal, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Modal, TouchableOpacity, Dimensions, ScrollView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, interpolate } from 'react-native-reanimated';
 
@@ -267,38 +268,126 @@ export default function ServiceForm({
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     opacity: modalAnim.value,
-    transform: [{ scale: interpolate(modalAnim.value, [0, 1], [0.8, 1]) }],
+    transform: [
+      {
+        scale: interpolate(modalAnim.value, [0, 1], [0.8, 1], 'clamp'),
+      },
+      {
+        translateY: interpolate(modalAnim.value, [0, 1], [50, 0], 'clamp'),
+      },
+    ],
   }));
+
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: modalAnim.value,
+  }));
+
+  // Web-compatible color helpers
+  const isWeb = Platform.OS === 'web';
+  const getTextColor = () => {
+    if (isWeb) {
+      return colors?.text || '#FFFFFF';
+    }
+    return colors?.text || '#000000';
+  };
+  
+  const getBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.3)';
+    }
+    return colors?.border || '#E5E5E5';
+  };
+  
+  const getPrimaryColor = () => {
+    return colors?.primary || '#6C2A52';
+  };
+  
+  const getPrimaryDarkColor = () => {
+    return colors?.primaryDark || '#8E3B60';
+  };
+  
+  const getAccentColor = () => {
+    return colors?.accent || '#EC4899';
+  };
+  
+  const getInputBackgroundColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.15)';
+    }
+    return 'rgba(255, 255, 255, 0.2)';
+  };
+  
+  const getInputBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.3)';
+    }
+    return 'rgba(255, 255, 255, 0.4)';
+  };
+  
+  const getInputTextColor = () => {
+    return '#FFFFFF';
+  };
+  
+  const getInputPlaceholderColor = () => {
+    return 'rgba(255, 255, 255, 0.6)';
+  };
 
   const styles = {
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
       justifyContent: 'center',
       alignItems: 'center',
     },
     modalContent: {
-      backgroundColor: 'white',
       borderRadius: borderRadius.xl,
-      padding: spacing.xl,
       width: width * 0.9,
+      maxWidth: 500,
       maxHeight: '90%',
+      overflow: 'hidden',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 10,
+          },
+          shadowOpacity: 0.25,
+          shadowRadius: 20,
+          elevation: 10,
+        },
+      }),
+    },
+    gradientBackground: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+    modalContentWrapper: {
       flex: 1,
     },
     modalScrollContent: {
       flexGrow: 1,
+      padding: spacing.lg,
       paddingBottom: spacing.xl,
     },
     modalHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: spacing.lg,
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: getBorderColor(),
     },
     modalTitle: {
       fontSize: 20,
       fontWeight: 'bold',
-      color: colors.text,
+      color: getTextColor(),
     },
     modalCloseButton: {
       padding: spacing.sm,
@@ -317,33 +406,42 @@ export default function ServiceForm({
     modalActions: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: spacing.lg,
-      paddingTop: spacing.lg,
+      padding: spacing.lg,
+      paddingBottom: spacing.xl,
       borderTopWidth: 1,
-      borderTopColor: 'rgba(0, 0, 0, 0.1)',
-      backgroundColor: 'rgba(248, 249, 250, 0.8)',
-      marginHorizontal: -spacing.xl,
-      paddingHorizontal: spacing.xl,
-      paddingBottom: spacing.lg,
+      borderTopColor: getBorderColor(),
+      backgroundColor: isWeb ? 'rgba(255, 255, 255, 0.05)' : 'rgba(248, 249, 250, 0.8)',
+      marginHorizontal: -spacing.lg,
+      marginBottom: 0,
+      marginTop: spacing.md,
     },
     modalButton: {
       flex: 1,
       marginHorizontal: spacing.sm,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.large,
-      elevation: 2,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        },
+        default: {
+          elevation: 2,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+      }),
     },
     cancelButton: {
-      backgroundColor: colors.background,
+      backgroundColor: isWeb ? 'rgba(255, 255, 255, 0.15)' : (colors?.background || '#FFFFFF'),
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: getBorderColor(),
     },
     addButton: {
-      backgroundColor: colors.primary,
+      backgroundColor: getAccentColor(),
     },
     modalButtonText: {
       fontSize: 16,
@@ -364,23 +462,37 @@ export default function ServiceForm({
         animationType="none"
         onRequestClose={onClose}
       >
-        <View style={styles.modalOverlay}>
+        <Animated.View style={[styles.modalOverlay, backdropAnimatedStyle]}>
           <Animated.View style={[styles.modalContent, modalAnimatedStyle]}>
-            <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>Add New Service</ThemedText>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={onClose}
-              >
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+            {/* Gradient Background */}
+            <LinearGradient
+              colors={[
+                getPrimaryColor(),
+                getPrimaryDarkColor(),
+                getAccentColor()
+              ]}
+              style={styles.gradientBackground}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+            
+            {/* Content Wrapper */}
+            <View style={styles.modalContentWrapper}>
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>Add New Service</ThemedText>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={onClose}
+                >
+                  <Ionicons name="close" size={24} color={getTextColor()} />
+                </TouchableOpacity>
+              </View>
 
-            <ScrollView 
-              style={styles.modalScrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
+              <ScrollView 
+                contentContainerStyle={styles.modalScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
               <View style={styles.formGroup}>
                 <ThemedInput
                   label="Service Name *"
@@ -388,6 +500,17 @@ export default function ServiceForm({
                   onChangeText={(text) => handleInputChange('name', text)}
                   placeholder="Enter service name"
                   error={errors.name}
+                  inputStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: errors.name ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                    color: getInputTextColor(),
+                    ...Platform.select({
+                      web: {
+                        outlineStyle: 'none',
+                      },
+                    }),
+                  }}
+                  placeholderTextColor={getInputPlaceholderColor()}
                 />
               </View>
 
@@ -400,6 +523,17 @@ export default function ServiceForm({
                   multiline
                   numberOfLines={3}
                   error={errors.description}
+                  inputStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: errors.description ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                    color: getInputTextColor(),
+                    ...Platform.select({
+                      web: {
+                        outlineStyle: 'none',
+                      },
+                    }),
+                  }}
+                  placeholderTextColor={getInputPlaceholderColor()}
                 />
               </View>
 
@@ -411,6 +545,26 @@ export default function ServiceForm({
                   onSelectCategory={(category) => handleInputChange('category', category)}
                   error={errors.category}
                   placeholder="Select Category"
+                  buttonStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: errors.category ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                    borderWidth: 1,
+                    ...Platform.select({
+                      web: {
+                        outlineStyle: 'none',
+                      },
+                    }),
+                  }}
+                  textColor={getInputTextColor()}
+                  placeholderTextColor={getInputPlaceholderColor()}
+                  iconColor={getInputPlaceholderColor()}
+                  dropdownListStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: getInputBorderColor(),
+                    borderWidth: 1,
+                  }}
+                  itemTextColor={getInputTextColor()}
+                  itemSelectedBackgroundColor={isWeb ? 'rgba(255, 255, 255, 0.2)' : 'rgba(108, 42, 82, 0.2)'}
                 />
               </View>
 
@@ -436,6 +590,17 @@ export default function ServiceForm({
                     placeholder="0"
                     keyboardType="numeric"
                     error={errors.price}
+                    inputStyle={{
+                      backgroundColor: getInputBackgroundColor(),
+                      borderColor: errors.price ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                      color: getInputTextColor(),
+                      ...Platform.select({
+                        web: {
+                          outlineStyle: 'none',
+                        },
+                      }),
+                    }}
+                    placeholderTextColor={getInputPlaceholderColor()}
                   />
                 </View>
                 <View style={styles.formRowItem}>
@@ -446,32 +611,44 @@ export default function ServiceForm({
                     placeholder="30"
                     keyboardType="numeric"
                     error={errors.duration}
+                    inputStyle={{
+                      backgroundColor: getInputBackgroundColor(),
+                      borderColor: errors.duration ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                      color: getInputTextColor(),
+                      ...Platform.select({
+                        web: {
+                          outlineStyle: 'none',
+                        },
+                      }),
+                    }}
+                    placeholderTextColor={getInputPlaceholderColor()}
                   />
                 </View>
               </View>
-            </ScrollView>
+              </ScrollView>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={onClose}
-              >
-                <ThemedText style={[styles.modalButtonText, { color: colors.text }]}>
-                  Cancel
-                </ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.addButton, isSaving && styles.disabledButton]}
-                onPress={handleSaveService}
-                disabled={isSaving}
-              >
-                <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
-                  {isSaving ? 'Creating...' : 'Add Service'}
-                </ThemedText>
-              </TouchableOpacity>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={onClose}
+                >
+                  <ThemedText style={[styles.modalButtonText, { color: getTextColor() }]}>
+                    Cancel
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.addButton, isSaving && styles.disabledButton]}
+                  onPress={handleSaveService}
+                  disabled={isSaving}
+                >
+                  <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
+                    {isSaving ? 'Creating...' : 'Add Service'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
           </Animated.View>
-        </View>
+        </Animated.View>
       </Modal>
 
       {/* Edit Service Modal */}
@@ -481,23 +658,37 @@ export default function ServiceForm({
         animationType="none"
         onRequestClose={onClose}
       >
-        <View style={styles.modalOverlay}>
+        <Animated.View style={[styles.modalOverlay, backdropAnimatedStyle]}>
           <Animated.View style={[styles.modalContent, modalAnimatedStyle]}>
-            <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>Edit Service</ThemedText>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={onClose}
-              >
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+            {/* Gradient Background */}
+            <LinearGradient
+              colors={[
+                getPrimaryColor(),
+                getPrimaryDarkColor(),
+                getAccentColor()
+              ]}
+              style={styles.gradientBackground}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+            
+            {/* Content Wrapper */}
+            <View style={styles.modalContentWrapper}>
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>Edit Service</ThemedText>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={onClose}
+                >
+                  <Ionicons name="close" size={24} color={getTextColor()} />
+                </TouchableOpacity>
+              </View>
 
-            <ScrollView 
-              style={styles.modalScrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
+              <ScrollView 
+                contentContainerStyle={styles.modalScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
               <View style={styles.formGroup}>
                 <ThemedInput
                   label="Service Name *"
@@ -505,6 +696,17 @@ export default function ServiceForm({
                   onChangeText={(text) => handleInputChange('name', text)}
                   placeholder="Enter service name"
                   error={errors.name}
+                  inputStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: errors.name ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                    color: getInputTextColor(),
+                    ...Platform.select({
+                      web: {
+                        outlineStyle: 'none',
+                      },
+                    }),
+                  }}
+                  placeholderTextColor={getInputPlaceholderColor()}
                 />
               </View>
 
@@ -517,6 +719,17 @@ export default function ServiceForm({
                   multiline
                   numberOfLines={3}
                   error={errors.description}
+                  inputStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: errors.description ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                    color: getInputTextColor(),
+                    ...Platform.select({
+                      web: {
+                        outlineStyle: 'none',
+                      },
+                    }),
+                  }}
+                  placeholderTextColor={getInputPlaceholderColor()}
                 />
               </View>
 
@@ -528,6 +741,26 @@ export default function ServiceForm({
                   onSelectCategory={(category) => handleInputChange('category', category)}
                   error={errors.category}
                   placeholder="Select Category"
+                  buttonStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: errors.category ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                    borderWidth: 1,
+                    ...Platform.select({
+                      web: {
+                        outlineStyle: 'none',
+                      },
+                    }),
+                  }}
+                  textColor={getInputTextColor()}
+                  placeholderTextColor={getInputPlaceholderColor()}
+                  iconColor={getInputPlaceholderColor()}
+                  dropdownListStyle={{
+                    backgroundColor: getInputBackgroundColor(),
+                    borderColor: getInputBorderColor(),
+                    borderWidth: 1,
+                  }}
+                  itemTextColor={getInputTextColor()}
+                  itemSelectedBackgroundColor={isWeb ? 'rgba(255, 255, 255, 0.2)' : 'rgba(108, 42, 82, 0.2)'}
                 />
               </View>
 
@@ -553,6 +786,17 @@ export default function ServiceForm({
                     placeholder="0"
                     keyboardType="numeric"
                     error={errors.price}
+                    inputStyle={{
+                      backgroundColor: getInputBackgroundColor(),
+                      borderColor: errors.price ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                      color: getInputTextColor(),
+                      ...Platform.select({
+                        web: {
+                          outlineStyle: 'none',
+                        },
+                      }),
+                    }}
+                    placeholderTextColor={getInputPlaceholderColor()}
                   />
                 </View>
                 <View style={styles.formRowItem}>
@@ -563,32 +807,44 @@ export default function ServiceForm({
                     placeholder="30"
                     keyboardType="numeric"
                     error={errors.duration}
+                    inputStyle={{
+                      backgroundColor: getInputBackgroundColor(),
+                      borderColor: errors.duration ? (colors?.error || '#EF4444') : getInputBorderColor(),
+                      color: getInputTextColor(),
+                      ...Platform.select({
+                        web: {
+                          outlineStyle: 'none',
+                        },
+                      }),
+                    }}
+                    placeholderTextColor={getInputPlaceholderColor()}
                   />
                 </View>
               </View>
-            </ScrollView>
+              </ScrollView>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={onClose}
-              >
-                <ThemedText style={[styles.modalButtonText, { color: colors.text }]}>
-                  Cancel
-                </ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.addButton, isSaving && styles.disabledButton]}
-                onPress={handleSaveService}
-                disabled={isSaving}
-              >
-                <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
-                  {isSaving ? 'Updating...' : 'Update Service'}
-                </ThemedText>
-              </TouchableOpacity>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={onClose}
+                >
+                  <ThemedText style={[styles.modalButtonText, { color: getTextColor() }]}>
+                    Cancel
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.addButton, isSaving && styles.disabledButton]}
+                  onPress={handleSaveService}
+                  disabled={isSaving}
+                >
+                  <ThemedText style={[styles.modalButtonText, { color: 'white' }]}>
+                    {isSaving ? 'Updating...' : 'Update Service'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
           </Animated.View>
-        </View>
+        </Animated.View>
       </Modal>
     </>
   );

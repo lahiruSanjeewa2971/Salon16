@@ -1,4 +1,4 @@
-import { Alert, Image, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, TouchableOpacity, View } from 'react-native';
 import Animated, { Extrapolate, interpolate } from 'react-native-reanimated';
 
 import { useTheme } from '../../../../contexts/ThemeContext';
@@ -12,6 +12,63 @@ export default function ServiceList({
   onToggleServiceStatus 
 }) {
   const { colors, spacing, borderRadius, shadows } = useTheme();
+  const isWeb = Platform.OS === 'web';
+  
+  // Helper function to add alpha to hex color
+  const addAlpha = (color, alpha) => {
+    if (!color) return `rgba(255, 255, 255, ${alpha})`;
+    // If color is already rgba, extract RGB values
+    if (color.startsWith('rgba')) {
+      const rgb = color.match(/\d+/g);
+      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+    }
+    // If color is hex, convert to rgba
+    if (color.startsWith('#')) {
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    // Fallback
+    return color;
+  };
+  
+  // Web-compatible color helpers
+  const getCardBackgroundColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.15)';
+    }
+    return 'rgba(255, 255, 255, 0.98)';
+  };
+  
+  const getCardBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.3)';
+    }
+    return 'rgba(0, 0, 0, 0.08)';
+  };
+  
+  const getTextColor = () => {
+    if (isWeb) {
+      return '#FFFFFF';
+    }
+    return colors?.text || '#000000';
+  };
+  
+  const getTextSecondaryColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.8)';
+    }
+    return colors?.textSecondary || '#666666';
+  };
+  
+  const getActionBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.2)';
+    }
+    return 'rgba(0, 0, 0, 0.08)';
+  };
 
   const handleDeleteService = (service) => {
     Alert.alert(
@@ -39,17 +96,22 @@ export default function ServiceList({
       paddingHorizontal: spacing.lg,
     },
     serviceCard: {
-      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      backgroundColor: getCardBackgroundColor(),
       borderRadius: borderRadius.xl,
       marginBottom: spacing.lg,
       borderWidth: 1,
-      borderColor: 'rgba(0, 0, 0, 0.08)',
+      borderColor: getCardBorderColor(),
       overflow: 'hidden',
-      ...shadows.large,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+        },
+        default: shadows.large,
+      }),
     },
     serviceImageContainer: {
       height: 180,
-      backgroundColor: colors.background + '20',
+      backgroundColor: addAlpha(colors?.background || '#FFFFFF', 0.2),
     },
     serviceImage: {
       width: '100%',
@@ -59,7 +121,7 @@ export default function ServiceList({
     serviceImagePlaceholder: {
       width: '100%',
       height: '100%',
-      backgroundColor: colors.primary + '10',
+      backgroundColor: addAlpha(colors?.primary || '#6C2A52', 0.1),
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -79,18 +141,18 @@ export default function ServiceList({
     serviceName: {
       fontSize: 20,
       fontWeight: 'bold',
-      color: colors.text,
+      color: getTextColor(),
       marginBottom: spacing.xs,
     },
     serviceCategory: {
       fontSize: 14,
-      color: colors.textSecondary,
+      color: getTextSecondaryColor(),
       fontWeight: '500',
       marginBottom: spacing.sm,
     },
     serviceDescription: {
       fontSize: 15,
-      color: colors.textSecondary,
+      color: getTextSecondaryColor(),
       lineHeight: 22,
       marginBottom: spacing.lg,
     },
@@ -101,17 +163,17 @@ export default function ServiceList({
       marginBottom: spacing.lg,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.lg,
-      backgroundColor: colors.primary + '08',
+      backgroundColor: addAlpha(colors?.primary || '#6C2A52', 0.08),
       borderRadius: borderRadius.large,
     },
     servicePrice: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: colors.primary,
+      color: isWeb ? '#FFFFFF' : (colors?.primary || '#6C2A52'),
     },
     serviceDuration: {
       fontSize: 16,
-      color: colors.textSecondary,
+      color: getTextSecondaryColor(),
       fontWeight: '600',
     },
     statusBadge: {
@@ -120,14 +182,14 @@ export default function ServiceList({
       borderRadius: borderRadius.xl,
     },
     statusBadgeActive: {
-      backgroundColor: colors.success + '15',
+      backgroundColor: addAlpha(colors?.success || '#10B981', 0.15),
       borderWidth: 1,
-      borderColor: colors.success + '30',
+      borderColor: addAlpha(colors?.success || '#10B981', 0.3),
     },
     statusBadgeInactive: {
-      backgroundColor: colors.error + '15',
+      backgroundColor: addAlpha(colors?.error || '#EF4444', 0.15),
       borderWidth: 1,
-      borderColor: colors.error + '30',
+      borderColor: addAlpha(colors?.error || '#EF4444', 0.3),
     },
     statusText: {
       fontSize: 12,
@@ -135,17 +197,17 @@ export default function ServiceList({
       letterSpacing: 0.5,
     },
     statusTextActive: {
-      color: colors.success,
+      color: colors?.success || '#10B981',
     },
     statusTextInactive: {
-      color: colors.error,
+      color: colors?.error || '#EF4444',
     },
     serviceActions: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingTop: spacing.md,
       borderTopWidth: 1,
-      borderTopColor: 'rgba(0, 0, 0, 0.08)',
+      borderTopColor: getActionBorderColor(),
     },
     actionButton: {
       flex: 1,
@@ -154,34 +216,36 @@ export default function ServiceList({
       borderRadius: borderRadius.xl,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 0,
     },
     actionButtonEdit: {
-      backgroundColor: colors.primary + '15',
-      borderWidth: 1,
-      borderColor: colors.primary + '30',
+      backgroundColor: isWeb 
+        ? 'rgba(236, 72, 153, 0.4)' // Pink/rose color for web
+        : addAlpha(colors?.primary || '#6C2A52', 0.4),
     },
     actionButtonDelete: {
-      backgroundColor: colors.error + '15',
-      borderWidth: 1,
-      borderColor: colors.error + '30',
+      backgroundColor: isWeb
+        ? 'rgba(239, 68, 68, 0.5)' // Red color for web
+        : addAlpha(colors?.error || '#EF4444', 0.5),
     },
     actionButtonToggle: {
-      backgroundColor: colors.warning + '15',
-      borderWidth: 1,
-      borderColor: colors.warning + '30',
+      backgroundColor: isWeb
+        ? 'rgba(251, 146, 60, 0.5)' // Orange/yellow color for web
+        : addAlpha(colors?.warning || '#F59E0B', 0.5),
     },
     actionButtonText: {
       fontSize: 13,
       fontWeight: '700',
+      color: '#FFFFFF',
     },
     actionButtonTextEdit: {
-      color: colors.primary,
+      color: '#FFFFFF',
     },
     actionButtonTextDelete: {
-      color: colors.error,
+      color: '#FFFFFF',
     },
     actionButtonTextToggle: {
-      color: colors.warning,
+      color: '#FFFFFF',
     },
   };
 
@@ -220,7 +284,7 @@ export default function ServiceList({
               />
             ) : (
               <View style={styles.serviceImagePlaceholder}>
-                <ThemedText style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>
+                <ThemedText style={{ color: isWeb ? '#FFFFFF' : (colors?.primary || '#6C2A52'), fontSize: 16, fontWeight: '600' }}>
                   No Image
                 </ThemedText>
               </View>

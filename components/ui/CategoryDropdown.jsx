@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
@@ -12,7 +12,14 @@ export default function CategoryDropdown({
   selectedCategory, 
   onSelectCategory, 
   error = null,
-  placeholder = "Select Category"
+  placeholder = "Select Category",
+  buttonStyle,
+  textColor,
+  placeholderTextColor,
+  iconColor,
+  dropdownListStyle,
+  itemTextColor,
+  itemSelectedBackgroundColor
 }) {
   const theme = useTheme();
   const colors = theme?.colors || {};
@@ -65,33 +72,51 @@ export default function CategoryDropdown({
     label: {
       fontSize: 16,
       fontWeight: '600',
-      color: colors.text,
+      color: textColor || colors.text,
       marginBottom: spacing.sm,
     },
     dropdownButton: {
-      backgroundColor: colors.surface || '#FFFFFF',
+      backgroundColor: buttonStyle?.backgroundColor || (colors.surface || '#FFFFFF'),
       borderRadius: borderRadius.large,
       padding: spacing.md,
-      borderWidth: 2,
-      borderColor: error ? colors.error : colors.border || '#E5E5E5',
+      borderWidth: buttonStyle?.borderWidth !== undefined ? buttonStyle.borderWidth : 2,
+      borderColor: error ? (colors.error || '#EF4444') : (buttonStyle?.borderColor || colors.border || '#E5E5E5'),
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       minHeight: 56,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+          outlineStyle: 'none',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 2,
+        },
+      }),
+      ...buttonStyle,
     },
     dropdownButtonFocused: {
-      borderColor: colors.primary,
-      shadowOpacity: 0.15,
-      elevation: 4,
+      borderColor: error ? (colors.error || '#EF4444') : (buttonStyle?.borderColor || colors.primary),
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
+        },
+        default: {
+          shadowOpacity: 0.15,
+          elevation: 4,
+        },
+      }),
     },
     buttonText: {
       fontSize: 16,
-      color: selectedCategory ? colors.text : colors.textSecondary,
+      color: selectedCategory 
+        ? (textColor || colors.text) 
+        : (placeholderTextColor || colors.textSecondary),
       fontWeight: '500',
       flex: 1,
     },
@@ -99,22 +124,30 @@ export default function CategoryDropdown({
       marginLeft: spacing.sm,
     },
     dropdownList: {
-      backgroundColor: colors.surface || '#FFFFFF',
+      backgroundColor: dropdownListStyle?.backgroundColor || (colors.surface || '#FFFFFF'),
       borderRadius: borderRadius.large,
-      borderWidth: 1,
-      borderColor: colors.border || '#E5E5E5',
+      borderWidth: dropdownListStyle?.borderWidth !== undefined ? dropdownListStyle.borderWidth : 1,
+      borderColor: dropdownListStyle?.borderColor || (colors.border || '#E5E5E5'),
       maxHeight: 200,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      elevation: 8,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+      }),
       marginTop: spacing.xs,
+      ...dropdownListStyle,
     },
     categoryItem: {
       padding: spacing.md,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border || '#E5E5E5',
+      borderBottomColor: dropdownListStyle?.borderColor || (colors.border || 'rgba(255, 255, 255, 0.2)'),
       flexDirection: 'row',
       alignItems: 'center',
     },
@@ -122,19 +155,19 @@ export default function CategoryDropdown({
       borderBottomWidth: 0,
     },
     categoryItemSelected: {
-      backgroundColor: colors.primary + '10',
+      backgroundColor: itemSelectedBackgroundColor || (colors.primary ? `${colors.primary}20` : 'rgba(108, 42, 82, 0.2)'),
     },
     categoryIcon: {
       marginRight: spacing.sm,
     },
     categoryText: {
       fontSize: 16,
-      color: colors.text,
+      color: itemTextColor || colors.text,
       fontWeight: '500',
       flex: 1,
     },
     categoryTextSelected: {
-      color: colors.primary,
+      color: itemTextColor || colors.primary,
       fontWeight: '600',
     },
     emptyState: {
@@ -143,14 +176,14 @@ export default function CategoryDropdown({
     },
     emptyText: {
       fontSize: 14,
-      color: colors.textSecondary,
+      color: itemTextColor || colors.textSecondary,
       textAlign: 'center',
     },
     errorText: {
-      fontSize: 12,
-      color: colors.error,
+      fontSize: 13,
+      color: 'white',
       marginTop: spacing.xs,
-      marginLeft: spacing.xs,
+      paddingLeft: spacing.xs || 8,
     },
   };
   
@@ -175,7 +208,7 @@ export default function CategoryDropdown({
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
           size={20}
-          color={colors.textSecondary}
+          color={iconColor || colors.textSecondary}
           style={styles.buttonIcon}
         />
       </TouchableOpacity>
@@ -201,7 +234,7 @@ export default function CategoryDropdown({
                   <Ionicons
                     name="grid"
                     size={18}
-                    color={selectedCategory?.id === item.id ? colors.primary : colors.textSecondary}
+                    color={selectedCategory?.id === item.id ? (itemTextColor || colors.primary) : (itemTextColor || colors.textSecondary)}
                     style={styles.categoryIcon}
                   />
                   <ThemedText
@@ -216,7 +249,7 @@ export default function CategoryDropdown({
                     <Ionicons
                       name="checkmark"
                       size={18}
-                      color={colors.primary}
+                      color={itemTextColor || colors.primary}
                     />
                   )}
                 </TouchableOpacity>

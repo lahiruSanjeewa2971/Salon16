@@ -1,15 +1,15 @@
-import React, { useState, useCallback } from 'react';
-import { View, Modal, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, interpolate } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useState } from 'react';
+import { Dimensions, Modal, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
-import { ThemedButton } from '../../../themed/ThemedButton';
-import { ThemedInput } from '../../../themed/ThemedInput';
-import { useTheme } from '../../../../contexts/ThemeContext';
-import { useToastHelpers } from '../../../ui/ToastSystem';
-import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
 import { useAuth } from '../../../../contexts/AuthContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
+import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
+import { ThemedText } from '../../../ThemedText';
+import { ThemedInput } from '../../../themed/ThemedInput';
+import { useToastHelpers } from '../../../ui/ToastSystem';
 
 const { width } = Dimensions.get('window');
 
@@ -151,27 +151,115 @@ export default function CategoryForm({
     opacity: modalAnim.value,
   }));
 
+  // Web-compatible color helpers
+  const isWeb = Platform.OS === 'web';
+  const getTextColor = () => {
+    if (isWeb) {
+      return colors?.text || '#FFFFFF';
+    }
+    return colors?.text || '#000000';
+  };
+  
+  const getBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.3)';
+    }
+    return 'rgba(255, 255, 255, 0.4)';
+  };
+  
+  const getSurfaceColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.1)';
+    }
+    return colors?.surface || '#FFFFFF';
+  };
+  
+  const getSurfaceSecondaryColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.05)';
+    }
+    return colors?.surfaceSecondary || '#F8F8F8';
+  };
+  
+  const getCancelButtonColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.15)';
+    }
+    return colors?.neutral?.[200] || '#E5E5E5';
+  };
+  
+  const getPrimaryColor = () => {
+    return colors?.primary || '#6C2A52';
+  };
+  
+  const getPrimaryDarkColor = () => {
+    return colors?.primaryDark || '#8E3B60';
+  };
+  
+  const getAccentColor = () => {
+    return colors?.accent || '#EC4899';
+  };
+  
+  const getInputBackgroundColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.15)';
+    }
+    return 'rgba(255, 255, 255, 0.2)';
+  };
+  
+  const getInputBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.3)';
+    }
+    return 'rgba(255, 255, 255, 0.4)';
+  };
+  
+  const getInputTextColor = () => {
+    return '#FFFFFF';
+  };
+  
+  const getInputPlaceholderColor = () => {
+    return 'rgba(255, 255, 255, 0.6)';
+  };
+
   const styles = {
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
       justifyContent: 'center',
       alignItems: 'center',
     },
     modalContainer: {
       width: width * 0.9,
       maxWidth: 400,
-      backgroundColor: colors?.surface || '#FFFFFF',
       borderRadius: borderRadius?.xl || 16,
       maxHeight: '80%',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 10,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 20,
-      elevation: 10,
+      overflow: 'hidden',
+      ...Platform.select({
+        web: {
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 10,
+          },
+          shadowOpacity: 0.25,
+          shadowRadius: 20,
+          elevation: 10,
+        },
+      }),
+    },
+    gradientBackground: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+    modalContentWrapper: {
+      flex: 1,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -179,12 +267,12 @@ export default function CategoryForm({
       alignItems: 'center',
       padding: spacing?.lg || 16,
       borderBottomWidth: 1,
-      borderBottomColor: colors?.border || '#E5E5E5',
+      borderBottomColor: getBorderColor(),
     },
     modalTitle: {
       fontSize: 20,
       fontWeight: 'bold',
-      color: colors?.text || '#000000',
+      color: getTextColor(),
     },
     closeButton: {
       padding: spacing?.sm || 8,
@@ -201,7 +289,7 @@ export default function CategoryForm({
     label: {
       fontSize: 16,
       fontWeight: '600',
-      color: colors?.text || '#000000',
+      color: getTextColor(),
       marginBottom: spacing?.sm || 8,
     },
     modalActions: {
@@ -209,8 +297,8 @@ export default function CategoryForm({
       justifyContent: 'space-between',
       padding: spacing?.lg || 16,
       borderTopWidth: 1,
-      borderTopColor: colors?.border || '#E5E5E5',
-      backgroundColor: colors?.surfaceSecondary || '#F8F8F8',
+      borderTopColor: getBorderColor(),
+      backgroundColor: getSurfaceSecondaryColor(),
     },
     modalButton: {
       flex: 1,
@@ -219,36 +307,43 @@ export default function CategoryForm({
       borderRadius: borderRadius?.medium || 8,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+      }),
     },
     cancelButton: {
-      backgroundColor: colors?.neutral?.[200] || '#E5E5E5',
+      backgroundColor: getCancelButtonColor(),
     },
     saveButton: {
-      backgroundColor: colors?.primary || '#8B5CF6',
+      backgroundColor: getAccentColor(),
     },
     buttonText: {
       fontSize: 16,
       fontWeight: '600',
     },
     cancelButtonText: {
-      color: colors?.text || '#000000',
+      color: getTextColor(),
     },
     saveButtonText: {
       color: 'white',
     },
     disabledButton: {
-      backgroundColor: colors?.neutral?.[300] || '#CCCCCC',
+      backgroundColor: isWeb ? 'rgba(255, 255, 255, 0.1)' : (colors?.neutral?.[300] || '#CCCCCC'),
     },
     disabledButtonText: {
-      color: colors?.textSecondary || '#666666',
+      color: isWeb ? 'rgba(255, 255, 255, 0.5)' : (colors?.textSecondary || '#666666'),
     },
   };
 
@@ -261,19 +356,33 @@ export default function CategoryForm({
     >
       <Animated.View style={[styles.modalOverlay, backdropAnimatedStyle]}>
         <Animated.View style={[styles.modalContainer, modalAnimatedStyle]}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <ThemedText style={styles.modalTitle}>
-              {editingCategory ? 'Edit Category' : 'Add New Category'}
-            </ThemedText>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleClose}
-              disabled={isSaving}
-            >
-              <Ionicons name="close" size={24} color={colors?.text || '#000000'} />
-            </TouchableOpacity>
-          </View>
+          {/* Gradient Background */}
+          <LinearGradient
+            colors={[
+              getPrimaryColor(),
+              getPrimaryDarkColor(),
+              getAccentColor()
+            ]}
+            style={styles.gradientBackground}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+          
+          {/* Content Wrapper */}
+          <View style={styles.modalContentWrapper}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>
+                {editingCategory ? 'Edit Category' : 'Add New Category'}
+              </ThemedText>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+                disabled={isSaving}
+              >
+                <Ionicons name="close" size={24} color={getTextColor()} />
+              </TouchableOpacity>
+            </View>
 
           {/* Content */}
           <ScrollView
@@ -295,6 +404,17 @@ export default function CategoryForm({
                 autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={handleSave}
+                inputStyle={{
+                  backgroundColor: getInputBackgroundColor(),
+                  borderColor: errors.name ? (colors?.error || '#3d0101ff') : getInputBorderColor(),
+                  color: getInputTextColor(),
+                  ...Platform.select({
+                    web: {
+                      outlineStyle: 'none',
+                    },
+                  }),
+                }}
+                placeholderTextColor={getInputPlaceholderColor()}
               />
             </View>
           </ScrollView>
@@ -336,6 +456,7 @@ export default function CategoryForm({
                 {isSaving ? 'Saving...' : (editingCategory ? 'Update Category' : 'Add Category')}
               </ThemedText>
             </TouchableOpacity>
+          </View>
           </View>
         </Animated.View>
       </Animated.View>

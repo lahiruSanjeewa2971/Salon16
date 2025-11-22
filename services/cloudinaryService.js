@@ -187,16 +187,35 @@ export const cloudinaryService = {
           const input = document.createElement('input');
           input.type = 'file';
           input.accept = 'image/*';
+          input.style.display = 'none';
+          
+          let resolved = false;
+          let windowFocusHandler = null;
+          
+          const cleanup = () => {
+            if (windowFocusHandler) {
+              window.removeEventListener('focus', windowFocusHandler);
+              windowFocusHandler = null;
+            }
+            if (input.parentNode) {
+              input.parentNode.removeChild(input);
+            }
+          };
+          
           input.onchange = async (event) => {
             try {
               const file = event.target.files[0];
               if (!file) {
+                resolved = true;
+                cleanup();
                 resolve(null);
                 return;
               }
               
               // Convert file to URI for web
               const uri = URL.createObjectURL(file);
+              resolved = true;
+              cleanup();
               resolve({
                 uri,
                 width: 0, // Will be determined after loading
@@ -206,11 +225,59 @@ export const cloudinaryService = {
                 fileSize: file.size,
               });
             } catch (error) {
+              resolved = true;
+              cleanup();
               reject(error);
             }
           };
-          input.onerror = reject;
+          
+          // Handle cancellation - when user closes the file picker without selecting
+          // We detect when the window regains focus after the file picker closes
+          windowFocusHandler = () => {
+            // Use setTimeout to check if the dialog was cancelled
+            // This fires after the file picker closes and window regains focus
+            // We use a longer delay to ensure onchange has time to fire if user selected a file
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                resolve(null); // Resolve with null when cancelled
+              }
+            }, 1000); // 1 second delay to allow onchange to fire first
+          };
+          
+          // Listen for window focus event (fires when file picker closes)
+          window.addEventListener('focus', windowFocusHandler, { once: true });
+          
+          // Also handle blur as backup
+          input.onblur = () => {
+            setTimeout(() => {
+              if (!resolved && document.activeElement !== input) {
+                windowFocusHandler();
+              }
+            }, 1500); // Longer delay for blur to ensure onchange fires first
+          };
+          input.onerror = (error) => {
+            resolved = true;
+            cleanup();
+            reject(error);
+          };
+          
+          // Add input to DOM temporarily
+          document.body.appendChild(input);
+          
+          // Trigger file picker
           input.click();
+          
+          // Fallback: If nothing happens after 10 seconds, resolve with null
+          // This is a safety net in case all other detection methods fail
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              resolve(null);
+            }
+          }, 10000);
         });
       }
 

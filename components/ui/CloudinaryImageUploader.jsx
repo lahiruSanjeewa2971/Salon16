@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useCallback, memo } from 'react';
-import { ActivityIndicator, Alert, TouchableOpacity, View } from 'react-native';
+import { memo, useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, TouchableOpacity, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
-import { WebView } from 'react-native-webview';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import cloudinaryService from '../../services/cloudinaryService';
@@ -43,6 +42,13 @@ function CloudinaryImageUploader({
     if (disabled) return;
     
     try {
+      // On web, directly open file picker (skip Alert dialog)
+      if (Platform.OS === 'web') {
+        await handleImageSelection('gallery');
+        return;
+      }
+      
+      // On native, show Alert with Camera/Gallery options
       Alert.alert(
         'Select Image',
         'Choose how you want to add an image',
@@ -73,18 +79,26 @@ function CloudinaryImageUploader({
       
       let imageAsset;
       
-      if (source === 'camera') {
-        imageAsset = await cloudinaryService.takePhoto({
-          aspect: aspectRatio,
-          quality: quality,
-        });
-      } else {
-        imageAsset = await cloudinaryService.pickImageFromGallery({
-          aspect: aspectRatio,
-          quality: quality,
-        });
+      try {
+        if (source === 'camera') {
+          imageAsset = await cloudinaryService.takePhoto({
+            aspect: aspectRatio,
+            quality: quality,
+          });
+        } else {
+          imageAsset = await cloudinaryService.pickImageFromGallery({
+            aspect: aspectRatio,
+            quality: quality,
+          });
+        }
+      } catch (pickerError) {
+        // Handle picker errors (e.g., user cancelled, permission denied)
+        console.log('Image picker cancelled or error:', pickerError);
+        setIsUploading(false);
+        return;
       }
 
+      // If user cancelled or no image selected, stop loading
       if (!imageAsset) {
         setIsUploading(false);
         return;
@@ -135,6 +149,26 @@ function CloudinaryImageUploader({
   const handleDeleteImage = useCallback(async () => {
     if (!value?.publicId || disabled) return;
 
+    // On web, directly delete (skip Alert dialog)
+    if (Platform.OS === 'web') {
+      try {
+        setIsDeleting(true);
+        
+        await cloudinaryService.deleteImage(value.publicId);
+        
+        onChange(null);
+        showSuccess('Success', 'Image deleted successfully!');
+        
+      } catch (error) {
+        console.error('Image deletion error:', error);
+        showError('Delete Failed', 'Failed to delete image. Please try again.');
+      } finally {
+        setIsDeleting(false);
+      }
+      return;
+    }
+
+    // On native, show confirmation Alert
     Alert.alert(
       'Delete Image',
       'Are you sure you want to delete this image?',
@@ -191,6 +225,76 @@ function CloudinaryImageUploader({
     opacityAnim.value = withTiming(1);
   };
 
+  // Web-compatible color helpers
+  const isWeb = Platform.OS === 'web';
+  
+  const getTextColor = () => {
+    if (isWeb) {
+      return '#FFFFFF';
+    }
+    return colors?.text || '#000000';
+  };
+  
+  const getTextSecondaryColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.8)';
+    }
+    return colors?.textSecondary || '#666666';
+  };
+  
+  const getInputBackgroundColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.15)';
+    }
+    return colors?.inputBackground || '#FFFFFF';
+  };
+  
+  const getInputBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(255, 255, 255, 0.3)';
+    }
+    return colors?.inputBorder || '#E5E5E5';
+  };
+  
+  const getSuccessBorderColor = () => {
+    if (isWeb) {
+      return 'rgba(16, 185, 129, 0.5)'; // success color with opacity
+    }
+    return colors?.success || '#10B981';
+  };
+  
+  const getPrimaryColor = () => {
+    return colors?.primary || '#6C2A52';
+  };
+  
+  const getErrorColor = () => {
+    return colors?.error || '#EF4444';
+  };
+  
+  const getSuccessColor = () => {
+    return colors?.success || '#10B981';
+  };
+  
+  // Helper function to add alpha to hex color
+  const addAlpha = (color, alpha) => {
+    if (!color) return `rgba(255, 255, 255, ${alpha})`;
+    // If color is already rgba, extract RGB values
+    if (color.startsWith('rgba')) {
+      const rgb = color.match(/\d+/g);
+      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+    }
+    // If color is hex, convert to rgba
+    if (color.startsWith('#')) {
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    // Fallback
+    return color;
+  };
+
   const styles = {
     container: {
       marginBottom: spacing.lg,
@@ -199,27 +303,32 @@ function CloudinaryImageUploader({
     label: {
       fontSize: 16,
       fontWeight: '600',
-      color: colors.text,
+      color: getTextColor(),
       marginBottom: spacing.sm,
     },
     uploaderContainer: {
-      backgroundColor: colors.inputBackground,
+      backgroundColor: getInputBackgroundColor(),
       borderWidth: 2,
-      borderColor: value ? colors.success : colors.inputBorder,
+      borderColor: value ? getSuccessBorderColor() : getInputBorderColor(),
       borderStyle: value ? 'solid' : 'dashed',
       borderRadius: borderRadius.large,
       padding: spacing.lg,
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 200,
-      ...shadows.small,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        },
+        default: shadows.small,
+      }),
     },
     uploaderContainerError: {
-      borderColor: colors.error,
+      borderColor: getErrorColor(),
     },
     uploaderContainerDisabled: {
       opacity: 0.6,
-      backgroundColor: colors.inputDisabled,
+      backgroundColor: isWeb ? 'rgba(255, 255, 255, 0.05)' : (colors?.inputDisabled || '#F5F5F5'),
     },
     imageContainer: {
       width: '100%',
@@ -250,7 +359,7 @@ function CloudinaryImageUploader({
       left: -10,
       right: -10,
       bottom: -10,
-      backgroundColor: colors.primary + '20',
+      backgroundColor: addAlpha(getPrimaryColor(), 0.2),
       borderRadius: 50,
       zIndex: 1,
     },
@@ -265,12 +374,12 @@ function CloudinaryImageUploader({
     uploadText: {
       fontSize: 16,
       fontWeight: '600',
-      color: colors.text,
+      color: getTextColor(),
       marginBottom: spacing.xs,
     },
     uploadSubtext: {
       fontSize: 14,
-      color: colors.textSecondary,
+      color: getTextSecondaryColor(),
       textAlign: 'center',
     },
     actionButtons: {
@@ -281,7 +390,9 @@ function CloudinaryImageUploader({
     actionButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.primary + '20',
+      backgroundColor: isWeb 
+        ? 'rgba(236, 72, 153, 0.4)' // Pink/rose color for web (Change button)
+        : addAlpha(getPrimaryColor(), 0.4),
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.medium,
@@ -290,14 +401,16 @@ function CloudinaryImageUploader({
     actionButtonText: {
       fontSize: 14,
       fontWeight: '600',
-      color: colors.primary,
+      color: '#FFFFFF',
       marginLeft: spacing.xs,
     },
     deleteButton: {
-      backgroundColor: colors.error + '20',
+      backgroundColor: isWeb
+        ? 'rgba(239, 68, 68, 0.5)' // Red color for web (Remove button)
+        : addAlpha(getErrorColor(), 0.5),
     },
     deleteButtonText: {
-      color: colors.error,
+      color: '#FFFFFF',
     },
     loadingContainer: {
       position: 'absolute',
@@ -305,26 +418,27 @@ function CloudinaryImageUploader({
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backgroundColor: isWeb ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.9)',
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: borderRadius.large,
     },
     loadingText: {
       fontSize: 14,
-      color: colors.text,
+      color: getTextColor(),
       marginTop: spacing.sm,
     },
     requiredIndicator: {
-      color: colors.error,
+      color: getErrorColor(),
     },
     errorContainer: {
       marginTop: spacing.sm,
     },
     errorText: {
-      fontSize: 12,
-      color: colors.error,
-      marginLeft: spacing.sm,
+      fontSize: 13,
+      color: 'white',
+      marginTop: spacing.xs,
+      paddingLeft: spacing.xs || 8,
     },
     successContainer: {
       alignItems: 'center',
@@ -341,20 +455,20 @@ function CloudinaryImageUploader({
       left: -10,
       right: -10,
       bottom: -10,
-      backgroundColor: colors.success + '20',
+      backgroundColor: addAlpha(getSuccessColor(), 0.2),
       borderRadius: 50,
       zIndex: -1,
     },
     successTitle: {
       fontSize: 18,
       fontWeight: 'bold',
-      color: colors.success,
+      color: getSuccessColor(),
       textAlign: 'center',
       marginBottom: spacing.sm,
     },
     successSubtitle: {
       fontSize: 14,
-      color: colors.textSecondary,
+      color: getTextSecondaryColor(),
       textAlign: 'center',
       marginBottom: spacing.lg,
     },
@@ -362,7 +476,7 @@ function CloudinaryImageUploader({
       flexDirection: 'row',
       justifyContent: 'space-around',
       width: '100%',
-      backgroundColor: colors.inputBackground,
+      backgroundColor: isWeb ? 'rgba(255, 255, 255, 0.1)' : (colors?.inputBackground || '#FFFFFF'),
       borderRadius: borderRadius.medium,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.sm,
@@ -375,7 +489,7 @@ function CloudinaryImageUploader({
     },
     imageInfoText: {
       fontSize: 12,
-      color: colors.textSecondary,
+      color: getTextSecondaryColor(),
       marginLeft: spacing.xs,
       fontWeight: '500',
     },
@@ -455,31 +569,31 @@ function CloudinaryImageUploader({
                   </ThemedText>
                 </Animatable.View>
                 
-                <Animatable.View 
+                {/* <Animatable.View 
                   animation="fadeInUp" 
                   delay={700}
                 >
                   <View style={styles.imageInfoContainer}>
                     <View style={styles.imageInfoItem}>
-                      <Ionicons name="image-outline" size={16} color={colors.textSecondary} />
+                      <Ionicons name="image-outline" size={16} color={getTextSecondaryColor()} />
                       <ThemedText style={styles.imageInfoText}>
                         {value?.format?.toUpperCase() || 'JPG'}
                       </ThemedText>
                     </View>
                     <View style={styles.imageInfoItem}>
-                      <Ionicons name="resize-outline" size={16} color={colors.textSecondary} />
+                      <Ionicons name="resize-outline" size={16} color={getTextSecondaryColor()} />
                       <ThemedText style={styles.imageInfoText}>
                         {value?.width}x{value?.height}
                       </ThemedText>
                     </View>
                     <View style={styles.imageInfoItem}>
-                      <Ionicons name="cloud-outline" size={16} color={colors.textSecondary} />
+                      <Ionicons name="cloud-outline" size={16} color={getTextSecondaryColor()} />
                       <ThemedText style={styles.imageInfoText}>
                         Cloudinary
                       </ThemedText>
                     </View>
                   </View>
-                </Animatable.View>
+                </Animatable.View> */}
               </Animatable.View>
               <View style={styles.actionButtons}>
                 <TouchableOpacity
@@ -487,7 +601,7 @@ function CloudinaryImageUploader({
                   onPress={handleDeleteImage}
                   disabled={disabled}
                 >
-                  <Ionicons name="trash-outline" size={16} color={colors.error} />
+                  <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
                   <ThemedText style={[styles.actionButtonText, styles.deleteButtonText]}>
                     Remove
                   </ThemedText>
@@ -497,7 +611,7 @@ function CloudinaryImageUploader({
                   onPress={handleImagePicker}
                   disabled={disabled}
                 >
-                  <Ionicons name="camera-outline" size={16} color={colors.primary} />
+                  <Ionicons name="camera-outline" size={16} color="#FFFFFF" />
                   <ThemedText style={styles.actionButtonText}>
                     Change
                   </ThemedText>

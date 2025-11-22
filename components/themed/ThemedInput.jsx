@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -16,6 +16,7 @@ export function ThemedInput({
   autoCapitalize = 'sentences',
   style,
   inputStyle,
+  placeholderTextColor,
   ...props
 }) {
   const { colors, typography, spacing, borderRadius } = useTheme();
@@ -47,8 +48,11 @@ export function ThemedInput({
 
   const getErrorStyle = () => ({
     ...typography.captionMD,
-    color: colors.error,
+    // color: colors.error,
+    color: 'white',
     marginTop: spacing.xs,
+    paddingLeft: spacing.xs || 8,
+    fontSize: 13
   });
 
   return (
@@ -57,7 +61,7 @@ export function ThemedInput({
       <TextInput
         style={[getInputStyle(), inputStyle]}
         placeholder={placeholder}
-        placeholderTextColor={colors.textTertiary}
+        placeholderTextColor={placeholderTextColor || colors.textTertiary}
         value={value}
         onChangeText={onChangeText}
         onFocus={() => setIsFocused(true)}
