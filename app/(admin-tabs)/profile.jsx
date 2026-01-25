@@ -1,42 +1,38 @@
-import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity,
-  RefreshControl,
-  Dimensions,
-  StatusBar,
-  Platform
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { 
-  useSharedValue, 
-  withSpring, 
-  withDelay,
-  useAnimatedStyle,
-  interpolate,
+import { useCallback, useState } from 'react';
+import {
+  Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import Animated, {
   Extrapolate,
   FadeIn,
+  interpolate,
   SlideInUp,
-  SlideInDown
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '../../components/ThemedText';
-import { ThemedButton } from '../../components/themed/ThemedButton';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useResponsive } from '../../hooks/useResponsive';
-import { useToastHelpers } from '../../components/ui/ToastSystem';
-import { useAuthActions } from '../../hooks/useAuth';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
+import { useToastHelpers } from '../../components/ui/ToastSystem';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useAuthActions } from '../../hooks/useAuth';
+import { useResponsive } from '../../hooks/useResponsive';
 
 // Section Components
 import SalonInformation from '../../components/sections/admin/profile/SalonInformation';
-import NotificationSettings from '../../components/sections/admin/profile/NotificationSettings';
-import AITrendsSection from '../../components/sections/admin/dashboard/AITrendsSection';
 
 const { width, height } = Dimensions.get('window');
 
@@ -107,7 +103,7 @@ export default function AdminProfileScreen() {
         );
         
         // Redirect to welcome screen
-        router.replace("/WelcomeScreen");
+        router.replace("/");
       } else {
         console.error("Admin logout failed");
 
@@ -401,7 +397,7 @@ export default function AdminProfileScreen() {
               </Animated.View>
 
               {/* Notification Settings Section */}
-              <Animated.View 
+              {/* <Animated.View 
                 entering={FadeIn.delay(800)}
                 style={styles.sectionSpacing}
               >
@@ -412,10 +408,10 @@ export default function AdminProfileScreen() {
                   shadows={shadows}
                   fadeAnim={fadeAnim}
                 />
-              </Animated.View>
+              </Animated.View> */}
 
               {/* AI Trends Section */}
-              <Animated.View 
+              {/* <Animated.View 
                 entering={FadeIn.delay(1000)}
                 style={styles.sectionSpacing}
               >
@@ -426,7 +422,7 @@ export default function AdminProfileScreen() {
                   shadows={shadows}
                   fadeAnim={fadeAnim}
                 />
-              </Animated.View>
+              </Animated.View> */}
             </View>
           </ScrollView>
         </View>

@@ -10,15 +10,15 @@ import {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import AdminCalendarBottomSheet from '../../components/ui/bottomSheets/AdminCalendarBottomSheet';
 import BookingRejectionBottomSheet from '../../components/ui/bottomSheets/BookingRejectionBottomSheet';
-import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useResponsive } from '../../hooks/useResponsive';
-import { bookingService, salonHoursService } from '../../services/firebaseService';
 import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
-import { useAuth } from '../../contexts/AuthContext';
+import { bookingService, salonHoursService } from '../../services/firebaseService';
 
 // Import new booking components
 import BookingsCalendar from '../../components/sections/admin/bookings/BookingsCalendar';
@@ -71,6 +71,47 @@ export default function AdminBookingsScreen() {
 
       return () => clearTimeout(hideSkeleton);
     }, [fadeAnim, slideUpAnim, headerAnim])
+  );
+
+  // Reset selected date to today on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      // Calculate today's date with +5:30 timezone offset
+      const now = new Date();
+      const offsetMs = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+      const adjustedDate = new Date(now.getTime() + offsetMs);
+      const today = adjustedDate.toISOString().split('T')[0];
+      
+      // Reset to today's date every time screen comes into focus
+      setSelectedDate(today);
+      
+      // Load salon status for today
+      const loadTodaySalonStatus = async () => {
+        try {
+          const salonStatus = await salonHoursService.getSalonHours(today);
+          setSelectedDateSalonStatus(salonStatus);
+        } catch (error) {
+          console.error('Error loading today\'s salon status:', error);
+          // Set default status on error
+          const dayOfWeek = new Date(today).getDay();
+          const isTuesday = dayOfWeek === 2;
+          setSelectedDateSalonStatus({
+            date: today,
+            dayOfWeek: dayOfWeek,
+            openTime: '08:30',
+            closeTime: '21:00',
+            isClosed: isTuesday,
+            disableBookings: false,
+            isHoliday: false,
+            isTuesdayOverride: false,
+            notes: '',
+            isSpecific: false
+          });
+        }
+      };
+      
+      loadTodaySalonStatus();
+    }, [])
   );
 
   // Animated styles

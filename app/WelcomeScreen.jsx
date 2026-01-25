@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Dimensions,
   Platform,
@@ -18,7 +18,7 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { FloatingElements } from '../components/animations/FloatingElements';
 import { ThemedButton } from '../components/themed/ThemedButton';
 import { ThemedText } from '../components/ThemedText';
@@ -26,6 +26,7 @@ import { useToastHelpers } from '../components/ui/ToastSystem';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuthLoading } from '../hooks/useAuth';
+import { authService } from '../services/authService';
 
 const { height } = Dimensions.get('window');
 
@@ -35,10 +36,13 @@ const isMediumScreen = height >= 700 && height < 800;
 
 export default function WelcomeScreen() {
   const { colors, spacing, borderRadius } = useTheme();
-  const { continueAsGuest } = useAuth();
+  const { continueAsGuest, isAuthenticated, user, isLoading } = useAuth();
   const { isLoggingIn } = useAuthLoading();
   const router = useRouter();
   const { showSuccess: showSuccessToast, showError: showErrorToast } = useToastHelpers();
+
+  // Local state to track if auth check has been performed
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Animation values
   const fadeAnim = useSharedValue(0);
@@ -73,6 +77,53 @@ export default function WelcomeScreen() {
 
     startAnimations();
   }, [buttonSlideAnim, fadeAnim, logoScaleAnim, rotateAnim, scaleAnim, slideUpAnim]);
+
+  // Handle OAuth redirect results
+  const handleOAuthRedirect = useCallback(async () => {
+    try {
+      const redirectResult = await authService.handleGoogleRedirectResult();
+      
+      if (redirectResult && redirectResult.success && redirectResult.user) {
+        // Redirect based on role
+        if (redirectResult.user.role === 'admin') {
+          router.replace('/(admin-tabs)');
+        } else {
+          router.replace('/(customer-tabs)');
+        }
+        return true;
+      }
+    } catch (error) {
+      console.error('WelcomeScreen: OAuth redirect handling failed:', error);
+    }
+    return false;
+  }, [router]);
+
+  // Check authentication state and redirect if authenticated
+  useFocusEffect(
+    useCallback(() => {
+      const checkAuthState = async () => {
+        // First check for OAuth redirect result
+        const redirectHandled = await handleOAuthRedirect();
+        
+        if (!redirectHandled && !isLoading) {
+          // Check if user is already authenticated (AuthContext handles token validation)
+          if (isAuthenticated && user) {
+            // Redirect based on role
+            if (user.role === 'admin') {
+              router.replace('/(admin-tabs)');
+            } else {
+              router.replace('/(customer-tabs)');
+            }
+          }
+        }
+        
+        // Mark that auth check has been performed
+        setHasCheckedAuth(true);
+      };
+      
+      checkAuthState();
+    }, [isAuthenticated, user, isLoading, handleOAuthRedirect, router])
+  );
 
   // Animated styles
   const logoAnimatedStyle = useAnimatedStyle(() => ({
@@ -324,6 +375,35 @@ export default function WelcomeScreen() {
       backgroundColor: 'rgba(255, 255, 255, 0.6)',
     },
   });
+
+  // Show loading state while authentication is being checked
+  if (isLoading && !hasCheckedAuth) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark, colors.accent]}
+          style={styles.gradient}
+        >
+          <View style={styles.mainContent}>
+            <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
+              <View style={styles.logoCircle}>
+                <Ionicons name="cut" size={isSmallScreen ? 30 : isMediumScreen ? 40 : 50} color="white" />
+              </View>
+              
+              <ThemedText style={styles.title}>
+                Salon 16
+              </ThemedText>
+              
+              <ThemedText style={styles.subtitle}>
+                Checking authentication...
+              </ThemedText>
+            </Animated.View>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

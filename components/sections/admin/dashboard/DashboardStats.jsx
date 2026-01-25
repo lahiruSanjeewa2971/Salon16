@@ -1,9 +1,8 @@
-import React from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 
 export default function DashboardStats({ stats, animatedStyle }) {
   const theme = useTheme();
@@ -38,7 +37,7 @@ export default function DashboardStats({ stats, animatedStyle }) {
       alignItems: 'center',
     },
     statNumber: {
-      fontSize: 20,
+      fontSize: 15,
       fontWeight: 'bold',
       color: 'white',
       marginBottom: spacing.xs,
@@ -62,7 +61,7 @@ export default function DashboardStats({ stats, animatedStyle }) {
           <ThemedText style={styles.statLabel}>Pending</ThemedText>
         </View>
         <View style={styles.statCard}>
-          <ThemedText style={styles.statNumber}>${safeStats.todayRevenue}</ThemedText>
+          <ThemedText style={styles.statNumber}>Rs: {safeStats.todayRevenue}</ThemedText>
           <ThemedText style={styles.statLabel}>Today&apos;s Revenue</ThemedText>
         </View>
         <View style={styles.statCard}>

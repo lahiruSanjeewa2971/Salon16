@@ -14,7 +14,7 @@ import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useResponsive } from '../../hooks/useResponsive';
-import { bookingService, serviceService, firestoreService } from '../../services/firebaseService';
+import { bookingService, firestoreService } from '../../services/firebaseService';
 
 // Import dashboard components
 import CategoryForm from '../../components/sections/admin/categories/CategoryForm';
@@ -56,8 +56,13 @@ export default function AdminDashboardScreen() {
   const loadTodayBookings = useCallback(async () => {
     setLoadingBookings(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      // Calculate date with +5:30 timezone offset
+      const now = new Date();
+      const offsetMs = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+      const adjustedDate = new Date(now.getTime() + offsetMs);
+      const today = adjustedDate.toISOString().split('T')[0];
       const bookingsData = await bookingService.getBookingsByDate(today);
+      console.log("bookingsData :", bookingsData)
       
       // Transform Firestore booking data to match component format
       const transformedBookings = bookingsData.map(booking => ({
@@ -118,8 +123,13 @@ export default function AdminDashboardScreen() {
 
   // Calculate dashboard stats from real data
   const calculateStats = useCallback(() => {
+    // Calculate date with +5:30 timezone offset
+    const now = new Date();
+    const offsetMs = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+    const adjustedDate = new Date(now.getTime() + offsetMs);
+    const today = adjustedDate.toISOString().split('T')[0];
+    
     // Use todayBookings state if available (more accurate), otherwise filter from allBookings
-    const today = new Date().toISOString().split('T')[0];
     const todayBookingsForStats = todayBookings.length > 0 
       ? todayBookings 
       : allBookings.filter(booking => booking.date === today);
@@ -128,9 +138,11 @@ export default function AdminDashboardScreen() {
     const stats = {
       totalBookings: allBookings.length,
       pendingBookings: todayBookingsForStats.filter(b => b.status === 'pending').length,
-      todayRevenue: todayBookingsForStats.reduce((sum, booking) => {
-        return sum + (parseFloat(booking.price || booking.servicePrice) || 0);
-      }, 0),
+      todayRevenue: todayBookingsForStats
+        .filter(booking => booking.status === 'accepted')
+        .reduce((sum, booking) => {
+          return sum + (parseFloat(booking.price || booking.servicePrice) || 0);
+        }, 0),
       activeServices: activeServices.length,
     };
     
@@ -141,9 +153,10 @@ export default function AdminDashboardScreen() {
   const dashboardStats = useMemo(() => calculateStats(), [calculateStats]);
 
   // Load today's bookings on component mount
-  useEffect(() => {
-    loadTodayBookings();
-  }, [loadTodayBookings]);
+  // useEffect(() => {
+  //   console.log('Loading today\'s bookings on mount...');
+  //   loadTodayBookings();
+  // }, [loadTodayBookings]);
 
   // Load initial stats data
   useEffect(() => {
@@ -167,7 +180,6 @@ export default function AdminDashboardScreen() {
   // Fetch all categories from Firebase (for admin panel)
   const fetchCategories = useCallback(async () => {
     try {
-      console.log('Fetching all categories from Firebase (admin)...');
       const fetchedCategories = await secureService.adminOperations.getAllCategories();
       
       // Fetch services to count per category
@@ -194,7 +206,6 @@ export default function AdminDashboardScreen() {
         };
       });
       
-      console.log('All categories fetched successfully:', validatedCategories.length);
       setCategories(validatedCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -209,11 +220,8 @@ export default function AdminDashboardScreen() {
 
   // Set up real-time subscription for all categories
   useEffect(() => {
-    console.log('Setting up real-time subscription for all categories (admin)...');
     const unsubscribe = secureService.adminOperations.subscribeToCategories(async (updatedCategories) => {
       try {
-        console.log('Real-time categories update received:', updatedCategories.length);
-        
         // Fetch services to count per category
         const services = await secureService.sharedOperations.getActiveServices();
         
@@ -291,14 +299,18 @@ export default function AdminDashboardScreen() {
     }, [fadeAnim, slideUpAnim, headerAnim])
   );
 
+  // Data loading states
+  useFocusEffect(
+    useCallback(() => {
+      loadTodayBookings();
+    },[loadTodayBookings])
+  );
+
   // Set up real-time listener for all bookings (for stats)
   useEffect(() => {
     if (!user) return;
-
-    console.log('Setting up real-time listener for all bookings (stats)...');
     
     const unsubscribe = firestoreService.listen('bookings', [], (updatedBookings) => {
-      console.log('Real-time update received for all bookings:', updatedBookings.length);
       setAllBookings(updatedBookings || []);
     });
 
@@ -312,14 +324,15 @@ export default function AdminDashboardScreen() {
   useEffect(() => {
     if (!user) return;
 
-    const today = new Date().toISOString().split('T')[0];
-    console.log('Setting up real-time listener for today\'s bookings:', today);
+    // Calculate date with +5:30 timezone offset
+    const now = new Date();
+    const offsetMs = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+    const adjustedDate = new Date(now.getTime() + offsetMs);
+    const today = adjustedDate.toISOString().split('T')[0];
     
     const unsubscribe = secureService.adminOperations.subscribeToBookingsByDate(
       today,
-      (updatedBookings) => {
-        console.log('Real-time update received for today\'s bookings:', updatedBookings.length);
-        
+      (updatedBookings) => {        
         // Transform Firestore booking data to match component format
         const transformedBookings = updatedBookings.map(booking => ({
           id: booking.id,
@@ -356,13 +369,10 @@ export default function AdminDashboardScreen() {
   // Set up real-time listener for active services
   useEffect(() => {
     if (!user) return;
-
-    console.log('Setting up real-time listener for active services...');
     
     const unsubscribe = firestoreService.listen('services', 
       [{ field: 'isActive', operator: '==', value: true }],
       (updatedServices) => {
-        console.log('Real-time update received for active services:', updatedServices.length);
         setActiveServices(updatedServices || []);
       }
     );
@@ -377,14 +387,12 @@ export default function AdminDashboardScreen() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      console.log('Refreshing dashboard data...');
       await Promise.all([
         fetchCategories(),
         loadTodayBookings(),
         loadAllBookings(),
         loadActiveServices()
       ]);
-      console.log('Dashboard refreshed successfully');
       showSuccess('Dashboard refreshed!');
     } catch (error) {
       console.error('Refresh error:', error);
@@ -427,7 +435,6 @@ export default function AdminDashboardScreen() {
   };
 
   const handleEditCategory = (category) => {
-    console.log('Edit category clicked:', category);
     setEditingCategory(category);
     setShowCategoryModal(true);
   };
@@ -471,7 +478,6 @@ export default function AdminDashboardScreen() {
   const handleSaveCategory = (savedCategory) => {
     // CategoryForm already handles the Firebase creation/update and success toast
     // The real-time subscription will automatically update the list
-    console.log('Category saved:', savedCategory);
     handleCloseCategoryModal();
   };
 

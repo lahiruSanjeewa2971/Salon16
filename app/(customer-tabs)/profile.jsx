@@ -3,17 +3,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  Platform,
+    Dimensions,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -539,7 +539,7 @@ export default function CustomerProfileScreen() {
         );
         
         // Redirect to welcome screen
-        router.replace("/WelcomeScreen");
+        router.replace("/");
       } else {
         console.error("Logout failed");
 
