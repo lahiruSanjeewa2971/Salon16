@@ -61,7 +61,7 @@ export default function DashboardStats({ stats, animatedStyle }) {
           <ThemedText style={styles.statLabel}>Pending</ThemedText>
         </View>
         <View style={styles.statCard}>
-          <ThemedText style={styles.statNumber}>Rs: {safeStats.todayRevenue}</ThemedText>
+          <ThemedText style={styles.statNumber}>{safeStats.todayRevenue}.00/-</ThemedText>
           <ThemedText style={styles.statLabel}>Today&apos;s Revenue</ThemedText>
         </View>
         <View style={styles.statCard}>

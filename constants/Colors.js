@@ -69,7 +69,7 @@ const neutral = {
 
 // Status Colors
 const status = {
-  success: '#10B981',  // Green
+  success: '#009563',  // Green
   warning: '#F59E0B',  // Amber
   error: '#EF4444',    // Red
   info: '#3B82F6',     // Blue

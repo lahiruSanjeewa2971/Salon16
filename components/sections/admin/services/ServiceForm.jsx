@@ -1,18 +1,17 @@
-import React, { useState, useCallback } from 'react';
-import { View, Modal, TouchableOpacity, Dimensions, ScrollView, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, interpolate } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useState } from 'react';
+import { Dimensions, Modal, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
-import { ThemedButton } from '../../../themed/ThemedButton';
-import { ThemedInput } from '../../../themed/ThemedInput';
-import CloudinaryImageUploader from '../../../ui/CloudinaryImageUploader';
-import CategoryDropdown from '../../../ui/CategoryDropdown';
-import { useTheme } from '../../../../contexts/ThemeContext';
-import { useToastHelpers } from '../../../ui/ToastSystem';
-import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
 import { useAuth } from '../../../../contexts/AuthContext';
+import { useTheme } from '../../../../contexts/ThemeContext';
+import { createSecureFirestoreService } from '../../../../services/createSecureFirestoreService';
+import { ThemedText } from '../../../ThemedText';
+import { ThemedInput } from '../../../themed/ThemedInput';
+import CategoryDropdown from '../../../ui/CategoryDropdown';
+import CloudinaryImageUploader from '../../../ui/CloudinaryImageUploader';
+import { useToastHelpers } from '../../../ui/ToastSystem';
 
 const { width } = Dimensions.get('window');
 
@@ -198,6 +197,8 @@ export default function ServiceForm({
         color: editingService ? editingService.color : colors.primary,
         popular: editingService ? editingService.popular : false,
       };
+
+      console.log('Saving service data:', serviceData); // Debug log
 
       // Save to Firebase
       let savedService;
@@ -584,7 +585,7 @@ export default function ServiceForm({
               <View style={styles.formRow}>
                 <View style={styles.formRowItem}>
                   <ThemedInput
-                    label="Price ($) *"
+                    label="Price (Rs) *"
                     value={formData.price}
                     onChangeText={(text) => handleInputChange('price', text)}
                     placeholder="0"

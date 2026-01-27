@@ -8,15 +8,13 @@ import {
   reauthenticateWithCredential,
   sendEmailVerification,
   sendPasswordResetEmail,
-  signInWithCredential,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signInWithRedirect,
   signOut,
   updateProfile
 } from 'firebase/auth';
-import { Platform } from 'react-native';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { Platform } from 'react-native';
 import { auth, db } from '../firebase.config';
 import { storageService } from './storageService';
 import { tokenService } from './tokenService';
@@ -1492,6 +1490,28 @@ class AuthService {
     } catch (error) {
       console.error('AuthService: Failed to setup auth state listener', error);
       throw new Error(`${AUTH_ERRORS.OPERATION_FAILED}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Sign out the current user
+   * @returns {Promise<void>}
+   */
+  async signOutUser() {
+    try {
+      console.log('AuthService: Signing out user...');
+      
+      // Sign out from Firebase Auth
+      await signOut(this.auth);
+      
+      // Clear all stored data
+      await storageService.clearAuthData();
+      await tokenService.clearTokens();
+      
+      console.log('AuthService: User signed out and data cleared successfully');
+    } catch (error) {
+      console.error('AuthService: Sign out failed', error);
+      throw new Error(`Sign out failed: ${error.message}`);
     }
   }
 }

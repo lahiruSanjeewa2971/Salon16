@@ -1,27 +1,27 @@
-import React, { useEffect, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { useEffect } from 'react';
 import {
-  View,
-  Modal,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
   Dimensions,
+  Modal,
   Platform,
   ScrollView,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useSharedValue,
+  runOnJS,
   useAnimatedStyle,
+  useSharedValue,
   withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '../../ThemedText';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { ThemedText } from '../../ThemedText';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -262,7 +262,7 @@ export default function CustomerDetailBottomSheet({
       alignItems: 'center',
     },
     statNumber: {
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: 'bold',
       color: '#171717',
       marginBottom: spacing.xs || 4,
@@ -445,7 +445,7 @@ export default function CustomerDetailBottomSheet({
                   </View>
                   <View style={styles.statCard}>
                     <ThemedText style={styles.statNumber}>
-                      ${customer.totalSpent || 0}
+                      Rs: {customer.totalSpent || 0}.00
                     </ThemedText>
                     <ThemedText style={styles.statLabel}>Total Spent</ThemedText>
                   </View>
@@ -504,7 +504,7 @@ export default function CustomerDetailBottomSheet({
                     <View style={styles.detailContent}>
                       <ThemedText style={styles.detailLabel}>Total Spent</ThemedText>
                       <ThemedText style={styles.detailValue}>
-                        ${customer.totalSpent || 0}
+                        Rs: {customer.totalSpent || 0}.00
                       </ThemedText>
                     </View>
                   </View>

@@ -1,9 +1,8 @@
-import React from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 
 export default function CustomerStats({ stats, animatedStyle }) {
   const theme = useTheme();
@@ -49,10 +48,10 @@ export default function CustomerStats({ stats, animatedStyle }) {
           <ThemedText style={styles.statNumber}>{stats.totalCustomers}</ThemedText>
           <ThemedText style={styles.statLabel}>Total Customers</ThemedText>
         </View>
-        <View style={styles.statCard}>
+        {/* <View style={styles.statCard}>
           <ThemedText style={styles.statNumber}>{stats.activeCustomers}</ThemedText>
           <ThemedText style={styles.statLabel}>Active</ThemedText>
-        </View>
+        </View> */}
         <View style={styles.statCard}>
           <ThemedText style={styles.statNumber}>{stats.newThisMonth}</ThemedText>
           <ThemedText style={styles.statLabel}>New This Month</ThemedText>

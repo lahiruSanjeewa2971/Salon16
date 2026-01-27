@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 import CustomerDetailBottomSheet from '../../../ui/bottomSheets/CustomerDetailBottomSheet';
 
 export default function CustomerList({ customers, animatedStyle, onCustomerPress }) {
@@ -287,7 +287,7 @@ export default function CustomerList({ customers, animatedStyle, onCustomerPress
                 </View>
                 <View style={styles.statItem}>
                   <ThemedText style={styles.statNumber}>
-                    ${customer.totalSpent || 0}
+                    Rs: {customer.totalSpent || 0}.00
                   </ThemedText>
                   <ThemedText style={styles.statLabel}>Total Spent</ThemedText>
                 </View>

@@ -60,12 +60,14 @@ export const AuthProvider = ({ children }) => {
             dispatch(authActions.clearUser());
           }
         } else {
-          // Try to get user from Firebase
-          const currentUser = await authService.getCurrentUser();
-          
-          if (currentUser) {
-            const tokens = await tokenService.loadTokens();
-            if (tokens) {
+          // Only try Firebase re-auth if we have valid tokens but no cached user
+          // This prevents re-authentication after logout when tokens are cleared
+          const tokens = await tokenService.loadTokens();
+          if (tokens) {
+            // Try to get user from Firebase only if we have tokens
+            const currentUser = await authService.getCurrentUser();
+            
+            if (currentUser) {
               // Validate session expiry
               const sessionValid = await validateSession(tokens, currentUser);
               
@@ -355,8 +357,18 @@ export const AuthProvider = ({ children }) => {
    */
   const signOut = useCallback(async () => {
     try {
+      console.log('AuthContext: Starting sign out process...');
+
+      // Clear all local data first
+      await storageService.clearAuthData();
+      await tokenService.clearTokens();
+
+      // Sign out from Firebase Auth
       await authService.signOutUser();
+
+      // Dispatch clear user action
       dispatch(authActions.clearUser());
+
       console.log('AuthContext: User signed out successfully');
       return true;
     } catch (error) {

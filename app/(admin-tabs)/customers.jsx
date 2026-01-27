@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
+import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -13,10 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '../../components/ThemedText';
 import AdminSkeletonLoader from '../../components/ui/AdminSkeletonLoader';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { createSecureFirestoreService } from '../../services/createSecureFirestoreService';
-import { useAuth } from '../../contexts/AuthContext';
 // import { useToastHelpers } from '../../hooks/useToastHelpers';
 import { useToastHelpers } from '../../components/ui/ToastSystem';
 
@@ -74,6 +74,8 @@ export default function AdminCustomersScreen() {
       } else {
         result = await secureService.adminOperations.getAllCustomers(isLoadMore ? lastDocRef.current : null);
       }
+
+      console.log("Fetched customers:", result);
       
       const { customers: fetchedCustomers, lastDoc: newLastDoc, hasMore: moreAvailable } = result;
       

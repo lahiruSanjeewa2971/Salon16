@@ -1,14 +1,12 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
-  interpolate,
   Extrapolate,
   FadeIn,
+  interpolate,
 } from 'react-native-reanimated';
 
 import { ThemedText } from '../../../ThemedText';
-import { ThemedButton } from '../../../themed/ThemedButton';
 
 const SalonInformation = ({ 
   colors, 
@@ -79,10 +77,10 @@ const SalonInformation = ({
   // Mock salon data
   const salonData = {
     name: 'Salon 16',
-    address: '123 Main Street, City, State 12345',
-    phone: '+1 (555) 123-4567',
+    address: 'Salon 16, Malpitiya, Boyagane',
+    phone: '0789109693',
     email: 'info@salon16.com',
-    hours: 'Mon-Sat: 9:00 AM - 7:00 PM, Sun: Closed',
+    hours: 'Mon-Sat: 8:30 AM - 8:00 PM, Tue: Closed',
     description: 'Premium hair salon offering professional styling and beauty services.',
   };
 
@@ -155,13 +153,13 @@ const SalonInformation = ({
         </View>
       </View>
 
-      <ThemedButton
+      {/* <ThemedButton
         title="Edit Salon Information"
         onPress={handleEditSalonInfo}
         variant="outline"
         style={styles.editButton}
         icon={<Ionicons name="create-outline" size={20} color={colors.primary} />}
-      />
+      /> */}
     </Animated.View>
   );
 };

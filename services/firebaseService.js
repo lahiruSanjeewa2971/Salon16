@@ -696,18 +696,50 @@ export const customerService = {
         lastVisible = doc;
       });
       
+      // Calculate booking stats for each customer
+      const customersWithStats = await Promise.all(
+        customers.map(async (customer) => {
+          try {
+            // Get accepted bookings for this customer
+            const acceptedBookings = await firestoreService.query('bookings', [
+              { field: 'customerId', operator: '==', value: customer.uid },
+              { field: 'status', operator: '==', value: 'accepted' }
+            ]);
+            
+            // Calculate total spent by summing servicePrice from accepted bookings
+            const totalSpent = acceptedBookings.reduce((sum, booking) => {
+              return sum + (booking.servicePrice || 0);
+            }, 0);
+            
+            return {
+              ...customer,
+              totalBookings: acceptedBookings.length,
+              totalSpent: totalSpent
+            };
+          } catch (error) {
+            console.warn(`⚠️ CustomerService: Error calculating stats for customer ${customer.uid}:`, error);
+            // Return customer with default stats on error
+            return {
+              ...customer,
+              totalBookings: 0,
+              totalSpent: 0
+            };
+          }
+        })
+      );
+      
       // Sort customers by createdAt on client side (newest first)
-      customers.sort((a, b) => {
+      customersWithStats.sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
         return dateB - dateA; // Descending order (newest first)
       });
       
-      console.log(`📊 CustomerService: Fetched ${customers.length} customers`);
-      console.log('📋 CustomerService: Full customer list:', customers);
+      console.log(`📊 CustomerService: Fetched ${customersWithStats.length} customers with booking stats`);
+      console.log('📋 CustomerService: Full customer list:', customersWithStats);
       
       return {
-        customers,
+        customers: customersWithStats,
         lastDoc: lastVisible,
         hasMore: customers.length === limitCount
       };
@@ -784,17 +816,49 @@ export const customerService = {
         lastVisible = doc;
       });
       
+      // Calculate booking stats for each customer
+      const customersWithStats = await Promise.all(
+        customers.map(async (customer) => {
+          try {
+            // Get accepted bookings for this customer
+            const acceptedBookings = await firestoreService.query('bookings', [
+              { field: 'customerId', operator: '==', value: customer.uid },
+              { field: 'status', operator: '==', value: 'accepted' }
+            ]);
+            
+            // Calculate total spent by summing servicePrice from accepted bookings
+            const totalSpent = acceptedBookings.reduce((sum, booking) => {
+              return sum + (booking.servicePrice || 0);
+            }, 0);
+            
+            return {
+              ...customer,
+              totalBookings: acceptedBookings.length,
+              totalSpent: totalSpent
+            };
+          } catch (error) {
+            console.warn(`⚠️ CustomerService: Error calculating stats for customer ${customer.uid}:`, error);
+            // Return customer with default stats on error
+            return {
+              ...customer,
+              totalBookings: 0,
+              totalSpent: 0
+            };
+          }
+        })
+      );
+      
       // Sort customers by name on client side (A-Z)
-      customers.sort((a, b) => {
+      customersWithStats.sort((a, b) => {
         const nameA = a.name || '';
         const nameB = b.name || '';
         return nameA.localeCompare(nameB);
       });
       
-      console.log(`📊 CustomerService: Found ${customers.length} customers matching search`);
+      console.log(`📊 CustomerService: Found ${customersWithStats.length} customers matching search`);
       
       return {
-        customers,
+        customers: customersWithStats,
         lastDoc: lastVisible,
         hasMore: customers.length === limitCount
       };

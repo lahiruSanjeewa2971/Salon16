@@ -1,8 +1,10 @@
-import { Alert, Image, Platform, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Platform, TouchableOpacity, View } from 'react-native';
 import Animated, { Extrapolate, interpolate } from 'react-native-reanimated';
 
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { ThemedText } from '../../../ThemedText';
+import ConfirmationDialog from '../../../ui/ConfirmationDialog';
 
 export default function ServiceList({ 
   services, 
@@ -13,6 +15,10 @@ export default function ServiceList({
 }) {
   const { colors, spacing, borderRadius, shadows } = useTheme();
   const isWeb = Platform.OS === 'web';
+  
+  // Confirmation dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
   
   // Helper function to add alpha to hex color
   const addAlpha = (color, alpha) => {
@@ -71,20 +77,21 @@ export default function ServiceList({
   };
 
   const handleDeleteService = (service) => {
-    Alert.alert(
-      'Delete Service',
-      `Are you sure you want to delete "${service.name}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            onDeleteService(service);
-          },
-        },
-      ]
-    );
+    setServiceToDelete(service);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (serviceToDelete) {
+      onDeleteService(serviceToDelete);
+      setServiceToDelete(null);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setServiceToDelete(null);
+    setShowDeleteDialog(false);
   };
 
   const handleToggleServiceStatus = (service) => {
@@ -182,12 +189,12 @@ export default function ServiceList({
       borderRadius: borderRadius.xl,
     },
     statusBadgeActive: {
-      backgroundColor: addAlpha(colors?.success || '#10B981', 0.15),
+      backgroundColor: addAlpha(colors?.success || '#10B981', 0.35),
       borderWidth: 1,
       borderColor: addAlpha(colors?.success || '#10B981', 0.3),
     },
     statusBadgeInactive: {
-      backgroundColor: addAlpha(colors?.error || '#EF4444', 0.15),
+      backgroundColor: addAlpha(colors?.error || '#EF4444', 0.95),
       borderWidth: 1,
       borderColor: addAlpha(colors?.error || '#EF4444', 0.3),
     },
@@ -197,10 +204,12 @@ export default function ServiceList({
       letterSpacing: 0.5,
     },
     statusTextActive: {
-      color: colors?.success || '#10B981',
+      // color: colors?.success || '#10B981',
+      color: '#ffffff'
     },
     statusTextInactive: {
-      color: colors?.error || '#EF4444',
+      // color: colors?.error || '#EF4444',
+      color: '#ffffff'
     },
     serviceActions: {
       flexDirection: 'row',
@@ -321,7 +330,7 @@ export default function ServiceList({
 
             <View style={styles.serviceDetails}>
               <ThemedText style={styles.servicePrice}>
-                ${service.price}
+                Rs: {service.price}.00
               </ThemedText>
               <ThemedText style={styles.serviceDuration}>
                 {service.duration} min
@@ -357,6 +366,19 @@ export default function ServiceList({
           </View>
         </Animated.View>
       ))}
+      
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        visible={showDeleteDialog}
+        title="Delete Service"
+        message={`Are you sure you want to delete "${serviceToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmButtonStyle="destructive"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        onClose={handleCancelDelete}
+      />
     </View>
   );
 }

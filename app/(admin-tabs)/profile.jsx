@@ -169,7 +169,7 @@ export default function AdminProfileScreen() {
     // Clean Header
     header: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingTop: spacing.xl,
       paddingBottom: spacing.lg,
     },
     headerTitle: {
@@ -307,7 +307,7 @@ export default function AdminProfileScreen() {
               entering={SlideInUp.delay(200)}
               style={styles.statsContainer}
             >
-              <View style={styles.statCard}>
+              {/* <View style={styles.statCard}>
                 <ThemedText style={styles.statValue}>24</ThemedText>
                 <ThemedText style={styles.statLabel}>Services</ThemedText>
               </View>
@@ -318,7 +318,7 @@ export default function AdminProfileScreen() {
               <View style={styles.statCard}>
                 <ThemedText style={styles.statValue}>4.9</ThemedText>
                 <ThemedText style={styles.statLabel}>Rating</ThemedText>
-              </View>
+              </View> */}
             </Animated.View>
 
             {/* Action Buttons */}
