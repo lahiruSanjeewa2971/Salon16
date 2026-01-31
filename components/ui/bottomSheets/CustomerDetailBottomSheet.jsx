@@ -473,7 +473,7 @@ export default function CustomerDetailBottomSheet({
                     </View>
                   </View>
 
-                  <View style={styles.detailRow}>
+                  {/* <View style={styles.detailRow}>
                     <View style={styles.detailIcon}>
                       <Ionicons name="time-outline" size={20} color="#A3A3A3" />
                     </View>
@@ -483,7 +483,7 @@ export default function CustomerDetailBottomSheet({
                         {formatLastVisit(customer.lastVisit)}
                       </ThemedText>
                     </View>
-                  </View>
+                  </View> */}
 
                   <View style={styles.detailRow}>
                     <View style={styles.detailIcon}>

@@ -80,9 +80,9 @@ class AuthService {
       }
     }
 
-    if (!userData.phone || !userData.phone.trim()) {
-      errors.phone = 'Phone number is required';
-    }
+    // if (!userData.phone || !userData.phone.trim()) {
+    //   errors.phone = 'Phone number is required';
+    // }
 
     if (!userData.password || !userData.password.trim()) {
       errors.password = 'Password is required';

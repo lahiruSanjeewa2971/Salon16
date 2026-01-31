@@ -732,7 +732,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Google Sign-In Button */}
-            <View style={styles.buttonContainer}>
+            {/* <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={handleGoogleSignIn}
                 style={styles.googleSignInButton}
@@ -746,7 +746,7 @@ export default function LoginScreen() {
                   </ThemedText>
                 </View>
               </TouchableOpacity>
-            </View>
+            </View> */}
 
             {/* Auth Error Display - Removed, using toast notifications instead */}
 
