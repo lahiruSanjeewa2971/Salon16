@@ -730,7 +730,7 @@ export default function RegisterScreen() {
             </View>
 
             {/* Google Sign-Up Button */}
-            <View style={styles.buttonContainer}>
+            {/* <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={handleGoogleSignUp}
                 style={styles.googleSignUpButton}
@@ -744,7 +744,7 @@ export default function RegisterScreen() {
                   </ThemedText>
                 </View>
               </TouchableOpacity>
-            </View>
+            </View> */}
 
             {/* Login Link */}
             <View style={styles.loginContainer}>

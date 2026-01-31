@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
-  TouchableOpacity,
   View
 } from 'react-native';
 import Animated, {
@@ -493,7 +492,7 @@ export default function WelcomeScreen() {
             />
 
             {/* Google Sign-In Button */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={handleGoogleSignIn}
               style={styles.googleSignInButton}
               activeOpacity={0.8}
@@ -505,16 +504,16 @@ export default function WelcomeScreen() {
                   Continue with Google
                 </ThemedText>
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
-            <ThemedButton
+            {/* <ThemedButton
               title="Continue as Guest"
               onPress={handleGuestMode}
               variant="outline"
               size="large"
               style={styles.secondaryButton}
               textStyle={styles.secondaryButtonText}
-            />
+            /> */}
           </Animated.View>
         </Animated.View>
 

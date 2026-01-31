@@ -103,7 +103,7 @@ export default function AdminProfileScreen() {
         );
         
         // Redirect to welcome screen
-        router.replace("/");
+        router.replace("/WelcomeScreen");
       } else {
         console.error("Admin logout failed");
 

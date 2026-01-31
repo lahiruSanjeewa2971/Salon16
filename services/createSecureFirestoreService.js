@@ -1,12 +1,12 @@
-import { roleValidationService } from './roleValidationService';
-import { 
-  serviceService, 
-  categoryService, 
-  customerService, 
-  bookingService, 
+import {
+  bookingService,
+  categoryService,
+  customerService,
+  firestoreService,
   reviewService,
-  firestoreService 
+  serviceService
 } from './firebaseService';
+import { roleValidationService } from './roleValidationService';
 
 /**
  * Context-Aware Secure Firestore Service
@@ -174,7 +174,7 @@ export const createSecureFirestoreService = (userFromContext) => {
           console.log('✅ SecureService: Admin role validated, fetching customers');
           const result = await customerService.getCustomers(lastDoc, limitCount);
           
-          console.log('✅ SecureService: Customers fetched successfully:', result.customers.length);
+          console.log('✅ SecureService: Customers fetched successfully:', result);
           return result;
         } catch (error) {
           console.error('❌ SecureService: Error in getAllCustomers:', error);

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -9,6 +9,10 @@ import CustomerDetailBottomSheet from '../../../ui/bottomSheets/CustomerDetailBo
 
 export default function CustomerList({ customers, animatedStyle, onCustomerPress }) {
   const theme = useTheme();
+
+  useEffect(() => {
+    console.log('Customers data updated:', customers);
+  }, [customers])
   
   // Add comprehensive safety checks for theme destructuring
   const spacing = theme?.spacing || {};
@@ -301,12 +305,12 @@ export default function CustomerList({ customers, animatedStyle, onCustomerPress
 
               {/* Customer Details */}
               <View style={styles.customerDetails}>
-                <View style={styles.detailItem}>
+                {/* <View style={styles.detailItem}>
                   <ThemedText style={styles.detailLabel}>Last Visit</ThemedText>
                   <ThemedText style={styles.detailValue}>
                     {formatDate(customer.lastVisit)}
                   </ThemedText>
-                </View>
+                </View> */}
                 <View style={styles.detailItem}>
                   <ThemedText style={styles.detailLabel}>Member Since</ThemedText>
                   <ThemedText style={styles.detailValue}>
