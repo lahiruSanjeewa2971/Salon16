@@ -1,4 +1,8 @@
+import { arrayRemove, arrayUnion } from 'firebase/firestore';
+import { getToken } from 'firebase/messaging';
 import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
+import { Platform } from 'react-native';
+import { messaging } from '../firebase.config';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
 import { tokenService } from '../services/tokenService';
@@ -294,6 +298,30 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         // Dispatch success action
         dispatch(authActions.loginSuccess(result.user, result.tokens));
+
+        // Register admin FCM token if applicable
+        if(Platform.OS === 'web' && result.user?.role === 'admin' && messaging){
+          try {
+            const permission = await Notification.requestPermission();
+            if(permission === 'granted'){
+              const token = await getToken(messaging, {
+                vapidKey: process.env.EXPO_PUBLIC_FCM_VAPID_KEY
+              });
+              if(token){
+                // Save token to user's doc (use fcmTokens array)
+                await authService.updateUserDocument(result?.user?.uid, {
+                  fcmTokens: arrayUnion(token)
+                })
+                await storageService.saveData('salon16_fcm_token', token);
+                console.log('AuthContext: Admin FCM token registered successfully');
+              }
+            } else{
+              console.log('AuthContext: Notification permission not granted for FCM');
+            }
+          } catch (error) {
+            console.warn('AuthContext: Failed to register admin FCM token', error);
+          }
+        }
         
         console.log('AuthContext: User login successful');
         return {
@@ -358,6 +386,22 @@ export const AuthProvider = ({ children }) => {
   const signOut = useCallback(async () => {
     try {
       console.log('AuthContext: Starting sign out process...');
+
+      if(Platform.OS === 'web'){
+        // Remove FCM token from user document
+        try {
+          const token = await storageService.loadData('salon16_fcm_token');
+          if(token){
+            await authService.updateUserDocument(state.user?.uid, {
+              fcmTokens: arrayRemove(token)
+            })
+            await storageService.removeData('salon16_fcm_token');
+            console.log('AuthContext: FCM token removed from user document on sign out');
+          }
+        } catch (error) {
+          console.warn('AuthContext: Failed to remove FCM token on sign out', error);
+        }
+      }
 
       // Clear all local data first
       await storageService.clearAuthData();

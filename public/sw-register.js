@@ -9,4 +9,9 @@ if ('serviceWorker' in navigator) {
         console.log('SW registration failed: ', registrationError);
       });
   });
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(req => console.log('Firebase Messaging SW registered:', req))
+      .catch(err => console.warn('Firebase Messaging SW registration failed:', err));
+  }
 }

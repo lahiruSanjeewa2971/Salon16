@@ -10,6 +10,8 @@
   "scope": "/",
   "lang": "en",
   "categories": ["business", "productivity"],
+  "permissions": ["notifications"],
+  "gcm_sender_id": "103953800507",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",

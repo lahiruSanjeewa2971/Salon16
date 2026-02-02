@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp } from 'firebase/app';
 import { getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 import { disableNetwork, enableNetwork, getFirestore } from 'firebase/firestore';
+import { getMessaging } from 'firebase/messaging';
 import { Platform } from 'react-native';
 
 // Firebase configuration
@@ -59,5 +60,18 @@ export const firebaseNetwork = {
   disable: () => disableNetwork(db)
 };
 
-export { auth };
+// export const messaging = Platform.OS === 'web' && 'serviceWorker' in navigator ? getMessaging(app) : null;
+// Messaging initialization for web platform only
+let messaging = null;
+if(Platform.OS === 'web' && 'serviceWorker' in navigator) {
+  try {
+    messaging = getMessaging(app);
+  } catch (error) {
+    console.warn('Firebase Messaging initialization failed:', error.message);
+  }
+}
+
+export { messaging };
+
+  export { auth };
 export default app;
