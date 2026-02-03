@@ -77,24 +77,31 @@ exports.notifyAdminOnBooking = onDocumentCreated('bookings/{bookingId}', async (
         return null;
     }
 
-    const todayYMD = getSalonTodayYMD(salonOffsetMinutes);
-    if (bookingYMD !== todayYMD) {
-        console.log('Booking is not for today, skipping notification:', bookingYMD);
-        return null;
-    }
+    // const todayYMD = getSalonTodayYMD(salonOffsetMinutes);
+    // if (bookingYMD !== todayYMD) {
+    //     console.log('Booking is not for today, skipping notification:', bookingYMD);
+    //     return null;
+    // }
 
     // Compose notification body
     const timeText = booking.time || booking.startTime || 'unknown time';
     const payload = {
         notification: {
-            title: 'New Booking Today!',
-            body: `Hey, today we have a new booking at ${timeText}`
+            title: 'New Booking!',
+            body: `Hey, we have a new booking at ${timeText}`
         }
     };
 
     try {
         // First try sending to topic "admins"
-        const response = await admin.messaging().sendToTopic('admins', payload);
+        const message = {
+            topic: 'admins',
+            notification: payload.notification,
+        };
+
+        const response = await admin.messaging().send(message);
+        console.log('notifyAdminsOnBooking: sent to topic "admins":', response);
+
         console.log('notifyAdminsOnBooking: sent to topic "admins":', response);
     } catch (error) {
         console.warn('NotifyAdminOnBooking topic send failed:', error);
