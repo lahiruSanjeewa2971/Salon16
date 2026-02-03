@@ -387,16 +387,37 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('AuthContext: Starting sign out process...');
 
-      if(Platform.OS === 'web'){
-        // Remove FCM token from user document
+      if (Platform.OS === 'web') {
+        // Remove FCM token from user document if we can determine a valid uid
         try {
           const token = await storageService.loadData('salon16_fcm_token');
-          if(token){
-            await authService.updateUserDocument(state.user?.uid, {
-              fcmTokens: arrayRemove(token)
-            })
-            await storageService.removeData('salon16_fcm_token');
-            console.log('AuthContext: FCM token removed from user document on sign out');
+          if (token) {
+            // Try multiple fallbacks to obtain a reliable uid
+            let uidToUse = state.user?.uid;
+
+            if (!uidToUse) {
+              // Try to get cached / firestore user document
+              try {
+                const currentUserDoc = await authService.getCurrentUser();
+                uidToUse = currentUserDoc?.uid || uidToUse;
+              } catch (err) {
+                console.warn('AuthContext: Unable to load current user document for token removal', err);
+              }
+            }
+
+            if (!uidToUse && authService && authService.auth && authService.auth.currentUser) {
+              uidToUse = authService.auth.currentUser.uid;
+            }
+
+            if (uidToUse) {
+              await authService.updateUserDocument(uidToUse, {
+                fcmTokens: arrayRemove(token)
+              });
+              await storageService.removeData('salon16_fcm_token');
+              console.log('AuthContext: FCM token removed from user document on sign out');
+            } else {
+              console.warn('AuthContext: No user uid available - skipping FCM token removal');
+            }
           }
         } catch (error) {
           console.warn('AuthContext: Failed to remove FCM token on sign out', error);
