@@ -73,11 +73,12 @@ service cloud.firestore {
       
       // Allow customers to create their own bookings
       // Allow admins to create bookings for any customer
+      // Allow unauthenticated users (guests) to create bookings
       // Simplified: Allow any authenticated user to create a booking if customerId matches their uid
       // This avoids the need to check role which might fail if user document doesn't exist
       // Primary check: customerId must match authenticated user's uid
       // Secondary check: allow if user is admin (for admin-created bookings)
-      allow create: if isAuthenticated() && (
+      allow create: if !isAuthenticated() || (
         request.auth.uid == request.resource.data.customerId ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin')
@@ -104,6 +105,17 @@ service cloud.firestore {
              allow write: if isOwner(resource.data.userId) || isAdmin();
              allow create: if isCustomer() && request.auth.uid == request.resource.data.userId;
            }
+
+    // Allow public read; allow guests or the authenticated user's email (or admin) to create summaries.
+    match /bookingSummaries/{summaryId} {
+      allow read: if true;
+      allow create: if (
+        request.auth == null ||                                      // guests allowed
+        request.auth.token.email == request.resource.data.customerEmail || // authenticated user owns email
+        isAdmin()                                                    // admin allowed
+      );
+      allow update, delete: if isAdmin();
+    }
 
     // Salon Hours collection - Public read access for booking availability, admin-only write operations
     match /salonHours/{hoursId} {

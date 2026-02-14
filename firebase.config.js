@@ -60,10 +60,10 @@ export const firebaseNetwork = {
   disable: () => disableNetwork(db)
 };
 
-// export const messaging = Platform.OS === 'web' && 'serviceWorker' in navigator ? getMessaging(app) : null;
-// Messaging initialization for web platform only
+// Messaging initialization for web platform only (guard browser globals)
 let messaging = null;
-if(Platform.OS === 'web' && 'serviceWorker' in navigator) {
+const isWeb = (typeof window !== 'undefined') && (typeof navigator !== 'undefined') && Platform.OS === 'web';
+if (isWeb && 'serviceWorker' in navigator) {
   try {
     messaging = getMessaging(app);
   } catch (error) {

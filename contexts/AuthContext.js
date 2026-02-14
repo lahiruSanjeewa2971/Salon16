@@ -1,8 +1,6 @@
-import { arrayRemove, arrayUnion } from 'firebase/firestore';
-import { getToken } from 'firebase/messaging';
+import { arrayRemove } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import { Platform } from 'react-native';
-import { messaging } from '../firebase.config';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
 import { tokenService } from '../services/tokenService';
@@ -299,29 +297,9 @@ export const AuthProvider = ({ children }) => {
         // Dispatch success action
         dispatch(authActions.loginSuccess(result.user, result.tokens));
 
-        // Register admin FCM token if applicable
-        if(Platform.OS === 'web' && result.user?.role === 'admin' && messaging){
-          try {
-            const permission = await Notification.requestPermission();
-            if(permission === 'granted'){
-              const token = await getToken(messaging, {
-                vapidKey: process.env.EXPO_PUBLIC_FCM_VAPID_KEY
-              });
-              if(token){
-                // Save token to user's doc (use fcmTokens array)
-                await authService.updateUserDocument(result?.user?.uid, {
-                  fcmTokens: arrayUnion(token)
-                })
-                await storageService.saveData('salon16_fcm_token', token);
-                console.log('AuthContext: Admin FCM token registered successfully');
-              }
-            } else{
-              console.log('AuthContext: Notification permission not granted for FCM');
-            }
-          } catch (error) {
-            console.warn('AuthContext: Failed to register admin FCM token', error);
-          }
-        }
+        // Note: FCM token registration moved to admin profile settings screen
+        // Users can now enable/disable notifications from the profile toggle
+        console.log('AuthContext: User login successful - notifications can be enabled from profile settings');
         
         console.log('AuthContext: User login successful');
         return {
@@ -387,16 +365,37 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('AuthContext: Starting sign out process...');
 
-      if(Platform.OS === 'web'){
-        // Remove FCM token from user document
+      if (Platform.OS === 'web') {
+        // Remove FCM token from user document if we can determine a valid uid
         try {
           const token = await storageService.loadData('salon16_fcm_token');
-          if(token){
-            await authService.updateUserDocument(state.user?.uid, {
-              fcmTokens: arrayRemove(token)
-            })
-            await storageService.removeData('salon16_fcm_token');
-            console.log('AuthContext: FCM token removed from user document on sign out');
+          if (token) {
+            // Try multiple fallbacks to obtain a reliable uid
+            let uidToUse = state.user?.uid;
+
+            if (!uidToUse) {
+              // Try to get cached / firestore user document
+              try {
+                const currentUserDoc = await authService.getCurrentUser();
+                uidToUse = currentUserDoc?.uid || uidToUse;
+              } catch (err) {
+                console.warn('AuthContext: Unable to load current user document for token removal', err);
+              }
+            }
+
+            if (!uidToUse && authService && authService.auth && authService.auth.currentUser) {
+              uidToUse = authService.auth.currentUser.uid;
+            }
+
+            if (uidToUse) {
+              await authService.updateUserDocument(uidToUse, {
+                fcmTokens: arrayRemove(token)
+              });
+              await storageService.removeData('salon16_fcm_token');
+              console.log('AuthContext: FCM token removed from user document on sign out');
+            } else {
+              console.warn('AuthContext: No user uid available - skipping FCM token removal');
+            }
           }
         } catch (error) {
           console.warn('AuthContext: Failed to remove FCM token on sign out', error);
