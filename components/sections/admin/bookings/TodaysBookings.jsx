@@ -439,7 +439,7 @@ export default function TodaysBookings({ animatedStyle, bookings = [], onBooking
                   </ThemedText>
                   <View style={styles.bookingPriceDurationRow}>
                     <ThemedText style={styles.bookingPrice}>
-                      ${booking.price}
+                      Rs.{booking.price}
                     </ThemedText>
                     {booking.duration != null && booking.duration > 0 ? (
                       <ThemedText style={styles.bookingDuration}>

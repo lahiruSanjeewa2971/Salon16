@@ -330,11 +330,24 @@ export const bookingService = {
   // Update booking status
   updateBookingStatus: async (bookingId, status, adminNotes = '') => {
     try {
+      // Update the booking document
       await firestoreService.update('bookings', bookingId, {
         status,
         adminNotes,
         updatedAt: serverTimestamp()
       });
+
+      // Also update the corresponding bookingSummary document
+      // Using the same bookingId as the summary document ID
+      try {
+        await firestoreService.update('bookingSummaries', bookingId, {
+          status,
+          updatedAt: serverTimestamp()
+        });
+      } catch (summaryError) {
+        // If summary doesn't exist, log warning but don't fail the booking update
+        console.warn('⚠️ BookingService: Could not update bookingSummary for booking', bookingId, summaryError.message);
+      }
     } catch (error) {
       throw error;
     }
