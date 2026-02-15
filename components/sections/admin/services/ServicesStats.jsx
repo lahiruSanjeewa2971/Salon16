@@ -1,9 +1,8 @@
-import React from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '../../../ThemedText';
 import { useTheme } from '../../../../contexts/ThemeContext';
+import { ThemedText } from '../../../ThemedText';
 
 export default function ServicesStats({ stats, animatedStyle }) {
   const { spacing, borderRadius } = useTheme();
@@ -26,7 +25,7 @@ export default function ServicesStats({ stats, animatedStyle }) {
       alignItems: 'center',
     },
     statNumber: {
-      fontSize: 20,
+      fontSize: 15,
       fontWeight: 'bold',
       color: 'white',
       marginBottom: spacing.xs,
@@ -50,7 +49,7 @@ export default function ServicesStats({ stats, animatedStyle }) {
           <ThemedText style={styles.statLabel}>Active</ThemedText>
         </View>
         <View style={styles.statCard}>
-          <ThemedText style={styles.statNumber}>${stats.avgPrice}</ThemedText>
+          <ThemedText style={styles.statNumber}>Rs.{stats.avgPrice}</ThemedText>
           <ThemedText style={styles.statLabel}>Avg Price</ThemedText>
         </View>
       </View>
